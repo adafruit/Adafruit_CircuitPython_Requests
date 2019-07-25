@@ -6,12 +6,6 @@ import adafruit_esp32spi.adafruit_esp32spi_socket as socket
 from adafruit_esp32spi import adafruit_esp32spi
 import adafruit_requests as requests
 
-print("ESP32 SPI webclient test")
-
-TEXT_URL = "http://wifitest.adafruit.com/testwifi/index.html"
-JSON_URL = "http://api.coindesk.com/v1/bpi/currentprice/USD.json"
-
-
 # If you are using a board with pre-defined ESP32 Pins:
 esp32_cs = DigitalInOut(board.ESP_CS)
 esp32_ready = DigitalInOut(board.ESP_BUSY)
@@ -24,7 +18,6 @@ esp32_reset = DigitalInOut(board.ESP_RESET)
 
 spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
 esp = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs, esp32_ready, esp32_reset)
-requests.set_socket(socket, esp)
 
 print("Connecting to AP...")
 while not esp.is_connected:
@@ -35,20 +28,26 @@ while not esp.is_connected:
         continue
 print("Connected to", str(esp.ssid, 'utf-8'), "\tRSSI:", esp.rssi)
 
-#esp._debug = True
-print("Fetching text from", TEXT_URL)
-r = requests.get(TEXT_URL)
-print('-'*40)
-print(r.text)
-print('-'*40)
-r.close()
+requests.set_socket(socket, esp)
 
-print()
-print("Fetching json from", JSON_URL)
-r = requests.get(JSON_URL)
-print('-'*40)
-print(r.json())
-print('-'*40)
-r.close()
+# Initialize a requests object with a socket and esp32spi interface
+TEXT_URL = "http://wifitest.adafruit.com/testwifi/index.html"
 
-print("Done!")
+print("Fetching text from %s"%TEXT_URL)
+response = requests.get(TEXT_URL)
+print('-'*40)
+
+print("Text Response: ", response.text)
+print('-'*40)
+
+print("Raw Response, as bytes: {0}".format(response.content))
+print('-'*40)
+
+print("Response's HTTP Status Code: %d"%response.status_code)
+print('-'*40)
+
+print("Response's HTTP Headers: %s"%response.headers)
+print('-'*40)
+
+# Close, delete and collect the response data
+response.close()
