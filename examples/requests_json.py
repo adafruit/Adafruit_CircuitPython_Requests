@@ -1,4 +1,3 @@
-# adafruit_requests usage with an esp32spi_socket
 import board
 import busio
 from digitalio import DigitalInOut
@@ -30,24 +29,49 @@ print("Connected to", str(esp.ssid, 'utf-8'), "\tRSSI:", esp.rssi)
 
 requests.set_socket(socket, esp)
 
-# Initialize a requests object with a socket and esp32spi interface
-TEXT_URL = "http://wifitest.adafruit.com/testwifi/index.html"
+JSON_URL_GET = "http://httpbin.org/get"
+JSON_URL_POST = "http://httpbin.org/post"
 
-print("Fetching text from %s"%TEXT_URL)
-response = requests.get(TEXT_URL)
+# Custom Header
+headers = {"user-agent" : "blinka/1.0.0"}
+
+print("Fetching JSON from %s"%JSON_URL_GET)
+response = requests.get(JSON_URL_GET, headers=headers)
 print('-'*40)
 
-print("Text Response: ", response.text)
+json_data = response.json()
+print("JSON Response: ", json_data)
 print('-'*40)
 
-print("Raw Response, as bytes: {0}".format(response.content))
+headers = json_data['headers']
+print("Returned Custom User-Agent Header: {0}".format(headers['User-Agent']))
+print('-'*40)
+# Close, delete and collect the response data
+response.close()
+
+# Let's POST some data!
+
+print("Posting data to %s..."%JSON_URL_POST)
+response = requests.post(JSON_URL_POST, data="hello server!")
 print('-'*40)
 
-print("Response's HTTP Status Code: %d"%response.status_code)
+json_data = response.json()
+print("JSON Response: ", json_data)
+print('-'*40)
+print("Data Returned: ", json_data['data'])
+print('-'*40)
+# Close, delete and collect the response data
+response.close()
+
+# Let's post some JSON data!
+print("Posting JSON data to %s..."%JSON_URL_POST)
+response = requests.post(JSON_URL_POST, json={"date" : "Jul 25, 2019"})
 print('-'*40)
 
-print("Response's HTTP Headers: %s"%response.headers)
+json_data = response.json()
+print("JSON Response: ", json_data)
 print('-'*40)
-
+print("JSON Data Returned: ", json_data['json'])
+print('-'*40)
 # Close, delete and collect the response data
 response.close()
