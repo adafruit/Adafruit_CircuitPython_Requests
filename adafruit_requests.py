@@ -224,7 +224,7 @@ def request(method, url, data=None, json=None, headers=None, stream=False, timeo
         reason = ""
         if len(line) > 2:
             reason = line[2].rstrip()
-        self.parse_headers(sock)
+        parse_headers(sock)
 
         if line.startswith(b"Transfer-Encoding:"):
             if b"chunked" in line:
