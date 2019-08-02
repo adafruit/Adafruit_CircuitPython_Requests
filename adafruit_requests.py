@@ -224,23 +224,12 @@ def request(method, url, data=None, json=None, headers=None, stream=False, timeo
         reason = ""
         if len(line) > 2:
             reason = line[2].rstrip()
-        while True:
-            line = sock.readline()
-            if not line or line == b"\r\n":
-                break
-
-            # print("**line: ", line)
-            title, content = line.split(b": ", 1)
-            if title and content:
-                title = str(title.lower(), "utf-8")
-                content = str(content, "utf-8")
-                resp.headers[title] = content
-
-            if line.startswith(b"Transfer-Encoding:"):
-                if b"chunked" in line:
-                    raise ValueError("Unsupported " + line)
-            elif line.startswith(b"Location:") and not 200 <= status <= 299:
-                raise NotImplementedError("Redirects not yet supported")
+        resp.headers = parse_headers(sock)
+        if resp.headers.get("transfer-encoding"):
+            if "chunked" in resp.headers.get("transfer-encoding"):
+                raise ValueError("Unsupported " + resp.headers.get("transfer-encoding"))
+        elif resp.headers.get("location") and not 200 <= status <= 299:
+            raise NotImplementedError("Redirects not yet supported")
 
     except:
         sock.close()
