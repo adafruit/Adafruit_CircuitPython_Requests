@@ -110,7 +110,7 @@ class Response:
         # print("Content length:", content_length)
         if self._cached is None:
             try:
-                self._cached = self.socket.read(content_length)
+                self._cached = self.socket.recv(content_length)
             finally:
                 self.socket.close()
                 self.socket = None
@@ -138,7 +138,7 @@ class Response:
             raise NotImplementedError("Unicode not supported")
 
         while True:
-            chunk = self.socket.read(chunk_size)
+            chunk = self.socket.recv(chunk_size)
             if chunk:
                 yield chunk
             else:
