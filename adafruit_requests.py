@@ -192,17 +192,17 @@ def request(method, url, data=None, json=None, headers=None, stream=False, timeo
         else:
             conntype = _the_interface.TCP_MODE
             sock.connect(addr_info[-1], conntype)
-        sock.write(b"%s /%s HTTP/1.0\r\n" % (method, path))
+        sock.send(b"%s /%s HTTP/1.0\r\n" % (method, path))
         if "Host" not in headers:
-            sock.write(b"Host: %s\r\n" % host)
+            sock.send(b"Host: %s\r\n" % host)
         if "User-Agent" not in headers:
-            sock.write(b"User-Agent: Adafruit CircuitPython\r\n")
+            sock.send(b"User-Agent: Adafruit CircuitPython\r\n")
         # Iterate over keys to avoid tuple alloc
         for k in headers:
-            sock.write(k.encode())
-            sock.write(b": ")
-            sock.write(headers[k].encode())
-            sock.write(b"\r\n")
+            sock.send(k.encode())
+            sock.send(b": ")
+            sock.send(headers[k].encode())
+            sock.send(b"\r\n")
         if json is not None:
             assert data is None
             try:
@@ -210,12 +210,12 @@ def request(method, url, data=None, json=None, headers=None, stream=False, timeo
             except ImportError:
                 import ujson as json_module
             data = json_module.dumps(json)
-            sock.write(b"Content-Type: application/json\r\n")
+            sock.send(b"Content-Type: application/json\r\n")
         if data:
-            sock.write(b"Content-Length: %d\r\n" % len(data))
-        sock.write(b"\r\n")
+            sock.send(b"Content-Length: %d\r\n" % len(data))
+        sock.send(b"\r\n")
         if data:
-            sock.write(bytes(data, "utf-8"))
+            sock.send(bytes(data, "utf-8"))
 
         line = sock.readline()
         # print(line)
