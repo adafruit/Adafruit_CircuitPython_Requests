@@ -192,9 +192,9 @@ def request(method, url, data=None, json=None, headers=None, stream=False, timeo
         else:
             conntype = _the_interface.TCP_MODE
             sock.connect(addr_info[-1], conntype)
-        sock.send(b"%s /%s HTTP/1.0\r\n" % (method, path))
+        sock.send(b"%s /%s HTTP/1.0\r\n" % (bytes(method, "utf-8"), bytes(path, "utf-8")))
         if "Host" not in headers:
-            sock.send(b"Host: %s\r\n" % host)
+            sock.send(b"Host: %s\r\n" % bytes(host, "utf-8"))
         if "User-Agent" not in headers:
             sock.send(b"User-Agent: Adafruit CircuitPython\r\n")
         # Iterate over keys to avoid tuple alloc
