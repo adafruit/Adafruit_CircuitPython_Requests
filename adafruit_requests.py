@@ -253,7 +253,11 @@ def parse_headers(sock):
             break
 
         #print("**line: ", line)
-        title, content = line.split(b': ', 1)
+        splits = line.split(b': ', 1)
+        title = splits[0]
+        content = ''
+        if len(splits) > 1:
+            content = splits[1]
         if title and content:
             title = str(title.lower(), 'utf-8')
             content = str(content, 'utf-8')
