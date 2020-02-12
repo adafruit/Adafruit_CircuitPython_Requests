@@ -68,7 +68,7 @@ def set_socket(socket):
     _socket = socket
 
 # Hang onto open sockets so that we can reuse them.
-_socket_pool = {}
+_socket_pool = {} # pylint: disable=invalid-name
 def _get_socket(host, port, proto, *, timeout=1):
     key = (host, port, proto)
     if key in _socket_pool:
@@ -168,6 +168,10 @@ class Response:
 
     @property
     def headers(self):
+        """
+        The response headers. Does not include headers from the trailer until
+        the content has been read.
+        """
         return self._headers
 
     @property
@@ -210,6 +214,7 @@ class Response:
 
     def json(self):
         """The HTTP content, parsed into a json dictionary"""
+        # pylint: disable=import-outside-toplevel
         try:
             import json as json_module
         except ImportError:
@@ -270,9 +275,6 @@ def request(method, url, data=None, json=None, headers=None, stream=False, timeo
     sent along. 'stream' will determine if we buffer everything, or whether to only
     read only when requested
     """
-    global _the_interface  # pylint: disable=global-statement, invalid-name
-    global _socket  # pylint: disable=global-statement, invalid-name
-
     if not headers:
         headers = {}
 
@@ -308,6 +310,7 @@ def request(method, url, data=None, json=None, headers=None, stream=False, timeo
         socket.send(b"\r\n")
     if json is not None:
         assert data is None
+        # pylint: disable=import-outside-toplevel
         try:
             import json as json_module
         except ImportError:
