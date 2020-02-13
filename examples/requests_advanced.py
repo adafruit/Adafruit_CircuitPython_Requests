@@ -8,6 +8,7 @@ import adafruit_requests as requests
 # Add a secrets.py to your filesystem that has a dictionary called secrets with "ssid" and
 # "password" keys with your WiFi credentials. DO NOT share that file or commit it into Git or other
 # source control.
+# pylint: disable=no-name-in-module,wrong-import-order
 from secrets import secrets
 
 # If you are using a board with pre-defined ESP32 Pins:
