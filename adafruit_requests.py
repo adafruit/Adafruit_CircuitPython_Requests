@@ -146,7 +146,7 @@ class Response:
 
 
 # pylint: disable=too-many-branches, too-many-statements, unused-argument, too-many-arguments, too-many-locals
-def request(method, url, data=None, json=None, headers=None, stream=False, timeout=1):
+def request(method, url, data=None, json=None, headers=None, stream=False, timeout=1, content_type=None):
     """Perform an HTTP request to the given url which we will parse to determine
     whether to use SSL ('https://') or not. We can also send some provided 'data'
     or a json dictionary which we will stringify. 'headers' is optional HTTP headers
@@ -212,6 +212,8 @@ def request(method, url, data=None, json=None, headers=None, stream=False, timeo
             data = json_module.dumps(json)
             sock.send(b"Content-Type: application/json\r\n")
         if data:
+            if content_type is not None:
+                sock.send(b"Content-Type: %s\r\n" % content_type)
             sock.send(b"Content-Length: %d\r\n" % len(data))
         sock.send(b"\r\n")
         if data:
