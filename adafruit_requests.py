@@ -212,6 +212,12 @@ def request(method, url, data=None, json=None, headers=None, stream=False, timeo
             data = json_module.dumps(json)
             sock.send(b"Content-Type: application/json\r\n")
         if data:
+            if isinstance(data, dict):
+                sock.send(b"Content-Type: application/x-www-form-urlencoded\r\n")
+                _post_data = ""
+                for k in data:
+                    _post_data = "{}&{}={}".format(_post_data, k, data[k])
+                data = _post_data[1:]
             sock.send(b"Content-Length: %d\r\n" % len(data))
         sock.send(b"\r\n")
         if data:
