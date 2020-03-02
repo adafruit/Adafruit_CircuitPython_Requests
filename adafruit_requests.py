@@ -221,7 +221,10 @@ def request(method, url, data=None, json=None, headers=None, stream=False, timeo
             sock.send(b"Content-Length: %d\r\n" % len(data))
         sock.send(b"\r\n")
         if data:
-            sock.send(bytes(data))
+            if isinstance(data, bytearray):
+                sock.send(bytes(data))
+            else:
+                sock.send(bytes(data, "utf-8"))
 
         line = sock.readline()
         # print(line)
