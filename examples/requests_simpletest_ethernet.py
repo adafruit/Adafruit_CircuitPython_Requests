@@ -18,25 +18,61 @@ TEXT_URL = "http://wifitest.adafruit.com/testwifi/index.html"
 JSON_GET_URL = "http://httpbin.org/get"
 JSON_POST_URL = "http://httpbin.org/post"
 
+attempts = 3 # Number of attempts to retry each request
+failure_count = 0
+response = None
+
 print("Fetching text from %s"%TEXT_URL)
-response = requests.get(TEXT_URL)
+while not response:
+    try:
+        response = requests.get(TEXT_URL)
+        attempts = 0
+    except AssertionError as error:
+        print("Request failed, retrying...\n", error)
+        failure_count += 1
+        if failure_count >= attempts:
+            raise AssertionError("Failed to resolve hostname, \
+                                  please check your router's DNS configuration.")
+        continue
 print('-'*40)
 
 print("Text Response: ", response.text)
 print('-'*40)
 response.close()
+response = None
 
 print("Fetching JSON data from %s"%JSON_GET_URL)
-response = requests.get(JSON_GET_URL)
+while not response:
+    try:
+        response = requests.get(JSON_GET_URL)
+        attempts = 0
+    except AssertionError as error:
+        print("Request failed, retrying...\n", error)
+        failure_count += 1
+        if failure_count >= attempts:
+            raise AssertionError("Failed to resolve hostname, \
+                                  please check your router's DNS configuration.")
+        continue
 print('-'*40)
 
 print("JSON Response: ", response.json())
 print('-'*40)
 response.close()
+response = None
 
 data = '31F'
 print("POSTing data to {0}: {1}".format(JSON_POST_URL, data))
-response = requests.post(JSON_POST_URL, data=data)
+while not response:
+    try:
+        response = requests.post(JSON_POST_URL, data=data)
+        attempts = 0
+    except AssertionError as error:
+        print("Request failed, retrying...\n", error)
+        failure_count += 1
+        if failure_count >= attempts:
+            raise AssertionError("Failed to resolve hostname, \
+                                  please check your router's DNS configuration.")
+        continue
 print('-'*40)
 
 json_resp = response.json()
@@ -44,10 +80,21 @@ json_resp = response.json()
 print("Data received from server:", json_resp['data'])
 print('-'*40)
 response.close()
+response = None
 
 json_data = {"Date" : "July 25, 2019"}
 print("POSTing data to {0}: {1}".format(JSON_POST_URL, json_data))
-response = requests.post(JSON_POST_URL, json=json_data)
+while not response:
+    try:
+        response = requests.post(JSON_POST_URL, json=json_data)
+        attempts = 0
+    except AssertionError as error:
+        print("Request failed, retrying...\n", error)
+        failure_count += 1
+        if failure_count >= attempts:
+            raise AssertionError("Failed to resolve hostname, \
+                                  please check your router's DNS configuration.")
+        continue
 print('-'*40)
 
 json_resp = response.json()
