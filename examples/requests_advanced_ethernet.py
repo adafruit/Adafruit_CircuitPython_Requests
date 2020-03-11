@@ -27,7 +27,7 @@ print("Fetching JSON data from %s..."%JSON_GET_URL)
 while not response:
     try:
         response = requests.get(JSON_GET_URL, headers=headers)
-        attempts = 0
+        failure_count = 0
     except AssertionError as error:
         print("Request failed, retrying...\n", error)
         failure_count += 1

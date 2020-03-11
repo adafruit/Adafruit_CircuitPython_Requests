@@ -26,7 +26,7 @@ print("Fetching text from %s"%TEXT_URL)
 while not response:
     try:
         response = requests.get(TEXT_URL)
-        attempts = 0
+        failure_count = 0
     except AssertionError as error:
         print("Request failed, retrying...\n", error)
         failure_count += 1
@@ -45,7 +45,7 @@ print("Fetching JSON data from %s"%JSON_GET_URL)
 while not response:
     try:
         response = requests.get(JSON_GET_URL)
-        attempts = 0
+        failure_count = 0
     except AssertionError as error:
         print("Request failed, retrying...\n", error)
         failure_count += 1
@@ -65,7 +65,7 @@ print("POSTing data to {0}: {1}".format(JSON_POST_URL, data))
 while not response:
     try:
         response = requests.post(JSON_POST_URL, data=data)
-        attempts = 0
+        failure_count = 0
     except AssertionError as error:
         print("Request failed, retrying...\n", error)
         failure_count += 1
@@ -87,7 +87,7 @@ print("POSTing data to {0}: {1}".format(JSON_POST_URL, json_data))
 while not response:
     try:
         response = requests.post(JSON_POST_URL, json=json_data)
-        attempts = 0
+        failure_count = 0
     except AssertionError as error:
         print("Request failed, retrying...\n", error)
         failure_count += 1
