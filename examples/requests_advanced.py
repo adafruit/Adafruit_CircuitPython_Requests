@@ -21,11 +21,11 @@ esp = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs, esp32_ready, esp32_reset)
 print("Connecting to AP...")
 while not esp.is_connected:
     try:
-        esp.connect_AP(b'MY_SSID_NAME', b'MY_SSID_PASSWORD')
+        esp.connect_AP(b"MY_SSID_NAME", b"MY_SSID_PASSWORD")
     except RuntimeError as e:
-        print("could not connect to AP, retrying: ",e)
+        print("could not connect to AP, retrying: ", e)
         continue
-print("Connected to", str(esp.ssid, 'utf-8'), "\tRSSI:", esp.rssi)
+print("Connected to", str(esp.ssid, "utf-8"), "\tRSSI:", esp.rssi)
 
 # Initialize a requests object with a socket and esp32spi interface
 requests.set_socket(socket, esp)
@@ -33,20 +33,20 @@ requests.set_socket(socket, esp)
 JSON_GET_URL = "http://httpbin.org/get"
 
 # Define a custom header as a dict.
-headers = {"user-agent" : "blinka/1.0.0"}
+headers = {"user-agent": "blinka/1.0.0"}
 
-print("Fetching JSON data from %s..."%JSON_GET_URL)
+print("Fetching JSON data from %s..." % JSON_GET_URL)
 response = requests.get(JSON_GET_URL, headers=headers)
-print('-'*60)
+print("-" * 60)
 
 json_data = response.json()
-headers = json_data['headers']
-print("Response's Custom User-Agent Header: {0}".format(headers['User-Agent']))
-print('-'*60)
+headers = json_data["headers"]
+print("Response's Custom User-Agent Header: {0}".format(headers["User-Agent"]))
+print("-" * 60)
 
 # Read Response's HTTP status code
 print("Response HTTP Status Code: ", response.status_code)
-print('-'*60)
+print("-" * 60)
 
 # Read Response, as raw bytes instead of pretty text
 print("Raw Response: ", response.content)
