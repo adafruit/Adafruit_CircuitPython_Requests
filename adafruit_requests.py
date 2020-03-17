@@ -67,9 +67,10 @@ def set_socket(sock, iface=None):
     global _the_sock  # pylint: disable=invalid-name, global-statement
     _the_sock = sock
     if iface:
-        global _the_interface # pylint: disable=invalid-name, global-statement
+        global _the_interface  # pylint: disable=invalid-name, global-statement
         _the_interface = iface
         _the_sock.set_interface(iface)
+
 
 class Response:
     """The response from a request, contains all the headers/content"""
@@ -125,6 +126,7 @@ class Response:
 
     def json(self):
         """The HTTP content, parsed into a json dictionary"""
+        # pylint: disable=import-outside-toplevel
         try:
             import json as json_module
         except ImportError:
@@ -192,7 +194,9 @@ def request(method, url, data=None, json=None, headers=None, stream=False, timeo
         else:
             conntype = _the_interface.TCP_MODE
             sock.connect(addr_info[-1], conntype)
-        sock.send(b"%s /%s HTTP/1.0\r\n" % (bytes(method, "utf-8"), bytes(path, "utf-8")))
+        sock.send(
+            b"%s /%s HTTP/1.0\r\n" % (bytes(method, "utf-8"), bytes(path, "utf-8"))
+        )
         if "Host" not in headers:
             sock.send(b"Host: %s\r\n" % bytes(host, "utf-8"))
         if "User-Agent" not in headers:
@@ -205,10 +209,12 @@ def request(method, url, data=None, json=None, headers=None, stream=False, timeo
             sock.send(b"\r\n")
         if json is not None:
             assert data is None
+            # pylint: disable=import-outside-toplevel
             try:
                 import json as json_module
             except ImportError:
                 import ujson as json_module
+            # pylint: enable=import-outside-toplevel
             data = json_module.dumps(json)
             sock.send(b"Content-Type: application/json\r\n")
         if data:
@@ -248,6 +254,7 @@ def request(method, url, data=None, json=None, headers=None, stream=False, timeo
     resp.reason = reason
     return resp
 
+
 def parse_headers(sock):
     """
     Parses the header portion of an HTTP request/response from the socket.
@@ -261,17 +268,18 @@ def parse_headers(sock):
         if not line or line == b"\r\n":
             break
 
-        #print("**line: ", line)
-        splits = line.split(b': ', 1)
+        # print("**line: ", line)
+        splits = line.split(b": ", 1)
         title = splits[0]
-        content = ''
+        content = ""
         if len(splits) > 1:
             content = splits[1]
         if title and content:
-            title = str(title.lower(), 'utf-8')
-            content = str(content, 'utf-8')
+            title = str(title.lower(), "utf-8")
+            content = str(content, "utf-8")
             headers[title] = content
     return headers
+
 
 def head(url, **kw):
     """Send HTTP HEAD request"""

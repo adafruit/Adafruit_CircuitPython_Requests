@@ -16,14 +16,14 @@ requests.set_socket(socket, eth)
 
 JSON_GET_URL = "http://httpbin.org/get"
 
-attempts = 3 # Number of attempts to retry each request
+attempts = 3  # Number of attempts to retry each request
 failure_count = 0
 response = None
 
 # Define a custom header as a dict.
-headers = {"user-agent" : "blinka/1.0.0"}
+headers = {"user-agent": "blinka/1.0.0"}
 
-print("Fetching JSON data from %s..."%JSON_GET_URL)
+print("Fetching JSON data from %s..." % JSON_GET_URL)
 while not response:
     try:
         response = requests.get(JSON_GET_URL, headers=headers)
@@ -32,19 +32,21 @@ while not response:
         print("Request failed, retrying...\n", error)
         failure_count += 1
         if failure_count >= attempts:
-            raise AssertionError("Failed to resolve hostname, \
-                                  please check your router's DNS configuration.")
+            raise AssertionError(
+                "Failed to resolve hostname, \
+                                  please check your router's DNS configuration."
+            )
         continue
-print('-'*60)
+print("-" * 60)
 
 json_data = response.json()
-headers = json_data['headers']
-print("Response's Custom User-Agent Header: {0}".format(headers['User-Agent']))
-print('-'*60)
+headers = json_data["headers"]
+print("Response's Custom User-Agent Header: {0}".format(headers["User-Agent"]))
+print("-" * 60)
 
 # Read Response's HTTP status code
 print("Response HTTP Status Code: ", response.status_code)
-print('-'*60)
+print("-" * 60)
 
 # Read Response, as raw bytes instead of pretty text
 print("Raw Response: ", response.content)
