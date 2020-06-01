@@ -1,34 +1,49 @@
+# pylint: disable=unused-import
+import time
 import board
 import busio
-from digitalio import DigitalInOut
-import adafruit_esp32spi.adafruit_esp32spi_socket as socket
-from adafruit_esp32spi import adafruit_esp32spi
+import digitalio
+from adafruit_fona.adafruit_fona import FONA
+from adafruit_fona.fona_3g import FONA3G
+import adafruit_fona.adafruit_fona_network as network
+import adafruit_fona.adafruit_fona_socket as cellular_socket
 import adafruit_requests as requests
 
-# If you are using a board with pre-defined ESP32 Pins:
-esp32_cs = DigitalInOut(board.ESP_CS)
-esp32_ready = DigitalInOut(board.ESP_BUSY)
-esp32_reset = DigitalInOut(board.ESP_RESET)
+# Get GPRS details and more from a secrets.py file
+try:
+    from secrets import secrets
+except ImportError:
+    print("GPRS secrets are kept in secrets.py, please add them there!")
+    raise
 
-# If you have an externally connected ESP32:
-# esp32_cs = DigitalInOut(board.D9)
-# esp32_ready = DigitalInOut(board.D10)
-# esp32_reset = DigitalInOut(board.D5)
+# Create a serial connection for the FONA connection
+uart = busio.UART(board.TX, board.RX)
+rst = digitalio.DigitalInOut(board.D9)
 
-spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
-esp = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs, esp32_ready, esp32_reset)
+# Use this for FONA800 and FONA808
+fona = FONA(uart, rst)
 
-print("Connecting to AP...")
-while not esp.is_connected:
-    try:
-        esp.connect_AP(b"MY_SSID_NAME", b"MY_SSID_PASSWORD")
-    except RuntimeError as e:
-        print("could not connect to AP, retrying: ", e)
-        continue
-print("Connected to", str(esp.ssid, "utf-8"), "\tRSSI:", esp.rssi)
+# Use this for FONA3G
+# fona = FONA3G(uart, rst)
 
-# Initialize a requests object with a socket and esp32spi interface
-requests.set_socket(socket, esp)
+# Initialize cellular data network
+network = network.CELLULAR(
+    fona, (secrets["apn"], secrets["apn_username"], secrets["apn_password"])
+)
+
+while not network.is_attached:
+    print("Attaching to network...")
+    time.sleep(0.5)
+print("Attached!")
+
+while not network.is_connected:
+    print("Connecting to network...")
+    network.connect()
+    time.sleep(0.5)
+print("Network Connected!")
+
+# Initialize a requests object with a socket and cellular interface
+requests.set_socket(cellular_socket, fona)
 
 JSON_GET_URL = "http://httpbin.org/get"
 
