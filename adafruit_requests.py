@@ -56,39 +56,23 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 
 # This module mirror CPython's socket class. It is settable because the network devices are external
 # to CircuitPython.
-_socket = None  # pylint: disable=invalid-name
-
-
-def set_socket(socket):
-    """Helper to set the global socket.
-    :param sock: socket module
-
-    """
-    global _socket  # pylint: disable=invalid-name, global-statement
-    _socket = socket
+socket_module = None  # pylint: disable=invalid-name
 
 # Hang onto open sockets so that we can reuse them.
 _socket_pool = {} # pylint: disable=invalid-name
 def _get_socket(host, port, proto, *, timeout=1):
     key = (host, port, proto)
     if key in _socket_pool:
-        socket = _socket_pool[key]
-        if not socket.connected():
-            del _socket_pool[key]
-        else:
-            return socket
-    addr_info = _socket.getaddrinfo(host, port, 0, _socket.SOCK_STREAM)[0]
-    sock = _socket.socket(addr_info[0], addr_info[1], addr_info[2])
+        return _socket_pool[key]
+    if not socket_module:
+        raise RuntimeError("socket_module must be set before using adafruit_requests")
+    addr_info = socket_module.getaddrinfo(host, port, 0, socket_module.SOCK_STREAM)[0]
+    sock = socket_module.socket(addr_info[0], addr_info[1], addr_info[2])
     sock.settimeout(timeout)  # socket read timeout
 
-    if proto == "https:":
-        # for SSL we need to know the host name
-        sock.connect((host, port), _socket.TLS_MODE)
-    else:
-        sock.connect(addr_info[-1], _socket.TCP_MODE)
+    sock.connect((host, port))
     _socket_pool[key] = sock
     return sock
-
 
 class Response:
     """The response from a request, contains all the headers/content"""
@@ -100,18 +84,16 @@ class Response:
         self.encoding = "utf-8"
         self._cached = None
         self._headers = {}
+        # 0 means the first receive buffer is empty because we always consume some of it. non-zero
+        # means we need to look at it's tail for our pattern.
+        self._start_index = 0
+        self._receive_buffers = [bytearray(32)]
 
-        if not self.socket.connected():
-            raise RuntimeError("We were too slow")
-
-        line = self.socket.readline()
-        if line is None:
+        http = self._readto(b" ")
+        if not http:
             raise RuntimeError("Unable to read HTTP response.")
-        line = line.split(b" ", 2)
-        self.status_code = int(line[1])
-        self.reason = ""
-        if len(line) > 2:
-            self.reason = line[2].rstrip()
+        self.status_code = int(self._readto(b" "))
+        self.reason = self._readto(b"\r\n")
         self._parse_headers()
 
     def __enter__(self):
@@ -119,6 +101,73 @@ class Response:
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
+
+    def _readto(self, first, second=b""):
+        # TODO: Make this work if either pattern spans buffers.
+        current_buffer = 0
+        found = -1
+        new_start = 0
+        if self._start_index > 0:
+            first_i = self._receive_buffers[0].find(first, self._start_index)
+            if second:
+                second_i = self._receive_buffers[0].find(second, self._start_index)
+                if second_i >= 0 and (first_i < 0 or first_i > second_i):
+                    found = second_i
+                    new_start = second_i + len(second)
+
+            if found == -1:
+                if first_i > 0:
+                    found = first_i
+                    new_start = first_i + len(first)
+                else:
+                    current_buffer = 1
+
+        while found < 0:
+            if current_buffer == len(self._receive_buffers):
+                self._receive_buffers.append(bytearray(len(self._receive_buffers[0])))
+            buf = self._receive_buffers[current_buffer]
+            size = self.socket.recv_into(buf)
+            if size != len(buf):
+                raise RuntimeError()
+
+            first_i = buf.find(first)
+            if second:
+                second_i = buf.find(second)
+                if second_i >= 0 and (first_i < 0 or first_i > second_i):
+                    found = second_i
+                    new_start = second_i + len(second)
+            if found == -1:
+                if first_i >= 0:
+                    found = first_i
+                    new_start = first_i + len(first)
+                else:
+                    current_buffer += 1
+
+        if current_buffer == 0:
+            b = bytes(self._receive_buffers[0][self._start_index:found])
+            self._start_index = new_start
+        else:
+            new_len = len(self._receive_buffers[0]) * current_buffer + found - self._start_index
+            b = bytearray(new_len)
+            i = 0
+            for bufi in range(0, current_buffer + 1):
+                buf = self._receive_buffers[bufi]
+                if bufi == 0 and self._start_index > 0:
+                    i = len(buf) - self._start_index
+                    b[:i] = buf[self._start_index:]
+                elif bufi == current_buffer:
+                    b[i:i+found] = buf[:found]
+                else:
+                    b[i:i+len(buf)] = buf
+                    i += len(buf)
+
+            self._start_index = new_start
+            # Swap the current buffer to the front because it has some bytes we
+            # need to search.
+            last_buf = self._receive_buffers[current_buffer]
+            self._receive_buffers[current_buffer] = self._receive_buffers[0]
+            self._receive_buffers[0] = last_buf
+        return b
 
     def close(self):
         """Close, delete and collect the response data"""
@@ -134,9 +183,7 @@ class Response:
                     self.socket.recv(content_length)
                 else:
                     while True:
-                        chunk_header = self.socket.readline()
-                        if b";" in chunk_header:
-                            chunk_header = chunk_header.split(b";")[0]
+                        chunk_header = self._readto(b";", b"\r\n")
                         chunk_size = int(chunk_header, 16)
                         if chunk_size == 0:
                             break
@@ -152,16 +199,11 @@ class Response:
         Expects first line of HTTP request/response to have been read already.
         """
         while True:
-            line = self.socket.readline()
-            if not line or line == b"\r\n":
+            title = self._readto(b": ", b"\r\n")
+            if not title:
                 break
 
-            #print("**line: ", line)
-            splits = line.split(b': ', 1)
-            title = splits[0]
-            content = ''
-            if len(splits) > 1:
-                content = splits[1]
+            content = self._readto(b"\r\n")
             if title and content:
                 title = str(title.lower(), 'utf-8')
                 content = str(content, 'utf-8')
@@ -185,24 +227,7 @@ class Response:
 
         # print("Content length:", content_length)
         if self._cached is None:
-            if content_length:
-                self._cached = self.socket.recv(content_length)
-            else:
-                chunks = []
-                while True:
-                    chunk_header = self.socket.readline()
-                    if chunk_header is None:
-                        raise RuntimeError("Reading content timed out.")
-                    if b";" in chunk_header:
-                        chunk_header = chunk_header.split(b";")[0]
-                    chunk_size = int(chunk_header, 16)
-                    if chunk_size == 0:
-                        break
-                    chunks.append(self.socket.read(chunk_size))
-                    self.socket.read(2) # Read the trailing CR LF
-                self._parse_headers()
-                self._cached = b"".join(chunks)
-            self.socket = None
+            self._cached = b"".join(self.iter_content(chunk_size=32))
 
         # print("Buffer length:", len(self._cached))
         return self._cached
@@ -236,16 +261,20 @@ class Response:
         total_read = 0
         if content_length:
             while total_read < content_length:
-                chunk = self.socket.recv(chunk_size)
-                total_read += chunk_size
+                if total_read == 0 and self._start_index > 0:
+                    chunk = bytearray(chunk_size)
+                    left = len(self._receive_buffers[0]) - self._start_index
+                    chunk = b"".join((self._receive_buffers[0][self._start_index:],
+                                      self.socket.recv(chunk_size - left)))
+                else:
+                    chunk = self.socket.recv(chunk_size)
+                total_read += len(chunk)
                 yield chunk
         else:
             pending_bytes = 0
             chunks = []
             while True:
-                chunk_header = self.socket.readline()
-                if b";" in chunk_header:
-                    chunk_header = chunk_header.split(b";")[0]
+                chunk_header = self._readto(b";", b"\r\n")
                 http_chunk_size = int(chunk_header, 16)
                 if http_chunk_size == 0:
                     break
