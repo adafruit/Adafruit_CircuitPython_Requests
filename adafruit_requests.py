@@ -57,6 +57,7 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 # This module mirror CPython's socket class. It is settable because the network devices are external
 # to CircuitPython.
 socket_module = None  # pylint: disable=invalid-name
+ssl_context = None
 
 # Hang onto open sockets so that we can reuse them.
 _socket_pool = {} # pylint: disable=invalid-name
@@ -66,8 +67,12 @@ def _get_socket(host, port, proto, *, timeout=1):
         return _socket_pool[key]
     if not socket_module:
         raise RuntimeError("socket_module must be set before using adafruit_requests")
+    if proto == "https:" and not ssl_context:
+        raise RuntimeError("ssl_context must be set before using adafruit_requests for https")
     addr_info = socket_module.getaddrinfo(host, port, 0, socket_module.SOCK_STREAM)[0]
     sock = socket_module.socket(addr_info[0], addr_info[1], addr_info[2])
+    if proto == "https:":
+        sock = ssl_context.wrap_socket(sock, server_hostname=host)
     sock.settimeout(timeout)  # socket read timeout
 
     sock.connect((host, port))
@@ -87,6 +92,7 @@ class Response:
         # 0 means the first receive buffer is empty because we always consume some of it. non-zero
         # means we need to look at it's tail for our pattern.
         self._start_index = 0
+        self._buffer_sizes = [0]
         self._receive_buffers = [bytearray(32)]
 
         http = self._readto(b" ")
@@ -104,44 +110,62 @@ class Response:
 
     def _readto(self, first, second=b""):
         # TODO: Make this work if either pattern spans buffers.
+        if len(first) > 2 or len(second) > 2:
+            raise ValueError("Pattern too long. Must be less than 3 characters.")
         current_buffer = 0
-        found = -1
+        found = -2
         new_start = 0
-        if self._start_index > 0:
+        if self._start_index < self._buffer_sizes[0]:
             first_i = self._receive_buffers[0].find(first, self._start_index)
             if second:
                 second_i = self._receive_buffers[0].find(second, self._start_index)
-                if second_i >= 0 and (first_i < 0 or first_i > second_i):
+                if second_i >= 0 and (first_i <= -1 or first_i > second_i):
                     found = second_i
                     new_start = second_i + len(second)
 
-            if found == -1:
-                if first_i > 0:
+            if found == -2:
+                if first_i >= 0:
                     found = first_i
                     new_start = first_i + len(first)
                 else:
                     current_buffer = 1
 
-        while found < 0:
+        while found < -1:
             if current_buffer == len(self._receive_buffers):
                 self._receive_buffers.append(bytearray(len(self._receive_buffers[0])))
+                self._buffer_sizes.append(0)
             buf = self._receive_buffers[current_buffer]
             size = self.socket.recv_into(buf)
-            if size != len(buf):
-                raise RuntimeError()
+            self._buffer_sizes[current_buffer] = size
 
-            first_i = buf.find(first)
+            if len(first) == 2:
+                previous_size = self._buffer_sizes[current_buffer - 1]
+                if (self._receive_buffers[current_buffer - 1][previous_size - 1] == first[0] and
+                    buf[0] == first[1]):
+                    found = -1
+                    new_start = 1
+                    break
+
+            first_i = buf.find(first, 0, size)
             if second:
-                second_i = buf.find(second)
+                if len(second) == 2:
+                    previous_size = self._buffer_sizes[current_buffer - 1]
+                    if (self._receive_buffers[current_buffer - 1][previous_size - 1] == second[0] and
+                    buf[0] == second[1]):
+                        found = -1
+                        new_start = 1
+                        break
+                second_i = buf.find(second, 0, size)
                 if second_i >= 0 and (first_i < 0 or first_i > second_i):
                     found = second_i
                     new_start = second_i + len(second)
-            if found == -1:
-                if first_i >= 0:
-                    found = first_i
-                    new_start = first_i + len(first)
-                else:
-                    current_buffer += 1
+                    break
+            if first_i >= 0:
+                found = first_i
+                new_start = first_i + len(first)
+                break
+            current_buffer += 1
+
 
         if current_buffer == 0:
             b = bytes(self._receive_buffers[0][self._start_index:found])
@@ -152,21 +176,26 @@ class Response:
             i = 0
             for bufi in range(0, current_buffer + 1):
                 buf = self._receive_buffers[bufi]
+                size = self._buffer_sizes[bufi]
                 if bufi == 0 and self._start_index > 0:
-                    i = len(buf) - self._start_index
-                    b[:i] = buf[self._start_index:]
+                    i = size - self._start_index
+                    b[:i] = buf[self._start_index:size]
                 elif bufi == current_buffer:
-                    b[i:i+found] = buf[:found]
+                    if found > 0:
+                        b[i:i+found] = buf[:found]
                 else:
-                    b[i:i+len(buf)] = buf
-                    i += len(buf)
+                    b[i:i+size] = buf[:size]
+                    i += size
 
             self._start_index = new_start
             # Swap the current buffer to the front because it has some bytes we
             # need to search.
             last_buf = self._receive_buffers[current_buffer]
             self._receive_buffers[current_buffer] = self._receive_buffers[0]
+            self._buffer_sizes[0] = self._buffer_sizes[current_buffer]
             self._receive_buffers[0] = last_buf
+            self._buffer_sizes[current_buffer] = 0
+
         return b
 
     def close(self):
@@ -230,7 +259,17 @@ class Response:
             self._cached = b"".join(self.iter_content(chunk_size=32))
 
         # print("Buffer length:", len(self._cached))
+        # print("content", self._cached)
         return self._cached
+
+    def read(self, size=-1):
+        if size == -1:
+            return self.content
+        else:
+            raise NotImplementedError()
+
+    def readinto(self, buf):
+        pass
 
     @property
     def text(self):
@@ -246,7 +285,7 @@ class Response:
         except ImportError:
             import ujson as json_module
 
-        return json_module.loads(self.content)
+        return json_module.load(self)
 
     def iter_content(self, chunk_size=1, decode_unicode=False):
         """An iterator that will stream data by only reading 'chunk_size'
@@ -261,13 +300,16 @@ class Response:
         total_read = 0
         if content_length:
             while total_read < content_length:
-                if total_read == 0 and self._start_index > 0:
-                    chunk = bytearray(chunk_size)
-                    left = len(self._receive_buffers[0]) - self._start_index
-                    chunk = b"".join((self._receive_buffers[0][self._start_index:],
+                if total_read == 0 and self._start_index < self._buffer_sizes[0]:
+                    # print("remaining", self._start_index, self._buffer_sizes[0], self._receive_buffers[0])
+                    size = self._buffer_sizes[0]
+                    left = size - self._start_index
+                    chunk = b"".join((self._receive_buffers[0][self._start_index:size],
                                       self.socket.recv(chunk_size - left)))
+                    # print("remaining", chunk)
                 else:
                     chunk = self.socket.recv(chunk_size)
+                    # print("recv", chunk)
                 total_read += len(chunk)
                 yield chunk
         else:
