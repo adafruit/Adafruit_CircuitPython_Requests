@@ -120,6 +120,8 @@ class Response:
                     new_start = first_i + len(first)
                 else:
                     current_buffer = 1
+        else:
+            self._start_index = 0
 
         while found < -1:
             if current_buffer == len(self._receive_buffers):
@@ -206,11 +208,11 @@ class Response:
             if left == 1:
                 buf[0] = self._receive_buffers[0][start]
             else:
-                buf[:] = self._receive_buffers[0][start:end]
+                buf[:left] = self._receive_buffers[0][start:end]
             read = left
             self._start_index += left
             if read < nbytes:
-                read += self.socket.recv_into(memoryview(buf)[left:nbytes])
+                read += self.socket.recv_into(memoryview(buf)[read:nbytes])
         else:
             read = self.socket.recv_into(buf, nbytes)
         self._content_read += read
@@ -294,10 +296,7 @@ class Response:
     def json(self):
         """The HTTP content, parsed into a json dictionary"""
         # pylint: disable=import-outside-toplevel
-        try:
-            import json as json_module
-        except ImportError:
-            import ujson as json_module
+        import json as json_module
 
         # The cached JSON will be a list or dictionary.
         if self._cached:
@@ -319,7 +318,7 @@ class Response:
             raise NotImplementedError("Unicode not supported")
 
         total_read = 0
-        if self._content_length:
+        if self._content_length is not None:
             while self._content_read < self._content_length:
                 remaining = self._content_length - self._content_read
                 if chunk_size > remaining:
@@ -377,7 +376,6 @@ class Session:
         if proto == "https:":
             sock = self._ssl_context.wrap_socket(sock, server_hostname=host)
         sock.settimeout(timeout)  # socket read timeout
-
         sock.connect((host, port))
         self._open_sockets[key] = sock
         return sock
