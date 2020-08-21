@@ -198,7 +198,6 @@ class Response:
             nbytes = remaining
 
         if self._start_index < self._buffer_sizes[0]:
-            # print("remaining", self._start_index, self._buffer_sizes[0], self._receive_buffers[0])
             size = self._buffer_sizes[0]
             left = size - self._start_index
             if nbytes < left:
@@ -230,7 +229,6 @@ class Response:
         """Drain the remaining ESP socket buffers. We assume we already got what we wanted."""
         if self.socket:
             # Make sure we've read all of our response.
-            # print("Content length:", content_length)
             if self._cached is None:
                 if self._content_length:
                     self._throw_away(self._content_length)
@@ -333,28 +331,28 @@ class Response:
                 yield chunk
         else:
             pending_bytes = 0
-            chunks = []
+            buf = memoryview(bytearray(chunk_size))
             while True:
                 chunk_header = self._readto(b";", b"\r\n")
                 http_chunk_size = int(chunk_header, 16)
                 if http_chunk_size == 0:
                     break
+                self._content_length = http_chunk_size
                 remaining_in_http_chunk = http_chunk_size
                 while remaining_in_http_chunk:
                     read_now = chunk_size - pending_bytes
                     if read_now > remaining_in_http_chunk:
                         read_now = remaining_in_http_chunk
-                    chunks.append(self.socket.read(read_now))
+                    read_now = self._readinto(buf[pending_bytes:pending_bytes+read_now])
                     pending_bytes += read_now
                     if pending_bytes == chunk_size:
-                        yield b"".join(chunks)
+                        yield bytes(buf)
                         pending_bytes = 0
-                        chunks = []
 
-                self.socket.read(2) # Read the trailing CR LF
+                self._throw_away(2) # Read the trailing CR LF
             self._parse_headers()
-            if chunks:
-                yield b"".join(chunks)
+            if pending_bytes > 0:
+                yield bytes(buf[:pending_bytes])
         self.socket = None
 
 class Session:
