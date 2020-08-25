@@ -72,7 +72,7 @@ class Response:
 
     encoding = None
 
-    def __init__(self, sock):
+    def __init__(self, sock, session=None):
         self.socket = sock
         self.encoding = "utf-8"
         self._cached = None
@@ -92,6 +92,7 @@ class Response:
         self._parse_headers()
         self._raw = None
         self._content_read = 0
+        self._session = session
 
     def __enter__(self):
         return self
@@ -229,10 +230,12 @@ class Response:
         """Drain the remaining ESP socket buffers. We assume we already got what we wanted."""
         if self.socket:
             # Make sure we've read all of our response.
+            # print("Content length:", content_length)
             if self._cached is None:
-                if self._content_length:
-                    self._throw_away(self._content_length)
-                else:
+                remaining = self._content_length - self._content_read
+                if remaining > 0:
+                    self._throw_away(remaining)
+                elif self._content_length is None:
                     while True:
                         chunk_header = self._readto(b";", b"\r\n")
                         chunk_size = int(chunk_header, 16)
@@ -240,7 +243,11 @@ class Response:
                             break
                         self._throw_away(chunk_size + 2)
                     self._parse_headers()
-                self.socket = None
+            if self._session:
+                self._session.free_socket(self.socket)
+            else:
+                self.socket.close()
+            self.socket = None
 
     def _parse_headers(self):
         """
@@ -307,6 +314,7 @@ class Response:
         obj = json_module.load(self._raw)
         if not self._cached:
             self._cached = obj
+        self._close()
         return obj
 
     def iter_content(self, chunk_size=1, decode_unicode=False):
@@ -353,7 +361,7 @@ class Response:
             self._parse_headers()
             if pending_bytes > 0:
                 yield bytes(buf[:pending_bytes])
-        self.socket = None
+        self._close()
 
 class Session:
     def __init__(self, socket_pool, ssl_context=None):
@@ -361,12 +369,22 @@ class Session:
         self._ssl_context = ssl_context
         # Hang onto open sockets so that we can reuse them.
         self._open_sockets = {}
+        self._socket_free = {}
         self._last_response = None
+
+    def free_socket(self, socket):
+        if socket not in self._open_sockets.values():
+            raise RuntimeError("Socket not from session")
+        self._socket_free[socket] = True
+
 
     def _get_socket(self, host, port, proto, *, timeout=1):
         key = (host, port, proto)
         if key in self._open_sockets:
-            return self._open_sockets[key]
+            sock = self._open_sockets[key]
+            if self._socket_free[sock]:
+                self._socket_free[sock] = False
+                return sock
         if proto == "https:" and not self._ssl_context:
             raise RuntimeError("ssl_context must be set before using adafruit_requests for https")
         addr_info = self._socket_pool.getaddrinfo(host, port, 0, self._socket_pool.SOCK_STREAM)[0]
@@ -374,8 +392,32 @@ class Session:
         if proto == "https:":
             sock = self._ssl_context.wrap_socket(sock, server_hostname=host)
         sock.settimeout(timeout)  # socket read timeout
-        sock.connect((host, port))
+        ok = True
+        try:
+            sock.connect((host, port))
+        except MemoryError:
+            if not any(self._socket_free.items()):
+                raise
+            ok = False
+
+        # We couldn't connect due to memory so clean up the open sockets.
+        if not ok:
+            for s in self._socket_free:
+                if self._socket_free[s]:
+                    s.close()
+                    del self._socket_free[s]
+                    for k in self._open_sockets:
+                        if self._open_sockets[k] == s:
+                            del self._open_sockets[k]
+            # Recreate the socket because the ESP-IDF won't retry the connection if it failed once.
+            sock = None # Clear first so the first socket can be cleaned up.
+            sock = self._socket_pool.socket(addr_info[0], addr_info[1], addr_info[2])
+            if proto == "https:":
+                sock = self._ssl_context.wrap_socket(sock, server_hostname=host)
+            sock.settimeout(timeout)  # socket read timeout
+            sock.connect((host, port))
         self._open_sockets[key] = sock
+        self._socket_free[sock] = False
         return sock
 
     # pylint: disable=too-many-branches, too-many-statements, unused-argument, too-many-arguments, too-many-locals
@@ -447,7 +489,7 @@ class Session:
             else:
                 socket.send(bytes(data, "utf-8"))
 
-        resp = Response(socket)  # our response
+        resp = Response(socket, self)  # our response
         if "location" in resp.headers and not 200 <= resp.status_code <= 299:
             raise NotImplementedError("Redirects not yet supported")
 
