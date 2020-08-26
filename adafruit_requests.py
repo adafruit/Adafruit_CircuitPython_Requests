@@ -1,6 +1,7 @@
 # The MIT License (MIT)
 #
 # Copyright (c) 2019 ladyada for Adafruit Industries
+# Copyright (c) 2020 Scott Shawcroft for Adafruit Industries
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +27,7 @@
 A requests-like library for web interfacing
 
 
-* Author(s): ladyada, Paul Sokolovsky
+* Author(s): ladyada, Paul Sokolovsky, Scott Shawcroft
 
 Implementation Notes
 --------------------
@@ -377,7 +378,6 @@ class Session:
             raise RuntimeError("Socket not from session")
         self._socket_free[socket] = True
 
-
     def _get_socket(self, host, port, proto, *, timeout=1):
         key = (host, port, proto)
         if key in self._open_sockets:
@@ -524,3 +524,50 @@ class Session:
     def delete(self, url, **kw):
         """Send HTTP DELETE request"""
         return self.request("DELETE", url, **kw)
+
+# Backwards compatible API:
+
+_default_session = None
+
+class FakeSSLContext:
+    def wrap_socket(self, socket):
+        return socket
+
+def set_socket(sock, iface=None):
+    global _default_session
+    _default_session = Session(sock, FakeSSLContext())
+    if iface:
+        sock.set_interface(iface)
+
+def request(method, url, data=None, json=None, headers=None, stream=False, timeout=1):
+    _default_session.request(method, url, data=data, json=json, headers=headers, stream=stream, timeout=timeout)
+
+
+def head(url, **kw):
+    """Send HTTP HEAD request"""
+    return _default_session.request("HEAD", url, **kw)
+
+
+def get(url, **kw):
+    """Send HTTP GET request"""
+    return _default_session.request("GET", url, **kw)
+
+
+def post(url, **kw):
+    """Send HTTP POST request"""
+    return _default_session.request("POST", url, **kw)
+
+
+def put(url, **kw):
+    """Send HTTP PUT request"""
+    return _default_session.request("PUT", url, **kw)
+
+
+def patch(url, **kw):
+    """Send HTTP PATCH request"""
+    return _default_session.request("PATCH", url, **kw)
+
+
+def delete(url, **kw):
+    """Send HTTP DELETE request"""
+    return _default_session.request("DELETE", url, **kw)
