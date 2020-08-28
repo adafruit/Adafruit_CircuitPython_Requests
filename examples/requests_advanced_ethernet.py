@@ -35,7 +35,7 @@ while not response:
             raise AssertionError(
                 "Failed to resolve hostname, \
                                   please check your router's DNS configuration."
-            )
+            ) from error
         continue
 print("-" * 60)
 
