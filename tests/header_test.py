@@ -7,6 +7,7 @@ ip = "1.2.3.4"
 host = "httpbin.org"
 response_headers = b"HTTP/1.0 200 OK\r\nContent-Length: 0\r\n\r\n"
 
+
 def test_json():
     mocket.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
     sock = mocket.Mocket(response_headers)

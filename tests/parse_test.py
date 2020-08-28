@@ -7,7 +7,10 @@ ip = "1.2.3.4"
 host = "httpbin.org"
 response = {"Date": "July 25, 2019"}
 encoded = json.dumps(response).encode("utf-8")
-headers = "HTTP/1.0 200 OK\r\nContent-Length: {}\r\n\r\n".format(len(encoded)).encode("utf-8")
+headers = "HTTP/1.0 200 OK\r\nContent-Length: {}\r\n\r\n".format(len(encoded)).encode(
+    "utf-8"
+)
+
 
 def test_json():
     mocket.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
