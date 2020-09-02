@@ -1,5 +1,5 @@
 from unittest import mock
-import mocket
+import legacy_mocket as mocket
 import json
 import adafruit_requests
 
@@ -11,21 +11,23 @@ headers = "HTTP/1.0 200 OK\r\nContent-Length: {}\r\n\r\n".format(len(encoded)).e
     "utf-8"
 )
 
+
 def test_get_json():
     mocket.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
     sock = mocket.Mocket(headers + encoded)
-    del sock.recv_into
     mocket.socket.return_value = sock
 
     adafruit_requests.set_socket(mocket, mocket.interface)
     r = adafruit_requests.get("http://" + host + "/get")
+
     sock.connect.assert_called_once_with((host, 80))
     assert r.json() == response
+    r.close()
+
 
 def test_post_string():
     mocket.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
     sock = mocket.Mocket(headers + encoded)
-    del sock.recv_into
     mocket.socket.return_value = sock
 
     adafruit_requests.set_socket(mocket, mocket.interface)
@@ -33,3 +35,4 @@ def test_post_string():
     r = adafruit_requests.post("http://" + host + "/post", data=data)
     sock.connect.assert_called_once_with((host, 80))
     sock.send.assert_called_with(b"31F")
+    r.close()

@@ -8,6 +8,7 @@ path = "/testwifi/index.html"
 text = b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
 headers = b"HTTP/1.0 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n"
 
+
 def _chunk(response, split):
     i = 0
     chunked = b""
@@ -17,11 +18,14 @@ def _chunk(response, split):
         if remaining < chunk_size:
             chunk_size = remaining
         new_i = i + chunk_size
-        chunked += hex(chunk_size)[2:].encode("ascii") + b"\r\n" + response[i:new_i] + b"\r\n"
+        chunked += (
+            hex(chunk_size)[2:].encode("ascii") + b"\r\n" + response[i:new_i] + b"\r\n"
+        )
         i = new_i
     # The final chunk is zero length.
     chunked += b"0\r\n\r\n"
     return chunked
+
 
 def test_get_text():
     pool = mocket.MocketPool()
@@ -42,4 +46,3 @@ def test_get_text():
         ]
     )
     assert r.text == str(text, "utf-8")
-

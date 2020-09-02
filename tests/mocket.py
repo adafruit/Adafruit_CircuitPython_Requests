@@ -1,8 +1,5 @@
 from unittest import mock
 
-set_interface = mock.Mock()
-
-interface = mock.MagicMock()
 
 class MocketPool:
     SOCK_STREAM = 0
@@ -10,6 +7,7 @@ class MocketPool:
     def __init__(self):
         self.getaddrinfo = mock.Mock()
         self.socket = mock.Mock()
+
 
 class Mocket:
     def __init__(self, response):
@@ -35,9 +33,9 @@ class Mocket:
         self._position = end
         return r
 
-    def _recv_into(self, buf, nbytes=None):
-        assert nbytes is None or nbytes > 0
-        read = nbytes if nbytes else len(buf)
+    def _recv_into(self, buf, nbytes=0):
+        assert isinstance(nbytes, int) and nbytes >= 0
+        read = nbytes if nbytes > 0 else len(buf)
         remaining = len(self._response) - self._position
         if read > remaining:
             read = remaining
@@ -45,3 +43,11 @@ class Mocket:
         buf[:read] = self._response[self._position : end]
         self._position = end
         return read
+
+
+class SSLContext:
+    def __init__(self):
+        self.wrap_socket = mock.Mock(side_effect=self._wrap_socket)
+
+    def _wrap_socket(self, sock, server_hostname=None):
+        return sock

@@ -9,7 +9,9 @@ response = {"Date": "July 25, 2019"}
 encoded = json.dumps(response).encode("utf-8")
 # Padding here tests the case where a header line is exactly 32 bytes buffered by
 # aligning the Content-Type header after it.
-headers = "HTTP/1.0 200 OK\r\npadding: 000\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n".format(len(encoded)).encode(
+headers = "HTTP/1.0 200 OK\r\npadding: 000\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n".format(
+    len(encoded)
+).encode(
     "utf-8"
 )
 

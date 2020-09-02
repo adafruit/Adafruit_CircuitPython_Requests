@@ -7,7 +7,7 @@ http = adafruit_requests.Session(socket, ssl.create_default_context())
 
 print("Getting CircuitPython star count")
 headers = {"Transfer-Encoding": "chunked"}
-response = http.get("https://api.github.com/repos/adafruit/circuitpython", headers=headers)
-print(response.headers)
+response = http.get(
+    "https://api.github.com/repos/adafruit/circuitpython", headers=headers
+)
 print("circuitpython stars", response.json()["stargazers_count"])
-

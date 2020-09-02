@@ -1,5 +1,6 @@
 from unittest import mock
 import mocket
+import pytest
 import adafruit_requests
 
 ip = "1.2.3.4"
@@ -9,13 +10,26 @@ text = b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :
 response = b"HTTP/1.0 200 OK\r\nContent-Length: 70\r\n\r\n" + text
 
 
-def test_get_https_text():
-    mocket.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
+def test_get_https_no_ssl():
+    pool = mocket.MocketPool()
+    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
     sock = mocket.Mocket(response)
-    mocket.socket.return_value = sock
+    pool.socket.return_value = sock
 
-    adafruit_requests.set_socket(mocket, mocket.interface)
-    r = adafruit_requests.get("https://" + host + path)
+    s = adafruit_requests.Session(pool)
+    with pytest.raises(RuntimeError):
+        r = s.get("https://" + host + path)
+
+
+def test_get_https_text():
+    pool = mocket.MocketPool()
+    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
+    sock = mocket.Mocket(response)
+    pool.socket.return_value = sock
+    ssl = mocket.SSLContext()
+
+    s = adafruit_requests.Session(pool, ssl)
+    r = s.get("https://" + host + path)
 
     sock.connect.assert_called_once_with((host, 443))
     sock.send.assert_has_calls(
@@ -26,14 +40,18 @@ def test_get_https_text():
     )
     assert r.text == str(text, "utf-8")
 
+    # Close isn't needed but can be called to release the socket early.
+    r.close()
+
 
 def test_get_http_text():
-    mocket.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
+    pool = mocket.MocketPool()
+    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
     sock = mocket.Mocket(response)
-    mocket.socket.return_value = sock
+    pool.socket.return_value = sock
 
-    adafruit_requests.set_socket(mocket, mocket.interface)
-    r = adafruit_requests.get("http://" + host + path)
+    s = adafruit_requests.Session(pool)
+    r = s.get("http://" + host + path)
 
     sock.connect.assert_called_once_with((host, 80))
     sock.send.assert_has_calls(
@@ -43,6 +61,3 @@ def test_get_http_text():
         ]
     )
     assert r.text == str(text, "utf-8")
-
-
-# Add a chunked response test when we support HTTP 1.1

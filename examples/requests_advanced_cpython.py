@@ -1,6 +1,7 @@
 import socket
-import adafruit_requests as requests
-requests.socket_module = socket
+import adafruit_requests
+
+http = adafruit_requests.Session(socket)
 
 JSON_GET_URL = "http://httpbin.org/get"
 
@@ -8,7 +9,7 @@ JSON_GET_URL = "http://httpbin.org/get"
 headers = {"user-agent": "blinka/1.0.0"}
 
 print("Fetching JSON data from %s..." % JSON_GET_URL)
-response = requests.get(JSON_GET_URL, headers=headers)
+response = http.get(JSON_GET_URL, headers=headers)
 print("-" * 60)
 
 json_data = response.json()

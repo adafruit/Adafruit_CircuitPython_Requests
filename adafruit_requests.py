@@ -55,6 +55,7 @@ import gc
 __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 
+
 class _RawResponse:
     def __init__(self, response):
         self._response = response
@@ -66,6 +67,7 @@ class _RawResponse:
 
     def readinto(self, buf):
         return self._response._readinto(buf)
+
 
 class Response:
     """The response from a request, contains all the headers/content"""
@@ -105,9 +107,9 @@ class Response:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def _recv_into(self, buf, size=None):
+    def _recv_into(self, buf, size=0):
         if self._backwards_compatible:
-            size = len(buf) if size is None else size
+            size = len(buf) if size == 0 else size
             b = self.socket.recv(size)
             read_size = len(b)
             buf[:read_size] = b
@@ -119,7 +121,6 @@ class Response:
         buf = self._receive_buffer
         end = self._received_length
         while True:
-            print("searching", buf[:end])
             firsti = buf.find(first, 0, end)
             secondi = -1
             if second:
@@ -149,7 +150,7 @@ class Response:
             if end == len(buf):
                 new_size = len(buf) + 32
                 new_buf = bytearray(new_size)
-                new_buf[:len(buf)] = buf
+                new_buf[: len(buf)] = buf
                 buf = new_buf
                 self._receive_buffer = buf
 
@@ -172,13 +173,18 @@ class Response:
             buf[:read] = membuf[:read]
         if read < self._received_length:
             new_end = self._received_length - read
-            self._receive_buffer[:new_end] = membuf[read:self._received_length]
+            self._receive_buffer[:new_end] = membuf[read : self._received_length]
             self._received_length = new_end
         else:
             self._received_length = 0
         return read
 
     def _readinto(self, buf):
+        if not self.socket:
+            raise RuntimeError(
+                "Newer Response closed this one. Use Responses immediately."
+            )
+
         if not self._remaining:
             # Consume the chunk header if need be.
             if self._chunked:
@@ -204,33 +210,6 @@ class Response:
             read = self._recv_into(buf, nbytes)
         self._remaining -= read
 
-            #     else:
-            # print("chunked")
-            # pending_bytes = 0
-            # buf = memoryview(bytearray(chunk_size))
-            # while True:
-            #     print("chunk", self._content_read, self._content_length)
-            #     print("chunk header", chunk_header)
-            #     self._content_length = http_chunk_size
-            #     self._content_read = 0
-            #     remaining_in_http_chunk = http_chunk_size
-                
-            #     pending_bytes = 0
-            #     while remaining_in_http_chunk:
-            #         read_now = chunk_size - pending_bytes
-            #         if read_now > remaining_in_http_chunk:
-            #             read_now = remaining_in_http_chunk
-            #         read_now = self._readinto(buf[pending_bytes:pending_bytes+read_now])
-            #         pending_bytes += read_now
-            #         if pending_bytes == chunk_size:
-            #             break
-            #     yield bytes(buf)
-
-            #     self._throw_away(2) # Read the trailing CR LF
-            # 
-            # if pending_bytes > 0:
-            #     yield bytes(buf[:pending_bytes])
-
         return read
 
     def _throw_away(self, nbytes):
@@ -243,27 +222,27 @@ class Response:
         if remaining:
             self._recv_into(buf, remaining)
 
-    def _close(self):
+    def close(self):
         """Drain the remaining ESP socket buffers. We assume we already got what we wanted."""
-        if self.socket:
-            # Make sure we've read all of our response.
-            # print("Content length:", content_length)
-            if self._cached is None:
-                if self._remaining > 0:
-                    self._throw_away(self._remaining)
-                elif self._chunked:
-                    while True:
-                        chunk_header = self._readto(b";", b"\r\n")
-                        chunk_size = int(chunk_header, 16)
-                        if chunk_size == 0:
-                            break
-                        self._throw_away(chunk_size + 2)
-                    self._parse_headers()
-            if self._session:
-                self._session.free_socket(self.socket)
-            else:
-                self.socket.close()
-            self.socket = None
+        if not self.socket:
+            return
+        # Make sure we've read all of our response.
+        if self._cached is None:
+            if self._remaining > 0:
+                self._throw_away(self._remaining)
+            elif self._chunked:
+                while True:
+                    chunk_header = self._readto(b";", b"\r\n")
+                    chunk_size = int(chunk_header, 16)
+                    if chunk_size == 0:
+                        break
+                    self._throw_away(chunk_size + 2)
+                self._parse_headers()
+        if self._session:
+            self._session.free_socket(self.socket)
+        else:
+            self.socket.close()
+        self.socket = None
 
     def _parse_headers(self):
         """
@@ -277,14 +256,20 @@ class Response:
 
             content = self._readto(b"\r\n")
             if title and content:
-                title = str(title, 'utf-8')
-                content = str(content, 'utf-8')
+                title = str(title, "utf-8")
+                content = str(content, "utf-8")
                 # Check len first so we can skip the .lower allocation most of the time.
-                if len(title) == len("content-length") and title.lower() == "content-length":
+                if (
+                    len(title) == len("content-length")
+                    and title.lower() == "content-length"
+                ):
                     self._remaining = int(content)
-                if len(title) == len("transfer-encoding") and title.lower() == "transfer-encoding":
+                if (
+                    len(title) == len("transfer-encoding")
+                    and title.lower() == "transfer-encoding"
+                ):
                     self._chunked = content.lower() == "chunked"
-                self._headers[title] = content            
+                self._headers[title] = content
 
     @property
     def headers(self):
@@ -332,7 +317,7 @@ class Response:
         obj = json.load(self._raw)
         if not self._cached:
             self._cached = obj
-        self._close()
+        self.close()
         return obj
 
     def iter_content(self, chunk_size=1, decode_unicode=False):
@@ -351,7 +336,8 @@ class Response:
             else:
                 chunk = bytes(b)
             yield chunk
-        self._close()
+        self.close()
+
 
 class Session:
     def __init__(self, socket_pool, ssl_context=None):
@@ -375,8 +361,12 @@ class Session:
                 self._socket_free[sock] = False
                 return sock
         if proto == "https:" and not self._ssl_context:
-            raise RuntimeError("ssl_context must be set before using adafruit_requests for https")
-        addr_info = self._socket_pool.getaddrinfo(host, port, 0, self._socket_pool.SOCK_STREAM)[0]
+            raise RuntimeError(
+                "ssl_context must be set before using adafruit_requests for https"
+            )
+        addr_info = self._socket_pool.getaddrinfo(
+            host, port, 0, self._socket_pool.SOCK_STREAM
+        )[0]
         sock = self._socket_pool.socket(addr_info[0], addr_info[1], addr_info[2])
         if proto == "https:":
             sock = self._ssl_context.wrap_socket(sock, server_hostname=host)
@@ -391,15 +381,22 @@ class Session:
 
         # We couldn't connect due to memory so clean up the open sockets.
         if not ok:
+            free_sockets = []
             for s in self._socket_free:
                 if self._socket_free[s]:
                     s.close()
-                    del self._socket_free[s]
-                    for k in self._open_sockets:
-                        if self._open_sockets[k] == s:
-                            del self._open_sockets[k]
+                    free_sockets.append(s)
+            for s in free_sockets:
+                del self._socket_free[s]
+                key = None
+                for k in self._open_sockets:
+                    if self._open_sockets[k] == s:
+                        key = k
+                        break
+                if key:
+                    del self._open_sockets[key]
             # Recreate the socket because the ESP-IDF won't retry the connection if it failed once.
-            sock = None # Clear first so the first socket can be cleaned up.
+            sock = None  # Clear first so the first socket can be cleaned up.
             sock = self._socket_pool.socket(addr_info[0], addr_info[1], addr_info[2])
             if proto == "https:":
                 sock = self._ssl_context.wrap_socket(sock, server_hostname=host)
@@ -410,7 +407,9 @@ class Session:
         return sock
 
     # pylint: disable=too-many-branches, too-many-statements, unused-argument, too-many-arguments, too-many-locals
-    def request(self, method, url, data=None, json=None, headers=None, stream=False, timeout=60):
+    def request(
+        self, method, url, data=None, json=None, headers=None, stream=False, timeout=60
+    ):
         """Perform an HTTP request to the given url which we will parse to determine
         whether to use SSL ('https://') or not. We can also send some provided 'data'
         or a json dictionary which we will stringify. 'headers' is optional HTTP headers
@@ -439,11 +438,13 @@ class Session:
             port = int(port)
 
         if self._last_response:
-            self._last_response._close()
+            self._last_response.close()
             self._last_response = None
 
         socket = self._get_socket(host, port, proto, timeout=timeout)
-        socket.send(b"%s /%s HTTP/1.1\r\n" % (bytes(method, "utf-8"), bytes(path, "utf-8")))
+        socket.send(
+            b"%s /%s HTTP/1.1\r\n" % (bytes(method, "utf-8"), bytes(path, "utf-8"))
+        )
         if "Host" not in headers:
             socket.send(b"Host: %s\r\n" % bytes(host, "utf-8"))
         if "User-Agent" not in headers:
@@ -489,38 +490,36 @@ class Session:
         """Send HTTP HEAD request"""
         return self.request("HEAD", url, **kw)
 
-
     def get(self, url, **kw):
         """Send HTTP GET request"""
         return self.request("GET", url, **kw)
-
 
     def post(self, url, **kw):
         """Send HTTP POST request"""
         return self.request("POST", url, **kw)
 
-
     def put(self, url, **kw):
         """Send HTTP PUT request"""
         return self.request("PUT", url, **kw)
-
 
     def patch(self, url, **kw):
         """Send HTTP PATCH request"""
         return self.request("PATCH", url, **kw)
 
-
     def delete(self, url, **kw):
         """Send HTTP DELETE request"""
         return self.request("DELETE", url, **kw)
+
 
 # Backwards compatible API:
 
 _default_session = None
 
+
 class FakeSSLContext:
     def wrap_socket(self, socket, server_hostname=None):
         return socket
+
 
 def set_socket(sock, iface=None):
     global _default_session
@@ -528,8 +527,17 @@ def set_socket(sock, iface=None):
     if iface:
         sock.set_interface(iface)
 
+
 def request(method, url, data=None, json=None, headers=None, stream=False, timeout=1):
-    _default_session.request(method, url, data=data, json=json, headers=headers, stream=stream, timeout=timeout)
+    _default_session.request(
+        method,
+        url,
+        data=data,
+        json=json,
+        headers=headers,
+        stream=stream,
+        timeout=timeout,
+    )
 
 
 def head(url, **kw):
