@@ -17,10 +17,10 @@ def test_get_https_text():
     adafruit_requests.set_socket(mocket, mocket.interface)
     r = adafruit_requests.get("https://" + host + path)
 
-    sock.connect.assert_called_once_with((host, 443), mocket.interface.TLS_MODE)
+    sock.connect.assert_called_once_with((host, 443))
     sock.send.assert_has_calls(
         [
-            mock.call(b"GET /testwifi/index.html HTTP/1.0\r\n"),
+            mock.call(b"GET /testwifi/index.html HTTP/1.1\r\n"),
             mock.call(b"Host: wifitest.adafruit.com\r\n"),
         ]
     )
@@ -35,10 +35,10 @@ def test_get_http_text():
     adafruit_requests.set_socket(mocket, mocket.interface)
     r = adafruit_requests.get("http://" + host + path)
 
-    sock.connect.assert_called_once_with((ip, 80), mocket.interface.TCP_MODE)
+    sock.connect.assert_called_once_with((host, 80))
     sock.send.assert_has_calls(
         [
-            mock.call(b"GET /testwifi/index.html HTTP/1.0\r\n"),
+            mock.call(b"GET /testwifi/index.html HTTP/1.1\r\n"),
             mock.call(b"Host: wifitest.adafruit.com\r\n"),
         ]
     )

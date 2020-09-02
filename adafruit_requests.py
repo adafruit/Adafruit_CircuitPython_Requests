@@ -61,8 +61,7 @@ class _RawResponse:
 
     def read(self, size=-1):
         if size == -1:
-            return self.content
-
+            return self._response.content
         return self._response.socket.recv(size)
 
     def readinto(self, buf):
@@ -78,12 +77,17 @@ class Response:
         self.encoding = "utf-8"
         self._cached = None
         self._headers = {}
-        # 0 means the first receive buffer is empty because we always consume some of it. non-zero
-        # means we need to look at it's tail for our pattern.
-        self._start_index = 0
-        self._buffer_sizes = [0]
-        self._receive_buffers = [bytearray(32)]
-        self._content_length = None
+
+        # _start_index and _receive_buffer are used when parsing headers.
+        # _receive_buffer will grow by 32 bytes everytime it is too small.
+        self._received_length = 0
+        self._receive_buffer = bytearray(32)
+        self._remaining = None
+        self._chunked = False
+
+        self._backwards_compatible = not hasattr(sock, "recv_into")
+        if self._backwards_compatible:
+            print("Socket missing recv_into. Using more memory to be compatible")
 
         http = self._readto(b" ")
         if not http:
@@ -101,131 +105,143 @@ class Response:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
+    def _recv_into(self, buf, size=None):
+        if self._backwards_compatible:
+            size = len(buf) if size is None else size
+            b = self.socket.recv(size)
+            read_size = len(b)
+            buf[:read_size] = b
+            return read_size
+        else:
+            return self.socket.recv_into(buf, size)
+
     def _readto(self, first, second=b""):
-        # TODO: Make this work if either pattern spans buffers.
-        if len(first) > 2 or len(second) > 2:
-            raise ValueError("Pattern too long. Must be less than 3 characters.")
-        current_buffer = 0
-        found = -2
-        new_start = 0
-        if self._start_index < self._buffer_sizes[0]:
-            first_i = self._receive_buffers[0].find(first, self._start_index)
+        buf = self._receive_buffer
+        end = self._received_length
+        while True:
+            print("searching", buf[:end])
+            firsti = buf.find(first, 0, end)
+            secondi = -1
             if second:
-                second_i = self._receive_buffers[0].find(second, self._start_index)
-                if second_i >= 0 and (first_i <= -1 or first_i > second_i):
-                    found = second_i
-                    new_start = second_i + len(second)
+                secondi = buf.find(second, 0, end)
 
-            if found == -2:
-                if first_i >= 0:
-                    found = first_i
-                    new_start = first_i + len(first)
-                else:
-                    current_buffer = 1
+            i = -1
+            needle_len = 0
+            if firsti >= 0:
+                i = firsti
+                needle_len = len(first)
+            if secondi >= 0 and (firsti < 0 or secondi < firsti):
+                i = secondi
+                needle_len = len(second)
+            if i >= 0:
+                result = buf[:i]
+                new_start = i + needle_len
+
+                if i + needle_len <= end:
+                    new_end = end - new_start
+                    buf[:new_end] = buf[new_start:end]
+                    self._received_length = new_end
+                return result
+
+            # Not found so load more.
+
+            # If our buffer is full, then make it bigger to load more.
+            if end == len(buf):
+                new_size = len(buf) + 32
+                new_buf = bytearray(new_size)
+                new_buf[:len(buf)] = buf
+                buf = new_buf
+                self._receive_buffer = buf
+
+            read = self._recv_into(memoryview(buf)[end:])
+            if read == 0:
+                self._received_length = 0
+                return buf[:end]
+            end += read
+
+        return b""
+
+    def _read_from_buffer(self, buf=None, nbytes=None):
+        if self._received_length == 0:
+            return 0
+        read = self._received_length
+        if nbytes < read:
+            read = nbytes
+        membuf = memoryview(self._receive_buffer)
+        if buf:
+            buf[:read] = membuf[:read]
+        if read < self._received_length:
+            new_end = self._received_length - read
+            self._receive_buffer[:new_end] = membuf[read:self._received_length]
+            self._received_length = new_end
         else:
-            self._start_index = 0
-
-        while found < -1:
-            if current_buffer == len(self._receive_buffers):
-                self._receive_buffers.append(bytearray(len(self._receive_buffers[0])))
-                self._buffer_sizes.append(0)
-            buf = self._receive_buffers[current_buffer]
-            size = self.socket.recv_into(buf)
-            self._buffer_sizes[current_buffer] = size
-
-            if len(first) == 2:
-                previous_size = self._buffer_sizes[current_buffer - 1]
-                if (self._receive_buffers[current_buffer - 1][previous_size - 1] == first[0] and
-                    buf[0] == first[1]):
-                    found = -1
-                    new_start = 1
-                    break
-
-            first_i = buf.find(first, 0, size)
-            if second:
-                if len(second) == 2:
-                    previous_size = self._buffer_sizes[current_buffer - 1]
-                    if (self._receive_buffers[current_buffer - 1][previous_size - 1] == second[0] and
-                    buf[0] == second[1]):
-                        found = -1
-                        new_start = 1
-                        break
-                second_i = buf.find(second, 0, size)
-                if second_i >= 0 and (first_i < 0 or first_i > second_i):
-                    found = second_i
-                    new_start = second_i + len(second)
-                    break
-            if first_i >= 0:
-                found = first_i
-                new_start = first_i + len(first)
-                break
-            current_buffer += 1
-
-
-        if current_buffer == 0:
-            b = bytes(self._receive_buffers[0][self._start_index:found])
-            self._start_index = new_start
-        else:
-            new_len = len(self._receive_buffers[0]) * current_buffer + found - self._start_index
-            b = bytearray(new_len)
-            i = 0
-            for bufi in range(0, current_buffer + 1):
-                buf = self._receive_buffers[bufi]
-                size = self._buffer_sizes[bufi]
-                if bufi == 0 and self._start_index > 0:
-                    i = size - self._start_index
-                    b[:i] = buf[self._start_index:size]
-                elif bufi == current_buffer:
-                    if found > 0:
-                        b[i:i+found] = buf[:found]
-                else:
-                    b[i:i+size] = buf[:size]
-                    i += size
-
-            self._start_index = new_start
-            # Swap the current buffer to the front because it has some bytes we
-            # need to search.
-            last_buf = self._receive_buffers[current_buffer]
-            self._receive_buffers[current_buffer] = self._receive_buffers[0]
-            self._buffer_sizes[0] = self._buffer_sizes[current_buffer]
-            self._receive_buffers[0] = last_buf
-            self._buffer_sizes[current_buffer] = 0
-
-        return b
+            self._received_length = 0
+        return read
 
     def _readinto(self, buf):
-        remaining = self._content_length - self._content_read
-        nbytes = len(buf)
-        if nbytes > remaining:
-            nbytes = remaining
-
-        if self._start_index < self._buffer_sizes[0]:
-            size = self._buffer_sizes[0]
-            left = size - self._start_index
-            if nbytes < left:
-                left = nbytes
-            start = self._start_index
-            end = start + left
-            if left == 1:
-                buf[0] = self._receive_buffers[0][start]
+        if not self._remaining:
+            # Consume the chunk header if need be.
+            if self._chunked:
+                # Consume trailing \r\n for chunks 2+
+                if self._remaining == 0:
+                    self._throw_away(2)
+                chunk_header = self._readto(b";", b"\r\n")
+                http_chunk_size = int(chunk_header, 16)
+                if http_chunk_size == 0:
+                    self._chunked = False
+                    self._parse_headers()
+                    return 0
+                self._remaining = http_chunk_size
             else:
-                buf[:left] = self._receive_buffers[0][start:end]
-            read = left
-            self._start_index += left
-            if read < nbytes:
-                read += self.socket.recv_into(memoryview(buf)[read:nbytes])
-        else:
-            read = self.socket.recv_into(buf, nbytes)
-        self._content_read += read
+                return 0
+
+        nbytes = len(buf)
+        if nbytes > self._remaining:
+            nbytes = self._remaining
+
+        read = self._read_from_buffer(buf, nbytes)
+        if read == 0:
+            read = self._recv_into(buf, nbytes)
+        self._remaining -= read
+
+            #     else:
+            # print("chunked")
+            # pending_bytes = 0
+            # buf = memoryview(bytearray(chunk_size))
+            # while True:
+            #     print("chunk", self._content_read, self._content_length)
+            #     print("chunk header", chunk_header)
+            #     self._content_length = http_chunk_size
+            #     self._content_read = 0
+            #     remaining_in_http_chunk = http_chunk_size
+                
+            #     pending_bytes = 0
+            #     while remaining_in_http_chunk:
+            #         read_now = chunk_size - pending_bytes
+            #         if read_now > remaining_in_http_chunk:
+            #             read_now = remaining_in_http_chunk
+            #         read_now = self._readinto(buf[pending_bytes:pending_bytes+read_now])
+            #         pending_bytes += read_now
+            #         if pending_bytes == chunk_size:
+            #             break
+            #     yield bytes(buf)
+
+            #     self._throw_away(2) # Read the trailing CR LF
+            # 
+            # if pending_bytes > 0:
+            #     yield bytes(buf[:pending_bytes])
+
         return read
 
     def _throw_away(self, nbytes):
-        buf = self._receive_buffers[0]
+        nbytes -= self._read_from_buffer(nbytes=nbytes)
+
+        buf = self._receive_buffer
         for i in range(nbytes // len(buf)):
-            self.socket.recv_into(buf)
+            self._recv_into(buf)
         remaining = nbytes % len(buf)
         if remaining:
-            self.socket.recv_into(buf, remaining)
+            self._recv_into(buf, remaining)
 
     def _close(self):
         """Drain the remaining ESP socket buffers. We assume we already got what we wanted."""
@@ -233,10 +249,9 @@ class Response:
             # Make sure we've read all of our response.
             # print("Content length:", content_length)
             if self._cached is None:
-                remaining = self._content_length - self._content_read
-                if remaining > 0:
-                    self._throw_away(remaining)
-                elif self._content_length is None:
+                if self._remaining > 0:
+                    self._throw_away(self._remaining)
+                elif self._chunked:
                     while True:
                         chunk_header = self._readto(b";", b"\r\n")
                         chunk_size = int(chunk_header, 16)
@@ -266,8 +281,10 @@ class Response:
                 content = str(content, 'utf-8')
                 # Check len first so we can skip the .lower allocation most of the time.
                 if len(title) == len("content-length") and title.lower() == "content-length":
-                    self._content_length = int(content)
-                self._headers[title] = content
+                    self._remaining = int(content)
+                if len(title) == len("transfer-encoding") and title.lower() == "transfer-encoding":
+                    self._chunked = content.lower() == "chunked"
+                self._headers[title] = content            
 
     @property
     def headers(self):
@@ -302,7 +319,7 @@ class Response:
     def json(self):
         """The HTTP content, parsed into a json dictionary"""
         # pylint: disable=import-outside-toplevel
-        import json as json_module
+        import json
 
         # The cached JSON will be a list or dictionary.
         if self._cached:
@@ -312,7 +329,7 @@ class Response:
         if not self._raw:
             self._raw = _RawResponse(self)
 
-        obj = json_module.load(self._raw)
+        obj = json.load(self._raw)
         if not self._cached:
             self._cached = obj
         self._close()
@@ -324,44 +341,16 @@ class Response:
         if decode_unicode:
             raise NotImplementedError("Unicode not supported")
 
-        total_read = 0
-        if self._content_length is not None:
-            while self._content_read < self._content_length:
-                remaining = self._content_length - self._content_read
-                if chunk_size > remaining:
-                    chunk_size = remaining
-                b = bytearray(chunk_size)
-                size = self._readinto(b)
-                total_read += self._content_read
-                if size < chunk_size:
-                    chunk = bytes(memoryview(b)[:size])
-                else:
-                    chunk = bytes(b)
-                yield chunk
-        else:
-            pending_bytes = 0
-            buf = memoryview(bytearray(chunk_size))
-            while True:
-                chunk_header = self._readto(b";", b"\r\n")
-                http_chunk_size = int(chunk_header, 16)
-                if http_chunk_size == 0:
-                    break
-                self._content_length = http_chunk_size
-                remaining_in_http_chunk = http_chunk_size
-                while remaining_in_http_chunk:
-                    read_now = chunk_size - pending_bytes
-                    if read_now > remaining_in_http_chunk:
-                        read_now = remaining_in_http_chunk
-                    read_now = self._readinto(buf[pending_bytes:pending_bytes+read_now])
-                    pending_bytes += read_now
-                    if pending_bytes == chunk_size:
-                        yield bytes(buf)
-                        pending_bytes = 0
-
-                self._throw_away(2) # Read the trailing CR LF
-            self._parse_headers()
-            if pending_bytes > 0:
-                yield bytes(buf[:pending_bytes])
+        b = bytearray(chunk_size)
+        while True:
+            size = self._readinto(b)
+            if size == 0:
+                break
+            if size < chunk_size:
+                chunk = bytes(memoryview(b)[:size])
+            else:
+                chunk = bytes(b)
+            yield chunk
         self._close()
 
 class Session:
@@ -530,7 +519,7 @@ class Session:
 _default_session = None
 
 class FakeSSLContext:
-    def wrap_socket(self, socket):
+    def wrap_socket(self, socket, server_hostname=None):
         return socket
 
 def set_socket(sock, iface=None):

@@ -19,7 +19,7 @@ def test_json():
     headers = {"user-agent": "blinka/1.0.0"}
     r = adafruit_requests.get("http://" + host + "/get", headers=headers)
 
-    sock.connect.assert_called_once_with((ip, 80), mocket.interface.TCP_MODE)
+    sock.connect.assert_called_once_with((host, 80))
     sent = b"".join(sent).lower()
     assert b"user-agent: blinka/1.0.0\r\n" in sent
     # The current implementation sends two user agents. Fix it, and uncomment below.
