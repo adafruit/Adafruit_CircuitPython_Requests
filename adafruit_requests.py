@@ -61,20 +61,21 @@ class _RawResponse:
     def read(self, size=-1):
         """Read as much as available or up to size and return it in a byte string.
 
-           Do NOT use this unless you really need to. Reusing memory with `readinto` is much better.
-           """
+        Do NOT use this unless you really need to. Reusing memory with `readinto` is much better.
+        """
         if size == -1:
             return self._response.content
         return self._response.socket.recv(size)
 
     def readinto(self, buf):
         """Read as much as available into buf or until it is full. Returns the number of bytes read
-           into buf."""
-        return self._response._readinto(buf) # pylint: disable=protected-access
+        into buf."""
+        return self._response._readinto(buf)  # pylint: disable=protected-access
 
 
 class Response:
     """The response from a request, contains all the headers/content"""
+
     # pylint: disable=too-many-instance-attributes
 
     encoding = None
@@ -242,7 +243,7 @@ class Response:
                     self._throw_away(chunk_size + 2)
                 self._parse_headers()
         if self._session:
-            self._session._free_socket(self.socket) # pylint: disable=protected-access
+            self._session._free_socket(self.socket)  # pylint: disable=protected-access
         else:
             self.socket.close()
         self.socket = None
@@ -344,6 +345,7 @@ class Response:
 
 class Session:
     """HTTP session that shares sockets and ssl context."""
+
     def __init__(self, socket_pool, ssl_context=None):
         self._socket_pool = socket_pool
         self._ssl_context = ssl_context
@@ -521,7 +523,7 @@ class Session:
 
 # Backwards compatible API:
 
-_default_session = None # pylint: disable=invalid-name
+_default_session = None  # pylint: disable=invalid-name
 
 
 class _FakeSSLContext:
@@ -534,7 +536,7 @@ class _FakeSSLContext:
 
 def set_socket(sock, iface=None):
     """Legacy API for setting the socket and network interface. Use a `Session` instead."""
-    global _default_session # pylint: disable=global-statement,invalid-name
+    global _default_session  # pylint: disable=global-statement,invalid-name
     _default_session = Session(sock, _FakeSSLContext())
     if iface:
         sock.set_interface(iface)
