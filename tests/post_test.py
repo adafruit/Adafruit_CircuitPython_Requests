@@ -39,6 +39,19 @@ def test_string():
     sock.send.assert_called_with(b"31F")
 
 
+def test_form():
+    pool = mocket.MocketPool()
+    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
+    sock = mocket.Mocket(headers + encoded)
+    pool.socket.return_value = sock
+
+    s = adafruit_requests.Session(pool)
+    data = {"Date": "July 25, 2019"}
+    r = s.post("http://" + host + "/post", data=data)
+    sock.connect.assert_called_once_with((host, 80))
+    sock.send.assert_called_with(b"Date=July 25, 2019")
+
+
 def test_json():
     pool = mocket.MocketPool()
     pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)

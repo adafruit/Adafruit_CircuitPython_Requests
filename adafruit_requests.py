@@ -50,8 +50,6 @@ license='MIT'
 
 """
 
-import gc
-
 __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 
@@ -61,16 +59,23 @@ class _RawResponse:
         self._response = response
 
     def read(self, size=-1):
+        """Read as much as available or up to size and return it in a byte string.
+
+           Do NOT use this unless you really need to. Reusing memory with `readinto` is much better.
+           """
         if size == -1:
             return self._response.content
         return self._response.socket.recv(size)
 
     def readinto(self, buf):
-        return self._response._readinto(buf)
+        """Read as much as available into buf or until it is full. Returns the number of bytes read
+           into buf."""
+        return self._response._readinto(buf) # pylint: disable=protected-access
 
 
 class Response:
     """The response from a request, contains all the headers/content"""
+    # pylint: disable=too-many-instance-attributes
 
     encoding = None
 
@@ -98,7 +103,6 @@ class Response:
         self.reason = self._readto(b"\r\n")
         self._parse_headers()
         self._raw = None
-        self._content_read = 0
         self._session = session
 
     def __enter__(self):
@@ -114,8 +118,7 @@ class Response:
             read_size = len(b)
             buf[:read_size] = b
             return read_size
-        else:
-            return self.socket.recv_into(buf, size)
+        return self.socket.recv_into(buf, size)
 
     def _readto(self, first, second=b""):
         buf = self._receive_buffer
@@ -216,7 +219,7 @@ class Response:
         nbytes -= self._read_from_buffer(nbytes=nbytes)
 
         buf = self._receive_buffer
-        for i in range(nbytes // len(buf)):
+        for _ in range(nbytes // len(buf)):
             self._recv_into(buf)
         remaining = nbytes % len(buf)
         if remaining:
@@ -239,7 +242,7 @@ class Response:
                     self._throw_away(chunk_size + 2)
                 self._parse_headers()
         if self._session:
-            self._session.free_socket(self.socket)
+            self._session._free_socket(self.socket) # pylint: disable=protected-access
         else:
             self.socket.close()
         self.socket = None
@@ -340,6 +343,7 @@ class Response:
 
 
 class Session:
+    """HTTP session that shares sockets and ssl context."""
     def __init__(self, socket_pool, ssl_context=None):
         self._socket_pool = socket_pool
         self._ssl_context = ssl_context
@@ -348,10 +352,27 @@ class Session:
         self._socket_free = {}
         self._last_response = None
 
-    def free_socket(self, socket):
+    def _free_socket(self, socket):
+
         if socket not in self._open_sockets.values():
             raise RuntimeError("Socket not from session")
         self._socket_free[socket] = True
+
+    def _free_sockets(self):
+        free_sockets = []
+        for sock in self._socket_free:
+            if self._socket_free[sock]:
+                sock.close()
+                free_sockets.append(sock)
+        for sock in free_sockets:
+            del self._socket_free[sock]
+            key = None
+            for k in self._open_sockets:
+                if self._open_sockets[k] == sock:
+                    key = k
+                    break
+            if key:
+                del self._open_sockets[key]
 
     def _get_socket(self, host, port, proto, *, timeout=1):
         key = (host, port, proto)
@@ -381,20 +402,7 @@ class Session:
 
         # We couldn't connect due to memory so clean up the open sockets.
         if not ok:
-            free_sockets = []
-            for s in self._socket_free:
-                if self._socket_free[s]:
-                    s.close()
-                    free_sockets.append(s)
-            for s in free_sockets:
-                del self._socket_free[s]
-                key = None
-                for k in self._open_sockets:
-                    if self._open_sockets[k] == s:
-                        key = k
-                        break
-                if key:
-                    del self._open_sockets[key]
+            self._free_sockets()
             # Recreate the socket because the ESP-IDF won't retry the connection if it failed once.
             sock = None  # Clear first so the first socket can be cleaned up.
             sock = self._socket_pool.socket(addr_info[0], addr_info[1], addr_info[2])
@@ -466,7 +474,7 @@ class Session:
             socket.send(b"Content-Type: application/json\r\n")
         if data:
             if isinstance(data, dict):
-                sock.send(b"Content-Type: application/x-www-form-urlencoded\r\n")
+                socket.send(b"Content-Type: application/x-www-form-urlencoded\r\n")
                 _post_data = ""
                 for k in data:
                     _post_data = "{}&{}={}".format(_post_data, k, data[k])
@@ -513,22 +521,28 @@ class Session:
 
 # Backwards compatible API:
 
-_default_session = None
+_default_session = None # pylint: disable=invalid-name
 
 
-class FakeSSLContext:
-    def wrap_socket(self, socket, server_hostname=None):
+class _FakeSSLContext:
+    @staticmethod
+    def wrap_socket(socket, server_hostname=None):
+        """Return the same socket"""
+        # pylint: disable=unused-argument
         return socket
 
 
 def set_socket(sock, iface=None):
-    global _default_session
-    _default_session = Session(sock, FakeSSLContext())
+    """Legacy API for setting the socket and network interface. Use a `Session` instead."""
+    global _default_session # pylint: disable=global-statement,invalid-name
+    _default_session = Session(sock, _FakeSSLContext())
     if iface:
         sock.set_interface(iface)
 
 
 def request(method, url, data=None, json=None, headers=None, stream=False, timeout=1):
+    """Send HTTP request"""
+    # pylint: disable=too-many-arguments
     _default_session.request(
         method,
         url,
