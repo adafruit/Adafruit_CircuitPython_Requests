@@ -527,6 +527,7 @@ class Session:
 
 _default_session = None  # pylint: disable=invalid-name
 
+
 class _FakeSSLSocket:
     def __init__(self, socket, tls_mode):
         self._socket = socket
@@ -537,6 +538,7 @@ class _FakeSSLSocket:
 
     def connect(self, address):
         return self._socket.connect(address, self._mode)
+
 
 class _FakeSSLContext:
     def __init__(self, iface):

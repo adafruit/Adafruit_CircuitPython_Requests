@@ -24,6 +24,7 @@ def test_get_json():
     assert r.json() == response
     r.close()
 
+
 def test_tls_mode():
     mocket.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
     sock = mocket.Mocket(headers + encoded)
@@ -35,6 +36,7 @@ def test_tls_mode():
     sock.connect.assert_called_once_with((host, 443), mocket.interface.TLS_MODE)
     assert r.json() == response
     r.close()
+
 
 def test_post_string():
     mocket.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
