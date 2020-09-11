@@ -537,6 +537,7 @@ class _FakeSSLSocket:
         self.recv = socket.recv
 
     def connect(self, address):
+        """connect wrapper to add non-standard mode parameter"""
         return self._socket.connect(address, self._mode)
 
 
