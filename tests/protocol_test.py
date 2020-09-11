@@ -53,7 +53,7 @@ def test_get_http_text():
     s = adafruit_requests.Session(pool)
     r = s.get("http://" + host + path)
 
-    sock.connect.assert_called_once_with((host, 80))
+    sock.connect.assert_called_once_with((ip, 80))
     sock.send.assert_has_calls(
         [
             mock.call(b"GET /testwifi/index.html HTTP/1.1\r\n"),

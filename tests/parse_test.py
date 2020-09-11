@@ -24,5 +24,5 @@ def test_json():
 
     s = adafruit_requests.Session(pool)
     r = s.get("http://" + host + "/get")
-    sock.connect.assert_called_once_with((host, 80))
+    sock.connect.assert_called_once_with((ip, 80))
     assert r.json() == response

@@ -20,7 +20,7 @@ def test_method():
 
     s = adafruit_requests.Session(pool)
     r = s.post("http://" + host + "/post")
-    sock.connect.assert_called_once_with((host, 80))
+    sock.connect.assert_called_once_with((ip, 80))
     sock.send.assert_has_calls(
         [mock.call(b"POST /post HTTP/1.1\r\n"), mock.call(b"Host: httpbin.org\r\n")]
     )
@@ -35,7 +35,7 @@ def test_string():
     s = adafruit_requests.Session(pool)
     data = "31F"
     r = s.post("http://" + host + "/post", data=data)
-    sock.connect.assert_called_once_with((host, 80))
+    sock.connect.assert_called_once_with((ip, 80))
     sock.send.assert_called_with(b"31F")
 
 
@@ -48,7 +48,7 @@ def test_form():
     s = adafruit_requests.Session(pool)
     data = {"Date": "July 25, 2019"}
     r = s.post("http://" + host + "/post", data=data)
-    sock.connect.assert_called_once_with((host, 80))
+    sock.connect.assert_called_once_with((ip, 80))
     sock.send.assert_called_with(b"Date=July 25, 2019")
 
 
@@ -61,5 +61,5 @@ def test_json():
     s = adafruit_requests.Session(pool)
     json_data = {"Date": "July 25, 2019"}
     r = s.post("http://" + host + "/post", json=json_data)
-    sock.connect.assert_called_once_with((host, 80))
+    sock.connect.assert_called_once_with((ip, 80))
     sock.send.assert_called_with(b'{"Date": "July 25, 2019"}')

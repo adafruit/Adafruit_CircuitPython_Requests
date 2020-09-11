@@ -100,7 +100,7 @@ class Response:
         http = self._readto(b" ")
         if not http:
             raise RuntimeError("Unable to read HTTP response.")
-        self.status_code = int(self._readto(b" "))
+        self.status_code = int(bytes(self._readto(b" ")))
         self.reason = self._readto(b"\r\n")
         self._parse_headers()
         self._raw = None
@@ -196,7 +196,7 @@ class Response:
                 if self._remaining == 0:
                     self._throw_away(2)
                 chunk_header = self._readto(b";", b"\r\n")
-                http_chunk_size = int(chunk_header, 16)
+                http_chunk_size = int(bytes(chunk_header), 16)
                 if http_chunk_size == 0:
                     self._chunked = False
                     self._parse_headers()
@@ -237,7 +237,7 @@ class Response:
             elif self._chunked:
                 while True:
                     chunk_header = self._readto(b";", b"\r\n")
-                    chunk_size = int(chunk_header, 16)
+                    chunk_size = int(bytes(chunk_header), 16)
                     if chunk_size == 0:
                         break
                     self._throw_away(chunk_size + 2)
@@ -391,12 +391,14 @@ class Session:
             host, port, 0, self._socket_pool.SOCK_STREAM
         )[0]
         sock = self._socket_pool.socket(addr_info[0], addr_info[1], addr_info[2])
+        connect_host = addr_info[-1][0]
         if proto == "https:":
             sock = self._ssl_context.wrap_socket(sock, server_hostname=host)
+            connect_host = host
         sock.settimeout(timeout)  # socket read timeout
         ok = True
         try:
-            sock.connect((host, port))
+            sock.connect((connect_host, port))
         except MemoryError:
             if not any(self._socket_free.items()):
                 raise
@@ -411,7 +413,7 @@ class Session:
             if proto == "https:":
                 sock = self._ssl_context.wrap_socket(sock, server_hostname=host)
             sock.settimeout(timeout)  # socket read timeout
-            sock.connect((host, port))
+            sock.connect((connect_host, port))
         self._open_sockets[key] = sock
         self._socket_free[sock] = False
         return sock
@@ -490,7 +492,7 @@ class Session:
                 socket.send(bytes(data, "utf-8"))
 
         resp = Response(socket, self)  # our response
-        if "location" in resp.headers and not 200 <= resp.status_code <= 299:
+        if "location" in resp.headers and 300 <= resp.status_code <= 399:
             raise NotImplementedError("Redirects not yet supported")
 
         self._last_response = resp
@@ -525,19 +527,31 @@ class Session:
 
 _default_session = None  # pylint: disable=invalid-name
 
+class _FakeSSLSocket:
+    def __init__(self, socket, tls_mode):
+        self._socket = socket
+        self._mode = tls_mode
+        self.settimeout = socket.settimeout
+        self.send = socket.send
+        self.recv = socket.recv
+
+    def connect(self, address):
+        return self._socket.connect(address, self._mode)
 
 class _FakeSSLContext:
-    @staticmethod
-    def wrap_socket(socket, server_hostname=None):
+    def __init__(self, iface):
+        self._iface = iface
+
+    def wrap_socket(self, socket, server_hostname=None):
         """Return the same socket"""
         # pylint: disable=unused-argument
-        return socket
+        return _FakeSSLSocket(socket, self._iface.TLS_MODE)
 
 
 def set_socket(sock, iface=None):
     """Legacy API for setting the socket and network interface. Use a `Session` instead."""
     global _default_session  # pylint: disable=global-statement,invalid-name
-    _default_session = Session(sock, _FakeSSLContext())
+    _default_session = Session(sock, _FakeSSLContext(iface))
     if iface:
         sock.set_interface(iface)
 
