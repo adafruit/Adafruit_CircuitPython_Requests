@@ -9,7 +9,11 @@ import adafruit_requests as requests
 # "password" keys with your WiFi credentials. DO NOT share that file or commit it into Git or other
 # source control.
 # pylint: disable=no-name-in-module,wrong-import-order
-from secrets import secrets
+try:
+    from secrets import secrets
+except ImportError:
+    print("WiFi secrets are kept in secrets.py, please add them there!")
+    raise
 
 # If you are using a board with pre-defined ESP32 Pins:
 esp32_cs = DigitalInOut(board.ESP_CS)
