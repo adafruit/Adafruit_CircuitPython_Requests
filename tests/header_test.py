@@ -9,17 +9,18 @@ response_headers = b"HTTP/1.0 200 OK\r\nContent-Length: 0\r\n\r\n"
 
 
 def test_json():
-    mocket.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
+    pool = mocket.MocketPool()
+    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
     sock = mocket.Mocket(response_headers)
-    mocket.socket.return_value = sock
+    pool.socket.return_value = sock
     sent = []
     sock.send.side_effect = sent.append
 
-    adafruit_requests.set_socket(mocket, mocket.interface)
+    s = adafruit_requests.Session(pool)
     headers = {"user-agent": "blinka/1.0.0"}
-    r = adafruit_requests.get("http://" + host + "/get", headers=headers)
+    r = s.get("http://" + host + "/get", headers=headers)
 
-    sock.connect.assert_called_once_with((ip, 80), mocket.interface.TCP_MODE)
+    sock.connect.assert_called_once_with((ip, 80))
     sent = b"".join(sent).lower()
     assert b"user-agent: blinka/1.0.0\r\n" in sent
     # The current implementation sends two user agents. Fix it, and uncomment below.
