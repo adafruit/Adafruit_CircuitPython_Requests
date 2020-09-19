@@ -121,14 +121,31 @@ class Response:
             return read_size
         return self.socket.recv_into(buf, size)
 
+    @staticmethod
+    def _find(buf, needle, start, end):
+        if hasattr(buf, "find"):
+            return buf.find(needle, start, end)
+        result = -1
+        i = start
+        while i < end:
+            j = 0
+            while j < len(needle) and i + j < end and buf[i + j] == needle[j]:
+                j += 1
+            if j == len(needle):
+                result = i
+                break
+            i += 1
+
+        return result
+
     def _readto(self, first, second=b""):
         buf = self._receive_buffer
         end = self._received_length
         while True:
-            firsti = buf.find(first, 0, end)
+            firsti = self._find(buf, first, 0, end)
             secondi = -1
             if second:
-                secondi = buf.find(second, 0, end)
+                secondi = self._find(buf, second, 0, end)
 
             i = -1
             needle_len = 0
@@ -318,7 +335,12 @@ class Response:
         if not self._raw:
             self._raw = _RawResponse(self)
 
-        obj = json.load(self._raw)
+        try:
+            obj = json.load(self._raw)
+        except OSError:
+            # <5.3.1 doesn't piecemeal load json from any object with readinto so load the whole
+            # string.
+            obj = json.loads(self._raw.read())
         if not self._cached:
             self._cached = obj
         self.close()
