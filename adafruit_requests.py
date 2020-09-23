@@ -377,26 +377,28 @@ class Session:
         self._last_response = None
 
     def _free_socket(self, socket):
-
         if socket not in self._open_sockets.values():
             raise RuntimeError("Socket not from session")
         self._socket_free[socket] = True
+
+    def _close_socket(self, sock):
+        sock.close()
+        del self._socket_free[sock]
+        key = None
+        for k in self._open_sockets:
+            if self._open_sockets[k] == sock:
+                key = k
+                break
+        if key:
+            del self._open_sockets[key]
 
     def _free_sockets(self):
         free_sockets = []
         for sock in self._socket_free:
             if self._socket_free[sock]:
-                sock.close()
                 free_sockets.append(sock)
         for sock in free_sockets:
-            del self._socket_free[sock]
-            key = None
-            for k in self._open_sockets:
-                if self._open_sockets[k] == sock:
-                    key = k
-                    break
-            if key:
-                del self._open_sockets[key]
+            self._close_socket(sock)
 
     def _get_socket(self, host, port, proto, *, timeout=1):
         key = (host, port, proto)
@@ -440,6 +442,56 @@ class Session:
         self._socket_free[sock] = False
         return sock
 
+    def _send(self, socket, data):
+        total_sent = 0
+        while total_sent < len(data):
+            sent = socket.send(data[total_sent:])
+            if sent == 0:
+                raise RuntimeError("Connection closed")
+            total_sent += sent
+
+    def _send_request(self, socket, host, method, path, headers, data, json):
+        self._send(socket, bytes(method, "utf-8"))
+        self._send(socket, b" /")
+        self._send(socket, bytes(path, "utf-8"))
+        self._send(socket, b" HTTP/1.1\r\n")
+        if "Host" not in headers:
+            self._send(socket, b"Host: ")
+            self._send(socket, bytes(host, "utf-8"))
+            self._send(socket, b"\r\n")
+        if "User-Agent" not in headers:
+            self._send(socket, b"User-Agent: Adafruit CircuitPython\r\n")
+        # Iterate over keys to avoid tuple alloc
+        for k in headers:
+            self._send(socket, k.encode())
+            self._send(socket, b": ")
+            self._send(socket, headers[k].encode())
+            self._send(socket, b"\r\n")
+        if json is not None:
+            assert data is None
+            # pylint: disable=import-outside-toplevel
+            try:
+                import json as json_module
+            except ImportError:
+                import ujson as json_module
+            data = json_module.dumps(json)
+            self._send(socket, b"Content-Type: application/json\r\n")
+        if data:
+            if isinstance(data, dict):
+                self._send(socket, b"Content-Type: application/x-www-form-urlencoded\r\n")
+                _post_data = ""
+                for k in data:
+                    _post_data = "{}&{}={}".format(_post_data, k, data[k])
+                data = _post_data[1:]
+            self._send(socket, b"Content-Length: %d\r\n" % len(data))
+        self._send(socket, b"\r\n")
+        if data:
+            if isinstance(data, bytearray):
+                self._send(socket, bytes(data))
+            else:
+                self._send(socket, bytes(data, "utf-8"))
+
+
     # pylint: disable=too-many-branches, too-many-statements, unused-argument, too-many-arguments, too-many-locals
     def request(
         self, method, url, data=None, json=None, headers=None, stream=False, timeout=60
@@ -476,42 +528,11 @@ class Session:
             self._last_response = None
 
         socket = self._get_socket(host, port, proto, timeout=timeout)
-        socket.send(
-            b"%s /%s HTTP/1.1\r\n" % (bytes(method, "utf-8"), bytes(path, "utf-8"))
-        )
-        if "Host" not in headers:
-            socket.send(b"Host: %s\r\n" % bytes(host, "utf-8"))
-        if "User-Agent" not in headers:
-            socket.send(b"User-Agent: Adafruit CircuitPython\r\n")
-        # Iterate over keys to avoid tuple alloc
-        for k in headers:
-            socket.send(k.encode())
-            socket.send(b": ")
-            socket.send(headers[k].encode())
-            socket.send(b"\r\n")
-        if json is not None:
-            assert data is None
-            # pylint: disable=import-outside-toplevel
-            try:
-                import json as json_module
-            except ImportError:
-                import ujson as json_module
-            data = json_module.dumps(json)
-            socket.send(b"Content-Type: application/json\r\n")
-        if data:
-            if isinstance(data, dict):
-                socket.send(b"Content-Type: application/x-www-form-urlencoded\r\n")
-                _post_data = ""
-                for k in data:
-                    _post_data = "{}&{}={}".format(_post_data, k, data[k])
-                data = _post_data[1:]
-            socket.send(b"Content-Length: %d\r\n" % len(data))
-        socket.send(b"\r\n")
-        if data:
-            if isinstance(data, bytearray):
-                socket.send(bytes(data))
-            else:
-                socket.send(bytes(data, "utf-8"))
+        try:
+            self._send_request(socket, host, method, path, headers, data, json)
+        except:
+            self._close_socket(socket)
+            raise
 
         resp = Response(socket, self)  # our response
         if "location" in resp.headers and 300 <= resp.status_code <= 399:
@@ -557,6 +578,7 @@ class _FakeSSLSocket:
         self.settimeout = socket.settimeout
         self.send = socket.send
         self.recv = socket.recv
+        self.close = socket.close
 
     def connect(self, address):
         """connect wrapper to add non-standard mode parameter"""
