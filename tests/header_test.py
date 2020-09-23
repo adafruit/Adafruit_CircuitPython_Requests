@@ -14,9 +14,11 @@ def test_json():
     sock = mocket.Mocket(response_headers)
     pool.socket.return_value = sock
     sent = []
+
     def _send(data):
         sent.append(data)
         return len(data)
+
     sock.send.side_effect = _send
 
     s = adafruit_requests.Session(pool)

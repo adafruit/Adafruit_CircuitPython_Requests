@@ -32,7 +32,7 @@ def test_get_https_text():
     r = s.get("https://" + host + path)
 
     sock.connect.assert_called_once_with((host, 443))
-    
+
     sock.send.assert_has_calls(
         [
             mock.call(b"GET"),
@@ -63,7 +63,7 @@ def test_get_http_text():
     r = s.get("http://" + host + path)
 
     sock.connect.assert_called_once_with((ip, 80))
-    
+
     sock.send.assert_has_calls(
         [
             mock.call(b"GET"),

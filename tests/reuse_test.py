@@ -10,6 +10,7 @@ path = "/testwifi/index.html"
 text = b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
 response = b"HTTP/1.0 200 OK\r\nContent-Length: 70\r\n\r\n" + text
 
+
 def test_get_twice():
     pool = mocket.MocketPool()
     pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
@@ -20,7 +21,6 @@ def test_get_twice():
     s = adafruit_requests.Session(pool, ssl)
     r = s.get("https://" + host + path)
 
-    
     sock.send.assert_has_calls(
         [
             mock.call(b"GET"),
@@ -38,7 +38,7 @@ def test_get_twice():
     assert r.text == str(text, "utf-8")
 
     r = s.get("https://" + host + path + "2")
-    
+
     sock.send.assert_has_calls(
         [
             mock.call(b"GET"),
@@ -69,7 +69,6 @@ def test_get_twice_after_second():
     s = adafruit_requests.Session(pool, ssl)
     r = s.get("https://" + host + path)
 
-
     sock.send.assert_has_calls(
         [
             mock.call(b"GET"),
@@ -86,7 +85,7 @@ def test_get_twice_after_second():
     )
 
     r2 = s.get("https://" + host + path + "2")
-    
+
     sock.send.assert_has_calls(
         [
             mock.call(b"GET"),
@@ -157,6 +156,7 @@ def test_connect_out_of_memory():
     sock.close.assert_called_once()
     sock.connect.assert_called_once_with((host, 443))
     sock3.connect.assert_called_once_with((host2, 443))
+
 
 def test_second_send_fails():
     pool = mocket.MocketPool()

@@ -478,7 +478,9 @@ class Session:
             self._send(socket, b"Content-Type: application/json\r\n")
         if data:
             if isinstance(data, dict):
-                self._send(socket, b"Content-Type: application/x-www-form-urlencoded\r\n")
+                self._send(
+                    socket, b"Content-Type: application/x-www-form-urlencoded\r\n"
+                )
                 _post_data = ""
                 for k in data:
                     _post_data = "{}&{}={}".format(_post_data, k, data[k])
@@ -490,7 +492,6 @@ class Session:
                 self._send(socket, bytes(data))
             else:
                 self._send(socket, bytes(data, "utf-8"))
-
 
     # pylint: disable=too-many-branches, too-many-statements, unused-argument, too-many-arguments, too-many-locals
     def request(
