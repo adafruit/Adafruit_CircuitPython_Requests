@@ -446,6 +446,8 @@ class Session:
         total_sent = 0
         while total_sent < len(data):
             sent = socket.send(data[total_sent:])
+            if sent is None:
+                sent = len(data)
             if sent == 0:
                 raise RuntimeError("Connection closed")
             total_sent += sent
