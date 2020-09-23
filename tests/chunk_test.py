@@ -49,9 +49,6 @@ def test_get_text():
         ]
     )
     sock.send.assert_has_calls(
-        [
-            mock.call(b"Host: "),
-            mock.call(b"wifitest.adafruit.com"),
-        ]
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
     )
     assert r.text == str(text, "utf-8")

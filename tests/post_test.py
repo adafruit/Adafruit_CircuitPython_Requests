@@ -31,10 +31,7 @@ def test_method():
         ]
     )
     sock.send.assert_has_calls(
-        [
-            mock.call(b"Host: "),
-            mock.call(b"httpbin.org"),
-        ]
+        [mock.call(b"Host: "), mock.call(b"httpbin.org"),]
     )
 
 

@@ -30,10 +30,7 @@ def test_get_twice():
         ]
     )
     sock.send.assert_has_calls(
-        [
-            mock.call(b"Host: "),
-            mock.call(b"wifitest.adafruit.com"),
-        ]
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
     )
     assert r.text == str(text, "utf-8")
 
@@ -48,10 +45,7 @@ def test_get_twice():
         ]
     )
     sock.send.assert_has_calls(
-        [
-            mock.call(b"Host: "),
-            mock.call(b"wifitest.adafruit.com"),
-        ]
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
     )
 
     assert r.text == str(text, "utf-8")
@@ -78,10 +72,7 @@ def test_get_twice_after_second():
         ]
     )
     sock.send.assert_has_calls(
-        [
-            mock.call(b"Host: "),
-            mock.call(b"wifitest.adafruit.com"),
-        ]
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
     )
 
     r2 = s.get("https://" + host + path + "2")
@@ -95,10 +86,7 @@ def test_get_twice_after_second():
         ]
     )
     sock.send.assert_has_calls(
-        [
-            mock.call(b"Host: "),
-            mock.call(b"wifitest.adafruit.com"),
-        ]
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
     )
     sock.connect.assert_called_once_with((host, 443))
     pool.socket.assert_called_once()
@@ -129,10 +117,7 @@ def test_connect_out_of_memory():
         ]
     )
     sock.send.assert_has_calls(
-        [
-            mock.call(b"Host: "),
-            mock.call(b"wifitest.adafruit.com"),
-        ]
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
     )
     assert r.text == str(text, "utf-8")
 
@@ -146,10 +131,7 @@ def test_connect_out_of_memory():
         ]
     )
     sock3.send.assert_has_calls(
-        [
-            mock.call(b"Host: "),
-            mock.call(b"wifitest2.adafruit.com"),
-        ]
+        [mock.call(b"Host: "), mock.call(b"wifitest2.adafruit.com"),]
     )
 
     assert r.text == str(text, "utf-8")
@@ -169,17 +151,11 @@ def test_second_send_fails():
     r = s.get("https://" + host + path)
 
     sock.send.assert_has_calls(
-        [
-            mock.call(b"testwifi/index.html"),
-        ]
+        [mock.call(b"testwifi/index.html"),]
     )
 
     sock.send.assert_has_calls(
-        [
-            mock.call(b"Host: "),
-            mock.call(b"wifitest.adafruit.com"),
-            mock.call(b"\r\n"),
-        ]
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"), mock.call(b"\r\n"),]
     )
     assert r.text == str(text, "utf-8")
 
