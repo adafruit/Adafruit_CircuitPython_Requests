@@ -10,35 +10,47 @@ path = "/testwifi/index.html"
 text = b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
 response = b"HTTP/1.0 200 OK\r\nContent-Length: 70\r\n\r\n" + text
 
-# def test_get_twice():
-#     pool = mocket.MocketPool()
-#     pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-#     sock = mocket.Mocket(response + response)
-#     pool.socket.return_value = sock
-#     ssl = mocket.SSLContext()
 
-#     s = adafruit_requests.Session(pool, ssl)
-#     r = s.get("https://" + host + path)
+def test_get_twice():
+    pool = mocket.MocketPool()
+    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
+    sock = mocket.Mocket(response + response)
+    pool.socket.return_value = sock
+    ssl = mocket.SSLContext()
 
-#     sock.send.assert_has_calls(
-#         [
-#             mock.call(b"GET /testwifi/index.html HTTP/1.1\r\n"),
-#             mock.call(b"Host: wifitest.adafruit.com\r\n"),
-#         ]
-#     )
-#     assert r.text == str(text, "utf-8")
+    s = adafruit_requests.Session(pool, ssl)
+    r = s.get("https://" + host + path)
 
-#     r = s.get("https://" + host + path + "2")
-#     sock.send.assert_has_calls(
-#         [
-#             mock.call(b"GET /testwifi/index.html2 HTTP/1.1\r\n"),
-#             mock.call(b"Host: wifitest.adafruit.com\r\n"),
-#         ]
-#     )
+    sock.send.assert_has_calls(
+        [
+            mock.call(b"GET"),
+            mock.call(b" /"),
+            mock.call(b"testwifi/index.html"),
+            mock.call(b" HTTP/1.1\r\n"),
+        ]
+    )
+    sock.send.assert_has_calls(
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
+    )
+    assert r.text == str(text, "utf-8")
 
-#     assert r.text == str(text, "utf-8")
-#     sock.connect.assert_called_once_with((host, 443))
-#     pool.socket.assert_called_once()
+    r = s.get("https://" + host + path + "2")
+
+    sock.send.assert_has_calls(
+        [
+            mock.call(b"GET"),
+            mock.call(b" /"),
+            mock.call(b"testwifi/index.html2"),
+            mock.call(b" HTTP/1.1\r\n"),
+        ]
+    )
+    sock.send.assert_has_calls(
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
+    )
+
+    assert r.text == str(text, "utf-8")
+    sock.connect.assert_called_once_with((host, 443))
+    pool.socket.assert_called_once()
 
 
 def test_get_twice_after_second():
@@ -53,17 +65,28 @@ def test_get_twice_after_second():
 
     sock.send.assert_has_calls(
         [
-            mock.call(b"GET /testwifi/index.html HTTP/1.1\r\n"),
-            mock.call(b"Host: wifitest.adafruit.com\r\n"),
+            mock.call(b"GET"),
+            mock.call(b" /"),
+            mock.call(b"testwifi/index.html"),
+            mock.call(b" HTTP/1.1\r\n"),
         ]
+    )
+    sock.send.assert_has_calls(
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
     )
 
     r2 = s.get("https://" + host + path + "2")
+
     sock.send.assert_has_calls(
         [
-            mock.call(b"GET /testwifi/index.html2 HTTP/1.1\r\n"),
-            mock.call(b"Host: wifitest.adafruit.com\r\n"),
+            mock.call(b"GET"),
+            mock.call(b" /"),
+            mock.call(b"testwifi/index.html2"),
+            mock.call(b" HTTP/1.1\r\n"),
         ]
+    )
+    sock.send.assert_has_calls(
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
     )
     sock.connect.assert_called_once_with((host, 443))
     pool.socket.assert_called_once()
@@ -87,21 +110,62 @@ def test_connect_out_of_memory():
 
     sock.send.assert_has_calls(
         [
-            mock.call(b"GET /testwifi/index.html HTTP/1.1\r\n"),
-            mock.call(b"Host: wifitest.adafruit.com\r\n"),
+            mock.call(b"GET"),
+            mock.call(b" /"),
+            mock.call(b"testwifi/index.html"),
+            mock.call(b" HTTP/1.1\r\n"),
         ]
+    )
+    sock.send.assert_has_calls(
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
     )
     assert r.text == str(text, "utf-8")
 
     r = s.get("https://" + host2 + path)
     sock3.send.assert_has_calls(
         [
-            mock.call(b"GET /testwifi/index.html HTTP/1.1\r\n"),
-            mock.call(b"Host: wifitest2.adafruit.com\r\n"),
+            mock.call(b"GET"),
+            mock.call(b" /"),
+            mock.call(b"testwifi/index.html"),
+            mock.call(b" HTTP/1.1\r\n"),
         ]
+    )
+    sock3.send.assert_has_calls(
+        [mock.call(b"Host: "), mock.call(b"wifitest2.adafruit.com"),]
     )
 
     assert r.text == str(text, "utf-8")
     sock.close.assert_called_once()
     sock.connect.assert_called_once_with((host, 443))
     sock3.connect.assert_called_once_with((host2, 443))
+
+
+def test_second_send_fails():
+    pool = mocket.MocketPool()
+    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
+    sock = mocket.Mocket(response + response)
+    pool.socket.return_value = sock
+    ssl = mocket.SSLContext()
+
+    s = adafruit_requests.Session(pool, ssl)
+    r = s.get("https://" + host + path)
+
+    sock.send.assert_has_calls(
+        [mock.call(b"testwifi/index.html"),]
+    )
+
+    sock.send.assert_has_calls(
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"), mock.call(b"\r\n"),]
+    )
+    assert r.text == str(text, "utf-8")
+
+    sock.send.side_effect = None
+    sock.send.return_value = 0
+
+    with pytest.raises(RuntimeError):
+        s.get("https://" + host + path + "2")
+
+    sock.connect.assert_called_once_with((host, 443))
+    # Make sure that the socket is closed after send fails.
+    sock.close.assert_called_once()
+    pool.socket.assert_called_once()

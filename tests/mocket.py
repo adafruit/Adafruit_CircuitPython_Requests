@@ -14,12 +14,15 @@ class Mocket:
         self.settimeout = mock.Mock()
         self.close = mock.Mock()
         self.connect = mock.Mock()
-        self.send = mock.Mock()
+        self.send = mock.Mock(side_effect=self._send)
         self.readline = mock.Mock(side_effect=self._readline)
         self.recv = mock.Mock(side_effect=self._recv)
         self.recv_into = mock.Mock(side_effect=self._recv_into)
         self._response = response
         self._position = 0
+
+    def _send(self, data):
+        return len(data)
 
     def _readline(self):
         i = self._response.find(b"\r\n", self._position)

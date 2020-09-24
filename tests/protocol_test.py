@@ -32,11 +32,17 @@ def test_get_https_text():
     r = s.get("https://" + host + path)
 
     sock.connect.assert_called_once_with((host, 443))
+
     sock.send.assert_has_calls(
         [
-            mock.call(b"GET /testwifi/index.html HTTP/1.1\r\n"),
-            mock.call(b"Host: wifitest.adafruit.com\r\n"),
+            mock.call(b"GET"),
+            mock.call(b" /"),
+            mock.call(b"testwifi/index.html"),
+            mock.call(b" HTTP/1.1\r\n"),
         ]
+    )
+    sock.send.assert_has_calls(
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
     )
     assert r.text == str(text, "utf-8")
 
@@ -54,10 +60,16 @@ def test_get_http_text():
     r = s.get("http://" + host + path)
 
     sock.connect.assert_called_once_with((ip, 80))
+
     sock.send.assert_has_calls(
         [
-            mock.call(b"GET /testwifi/index.html HTTP/1.1\r\n"),
-            mock.call(b"Host: wifitest.adafruit.com\r\n"),
+            mock.call(b"GET"),
+            mock.call(b" /"),
+            mock.call(b"testwifi/index.html"),
+            mock.call(b" HTTP/1.1\r\n"),
         ]
+    )
+    sock.send.assert_has_calls(
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
     )
     assert r.text == str(text, "utf-8")

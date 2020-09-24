@@ -21,8 +21,17 @@ def test_method():
     s = adafruit_requests.Session(pool)
     r = s.post("http://" + host + "/post")
     sock.connect.assert_called_once_with((ip, 80))
+
     sock.send.assert_has_calls(
-        [mock.call(b"POST /post HTTP/1.1\r\n"), mock.call(b"Host: httpbin.org\r\n")]
+        [
+            mock.call(b"POST"),
+            mock.call(b" /"),
+            mock.call(b"post"),
+            mock.call(b" HTTP/1.1\r\n"),
+        ]
+    )
+    sock.send.assert_has_calls(
+        [mock.call(b"Host: "), mock.call(b"httpbin.org"),]
     )
 
 
