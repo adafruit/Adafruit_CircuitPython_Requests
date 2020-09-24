@@ -442,7 +442,8 @@ class Session:
         self._socket_free[sock] = False
         return sock
 
-    def _send(self, socket, data):
+    @staticmethod
+    def _send(socket, data):
         total_sent = 0
         while total_sent < len(data):
             sent = socket.send(data[total_sent:])
@@ -453,6 +454,7 @@ class Session:
             total_sent += sent
 
     def _send_request(self, socket, host, method, path, headers, data, json):
+        # pylint: disable=too-many-arguments
         self._send(socket, bytes(method, "utf-8"))
         self._send(socket, b" /")
         self._send(socket, bytes(path, "utf-8"))
