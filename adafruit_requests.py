@@ -249,7 +249,7 @@ class Response:
             return
         # Make sure we've read all of our response.
         if self._cached is None:
-            if self._remaining > 0:
+            if self._remaining and self._remaining > 0:
                 self._throw_away(self._remaining)
             elif self._chunked:
                 while True:
