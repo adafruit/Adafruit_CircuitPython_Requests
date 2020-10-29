@@ -590,7 +590,7 @@ class _FakeSSLSocket:
         try:
             self._socket.connect(address, self._mode)
             return True
-        except RuntimeError as e:
+        except RuntimeError:
             return False
 
 
