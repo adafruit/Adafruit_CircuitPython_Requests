@@ -422,7 +422,7 @@ class Session:
         sock.settimeout(timeout)  # socket read timeout
         ok = True
         try:
-            sock.connect((connect_host, port))
+            ok = sock.connect((connect_host, port))
         except MemoryError:
             if not any(self._socket_free.items()):
                 raise
@@ -587,7 +587,11 @@ class _FakeSSLSocket:
 
     def connect(self, address):
         """connect wrapper to add non-standard mode parameter"""
-        return self._socket.connect(address, self._mode)
+        try:
+            self._socket.connect(address, self._mode)
+            return True
+        except RuntimeError:
+            return False
 
 
 class _FakeSSLContext:
