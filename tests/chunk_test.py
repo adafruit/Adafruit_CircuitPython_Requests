@@ -53,6 +53,7 @@ def test_get_text():
     )
     assert r.text == str(text, "utf-8")
 
+
 def test_close_flush():
     """Test that a chunked response can be closed even when the request contents were not accessed."""
     pool = mocket.MocketPool()
@@ -78,5 +79,5 @@ def test_close_flush():
     sock.send.assert_has_calls(
         [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
     )
-    
+
     r.close()

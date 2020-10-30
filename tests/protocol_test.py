@@ -74,6 +74,7 @@ def test_get_http_text():
     )
     assert r.text == str(text, "utf-8")
 
+
 def test_get_close():
     """Test that a response can be closed without the contents being accessed."""
     pool = mocket.MocketPool()
