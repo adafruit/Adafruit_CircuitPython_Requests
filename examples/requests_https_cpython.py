@@ -5,7 +5,7 @@ import adafruit_requests as requests
 
 https = requests.Session(socket, ssl.create_default_context())
 
-TEXT_URL = "https://wifitest.adafruit.com/testwifi/index.html"
+TEXT_URL = "https://httpbin.org/get"
 JSON_GET_URL = "https://httpbin.org/get"
 JSON_POST_URL = "https://httpbin.org/post"
 
