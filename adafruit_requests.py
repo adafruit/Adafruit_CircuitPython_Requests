@@ -55,6 +55,7 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 
 import errno
 
+
 class _RawResponse:
     def __init__(self, response):
         self._response = response
@@ -73,8 +74,10 @@ class _RawResponse:
         into buf."""
         return self._response._readinto(buf)  # pylint: disable=protected-access
 
+
 class _SendFailed(Exception):
     """Custom exception to abort sending a request."""
+
 
 class Response:
     """The response from a request, contains all the headers/content"""
@@ -430,7 +433,9 @@ class Session:
             retry_count += 1
 
             try:
-                sock = self._socket_pool.socket(addr_info[0], addr_info[1], addr_info[2])
+                sock = self._socket_pool.socket(
+                    addr_info[0], addr_info[1], addr_info[2]
+                )
             except OSError:
                 continue
 
@@ -616,6 +621,7 @@ class _FakeSSLSocket:
             return self._socket.connect(address, self._mode)
         except RuntimeError as e:
             raise OSError(errno.ENOMEM)
+
 
 class _FakeSSLContext:
     def __init__(self, iface):
