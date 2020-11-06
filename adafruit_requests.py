@@ -53,6 +53,8 @@ license='MIT'
 __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 
+import errno
+
 
 class _RawResponse:
     def __init__(self, response):
@@ -71,6 +73,10 @@ class _RawResponse:
         """Read as much as available into buf or until it is full. Returns the number of bytes read
         into buf."""
         return self._response._readinto(buf)  # pylint: disable=protected-access
+
+
+class _SendFailed(Exception):
+    """Custom exception to abort sending a request."""
 
 
 class Response:
@@ -94,11 +100,13 @@ class Response:
         self._chunked = False
 
         self._backwards_compatible = not hasattr(sock, "recv_into")
-        if self._backwards_compatible:
-            print("Socket missing recv_into. Using more memory to be compatible")
 
         http = self._readto(b" ")
         if not http:
+            if session:
+                session._close_socket(self.socket)
+            else:
+                self.socket.close()
             raise RuntimeError("Unable to read HTTP response.")
         self.status_code = int(bytes(self._readto(b" ")))
         self.reason = self._readto(b"\r\n")
@@ -414,30 +422,41 @@ class Session:
         addr_info = self._socket_pool.getaddrinfo(
             host, port, 0, self._socket_pool.SOCK_STREAM
         )[0]
-        sock = self._socket_pool.socket(addr_info[0], addr_info[1], addr_info[2])
-        connect_host = addr_info[-1][0]
-        if proto == "https:":
-            sock = self._ssl_context.wrap_socket(sock, server_hostname=host)
-            connect_host = host
-        sock.settimeout(timeout)  # socket read timeout
-        ok = True
-        try:
-            ok = sock.connect((connect_host, port))
-        except MemoryError:
-            if not any(self._socket_free.items()):
-                raise
-            ok = False
+        retry_count = 0
+        sock = None
+        while retry_count < 5 and sock is None:
+            if retry_count > 0:
+                if any(self._socket_free.items()):
+                    self._free_sockets()
+                else:
+                    raise RuntimeError("Sending request failed")
+            retry_count += 1
 
-        # We couldn't connect due to memory so clean up the open sockets.
-        if not ok:
-            self._free_sockets()
-            # Recreate the socket because the ESP-IDF won't retry the connection if it failed once.
-            sock = None  # Clear first so the first socket can be cleaned up.
-            sock = self._socket_pool.socket(addr_info[0], addr_info[1], addr_info[2])
+            try:
+                sock = self._socket_pool.socket(
+                    addr_info[0], addr_info[1], addr_info[2]
+                )
+            except OSError:
+                continue
+
+            connect_host = addr_info[-1][0]
             if proto == "https:":
                 sock = self._ssl_context.wrap_socket(sock, server_hostname=host)
+                connect_host = host
             sock.settimeout(timeout)  # socket read timeout
-            sock.connect((connect_host, port))
+
+            try:
+                sock.connect((connect_host, port))
+            except MemoryError:
+                sock.close()
+                sock = None
+            except OSError:
+                sock.close()
+                sock = None
+
+        if sock is None:
+            raise RuntimeError("Repeated socket failures")
+
         self._open_sockets[key] = sock
         self._socket_free[sock] = False
         return sock
@@ -446,11 +465,15 @@ class Session:
     def _send(socket, data):
         total_sent = 0
         while total_sent < len(data):
-            sent = socket.send(data[total_sent:])
+            # ESP32SPI sockets raise a RuntimeError when unable to send.
+            try:
+                sent = socket.send(data[total_sent:])
+            except RuntimeError:
+                sent = 0
             if sent is None:
                 sent = len(data)
             if sent == 0:
-                raise RuntimeError("Connection closed")
+                raise _SendFailed()
             total_sent += sent
 
     def _send_request(self, socket, host, method, path, headers, data, json):
@@ -532,12 +555,19 @@ class Session:
             self._last_response.close()
             self._last_response = None
 
-        socket = self._get_socket(host, port, proto, timeout=timeout)
-        try:
-            self._send_request(socket, host, method, path, headers, data, json)
-        except:
-            self._close_socket(socket)
-            raise
+        # We may fail to send the request if the socket we got is closed already. So, try a second
+        # time in that case.
+        retry_count = 0
+        while retry_count < 2:
+            retry_count += 1
+            socket = self._get_socket(host, port, proto, timeout=timeout)
+            try:
+                self._send_request(socket, host, method, path, headers, data, json)
+                break
+            except _SendFailed:
+                self._close_socket(socket)
+                if retry_count > 1:
+                    raise
 
         resp = Response(socket, self)  # our response
         if "location" in resp.headers and 300 <= resp.status_code <= 399:
@@ -588,10 +618,9 @@ class _FakeSSLSocket:
     def connect(self, address):
         """connect wrapper to add non-standard mode parameter"""
         try:
-            self._socket.connect(address, self._mode)
-            return True
-        except RuntimeError:
-            return False
+            return self._socket.connect(address, self._mode)
+        except RuntimeError as error:
+            raise OSError(errno.ENOMEM) from error
 
 
 class _FakeSSLContext:

@@ -16,11 +16,15 @@ class Mocket:
         self.send = mock.Mock(side_effect=self._send)
         self.readline = mock.Mock(side_effect=self._readline)
         self.recv = mock.Mock(side_effect=self._recv)
+        self.fail_next_send = False
         self._response = response
         self._position = 0
 
     def _send(self, data):
-        return len(data)
+        if self.fail_next_send:
+            self.fail_next_send = False
+            raise RuntimeError("Send failed")
+        return None
 
     def _readline(self):
         i = self._response.find(b"\r\n", self._position)
@@ -32,4 +36,5 @@ class Mocket:
         end = self._position + count
         r = self._response[self._position : end]
         self._position = end
+        print(r)
         return r

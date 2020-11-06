@@ -20,8 +20,12 @@ class Mocket:
         self.recv_into = mock.Mock(side_effect=self._recv_into)
         self._response = response
         self._position = 0
+        self.fail_next_send = False
 
     def _send(self, data):
+        if self.fail_next_send:
+            self.fail_next_send = False
+            return 0
         return len(data)
 
     def _readline(self):

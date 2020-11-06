@@ -143,8 +143,10 @@ def test_connect_out_of_memory():
 def test_second_send_fails():
     pool = mocket.MocketPool()
     pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-    sock = mocket.Mocket(response + response)
-    pool.socket.return_value = sock
+    sock = mocket.Mocket(response)
+    sock2 = mocket.Mocket(response)
+    pool.socket.side_effect = [sock, sock2]
+
     ssl = mocket.SSLContext()
 
     s = adafruit_requests.Session(pool, ssl)
@@ -159,13 +161,12 @@ def test_second_send_fails():
     )
     assert r.text == str(text, "utf-8")
 
-    sock.send.side_effect = None
-    sock.send.return_value = 0
-
-    with pytest.raises(RuntimeError):
-        s.get("https://" + host + path + "2")
+    sock.fail_next_send = True
+    s.get("https://" + host + path + "2")
 
     sock.connect.assert_called_once_with((host, 443))
+    sock2.connect.assert_called_once_with((host, 443))
     # Make sure that the socket is closed after send fails.
     sock.close.assert_called_once()
-    pool.socket.assert_called_once()
+    assert sock2.close.call_count == 0
+    assert pool.socket.call_count == 2
