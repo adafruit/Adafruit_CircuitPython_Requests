@@ -31,59 +31,69 @@ def _chunk(response, split, extra=b""):
     return chunked
 
 
+def do_test_get_text(extra=b""):
+    pool = mocket.MocketPool()
+    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
+    c = _chunk(text, 33, extra)
+    print(c)
+    sock = mocket.Mocket(headers + c)
+    pool.socket.return_value = sock
+
+    s = adafruit_requests.Session(pool)
+    r = s.get("http://" + host + path)
+
+    sock.connect.assert_called_once_with((ip, 80))
+
+    sock.send.assert_has_calls(
+        [
+            mock.call(b"GET"),
+            mock.call(b" /"),
+            mock.call(b"testwifi/index.html"),
+            mock.call(b" HTTP/1.1\r\n"),
+        ]
+    )
+    sock.send.assert_has_calls(
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
+    )
+    assert r.text == str(text, "utf-8")
+
 def test_get_text():
-    for extra in (b"", b";blahblah; blah"):
-        pool = mocket.MocketPool()
-        pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-        c = _chunk(text, 33, extra)
-        print(c)
-        sock = mocket.Mocket(headers + c)
-        pool.socket.return_value = sock
+    do_test_get_text()
 
-        s = adafruit_requests.Session(pool)
-        r = s.get("http://" + host + path)
+def test_get_text_extra():
+    do_test_get_text(b';blahblah; blah')
 
-        sock.connect.assert_called_once_with((ip, 80))
 
-        sock.send.assert_has_calls(
-            [
-                mock.call(b"GET"),
-                mock.call(b" /"),
-                mock.call(b"testwifi/index.html"),
-                mock.call(b" HTTP/1.1\r\n"),
-            ]
-        )
-        sock.send.assert_has_calls(
-            [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
-        )
-        assert r.text == str(text, "utf-8")
+def do_test_close_flush(extra=b''):
+    """Test that a chunked response can be closed even when the request contents were not accessed."""
+    pool = mocket.MocketPool()
+    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
+    c = _chunk(text, 33, extra)
+    print(c)
+    sock = mocket.Mocket(headers + c)
+    pool.socket.return_value = sock
 
+    s = adafruit_requests.Session(pool)
+    r = s.get("http://" + host + path)
+
+    sock.connect.assert_called_once_with((ip, 80))
+
+    sock.send.assert_has_calls(
+        [
+            mock.call(b"GET"),
+            mock.call(b" /"),
+            mock.call(b"testwifi/index.html"),
+            mock.call(b" HTTP/1.1\r\n"),
+        ]
+    )
+    sock.send.assert_has_calls(
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
+    )
+
+    r.close()
 
 def test_close_flush():
-    """Test that a chunked response can be closed even when the request contents were not accessed."""
-    for extra in (b"", b";blahblah; blah"):
-        pool = mocket.MocketPool()
-        pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-        c = _chunk(text, 33, extra)
-        print(c)
-        sock = mocket.Mocket(headers + c)
-        pool.socket.return_value = sock
+    do_test_close_flush()
 
-        s = adafruit_requests.Session(pool)
-        r = s.get("http://" + host + path)
-
-        sock.connect.assert_called_once_with((ip, 80))
-
-        sock.send.assert_has_calls(
-            [
-                mock.call(b"GET"),
-                mock.call(b" /"),
-                mock.call(b"testwifi/index.html"),
-                mock.call(b" HTTP/1.1\r\n"),
-            ]
-        )
-        sock.send.assert_has_calls(
-            [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
-        )
-
-        r.close()
+def test_close_flush_extra():
+    do_test_close_flush(b';blahblah; blah')
