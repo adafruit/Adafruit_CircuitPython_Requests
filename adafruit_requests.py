@@ -429,7 +429,7 @@ class Session:
                 if any(self._socket_free.items()):
                     self._free_sockets()
                 else:
-                    raise RuntimeError("Out of sockets")
+                    raise RuntimeError("Sending request failed")
             retry_count += 1
 
             try:
@@ -450,7 +450,7 @@ class Session:
             except MemoryError:
                 sock.close()
                 sock = None
-            except OSError as e:
+            except OSError:
                 sock.close()
                 sock = None
 
@@ -619,8 +619,8 @@ class _FakeSSLSocket:
         """connect wrapper to add non-standard mode parameter"""
         try:
             return self._socket.connect(address, self._mode)
-        except RuntimeError as e:
-            raise OSError(errno.ENOMEM)
+        except RuntimeError as error:
+            raise OSError(errno.ENOMEM) from error
 
 
 class _FakeSSLContext:
