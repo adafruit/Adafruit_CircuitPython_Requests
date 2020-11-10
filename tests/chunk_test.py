@@ -57,14 +57,16 @@ def do_test_get_text(extra=b""):
     )
     assert r.text == str(text, "utf-8")
 
+
 def test_get_text():
     do_test_get_text()
 
+
 def test_get_text_extra():
-    do_test_get_text(b';blahblah; blah')
+    do_test_get_text(b";blahblah; blah")
 
 
-def do_test_close_flush(extra=b''):
+def do_test_close_flush(extra=b""):
     """Test that a chunked response can be closed even when the request contents were not accessed."""
     pool = mocket.MocketPool()
     pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
@@ -92,8 +94,10 @@ def do_test_close_flush(extra=b''):
 
     r.close()
 
+
 def test_close_flush():
     do_test_close_flush()
 
+
 def test_close_flush_extra():
-    do_test_close_flush(b';blahblah; blah')
+    do_test_close_flush(b";blahblah; blah")
