@@ -220,7 +220,7 @@ class Response:
                 # Consume trailing \r\n for chunks 2+
                 if self._remaining == 0:
                     self._throw_away(2)
-                chunk_header = self._readto(b";", b"\r\n")
+                chunk_header = self._readto(b"\r\n").split(b";", 1)[0]
                 http_chunk_size = int(bytes(chunk_header), 16)
                 if http_chunk_size == 0:
                     self._chunked = False
@@ -261,7 +261,7 @@ class Response:
                 self._throw_away(self._remaining)
             elif self._chunked:
                 while True:
-                    chunk_header = self._readto(b";", b"\r\n")
+                    chunk_header = self._readto(b"\r\n").split(b";", 1)[0]
                     chunk_size = int(bytes(chunk_header), 16)
                     if chunk_size == 0:
                         break
