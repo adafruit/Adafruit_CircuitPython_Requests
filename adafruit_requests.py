@@ -55,6 +55,15 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 
 import errno
 
+# CircuitPython 6.0 does not have the bytearray.split method.
+# This function emulates buf.split(needle)[0], which is the functionality
+# required.
+def _buffer_split0(buf, needle):
+    index = buf.find(needle)
+    if index == -1:
+        return buf
+    return buf[:index]
+
 
 class _RawResponse:
     def __init__(self, response):
@@ -220,7 +229,7 @@ class Response:
                 # Consume trailing \r\n for chunks 2+
                 if self._remaining == 0:
                     self._throw_away(2)
-                chunk_header = self._readto(b"\r\n").split(b";", 1)[0]
+                chunk_header = _buffer_split0(self._readto(b"\r\n"), b";")
                 http_chunk_size = int(bytes(chunk_header), 16)
                 if http_chunk_size == 0:
                     self._chunked = False
