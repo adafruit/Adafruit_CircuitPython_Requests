@@ -87,8 +87,10 @@ class _RawResponse:
 class _SendFailed(Exception):
     """Custom exception to abort sending a request."""
 
+
 class OutOfRetries(Exception):
     """Raised when requests has retried to make a request unsuccessfully."""
+
 
 class Response:
     """The response from a request, contains all the headers/content"""

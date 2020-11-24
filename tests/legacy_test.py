@@ -131,7 +131,6 @@ def test_first_read_fails():
         [mock.call(b"Host: "), mock.call(host.encode("utf-8")), mock.call(b"\r\n"),]
     )
 
-
     sock2.send.assert_has_calls(
         [mock.call(b"Host: "), mock.call(host.encode("utf-8")), mock.call(b"\r\n"),]
     )
