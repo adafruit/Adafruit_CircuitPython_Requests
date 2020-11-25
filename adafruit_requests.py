@@ -88,6 +88,10 @@ class _SendFailed(Exception):
     """Custom exception to abort sending a request."""
 
 
+class OutOfRetries(Exception):
+    """Raised when requests has retried to make a request unsuccessfully."""
+
+
 class Response:
     """The response from a request, contains all the headers/content"""
 
@@ -570,13 +574,27 @@ class Session:
         while retry_count < 2:
             retry_count += 1
             socket = self._get_socket(host, port, proto, timeout=timeout)
+            ok = True
             try:
                 self._send_request(socket, host, method, path, headers, data, json)
-                break
             except _SendFailed:
-                self._close_socket(socket)
-                if retry_count > 1:
-                    raise
+                ok = False
+            if ok:
+                # Read the H of "HTTP/1.1" to make sure the socket is alive. send can appear to work
+                # even when the socket is closed.
+                if hasattr(socket, "recv"):
+                    result = socket.recv(1)
+                else:
+                    result = bytearray(1)
+                    socket.recv_into(result)
+                if result == b"H":
+                    # Things seem to be ok so break with socket set.
+                    break
+            self._close_socket(socket)
+            socket = None
+
+        if not socket:
+            raise OutOfRetries()
 
         resp = Response(socket, self)  # our response
         if "location" in resp.headers and 300 <= resp.status_code <= 399:

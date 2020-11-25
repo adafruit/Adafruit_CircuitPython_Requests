@@ -115,13 +115,13 @@ def test_second_send_fails():
 def test_first_read_fails():
     mocket.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
     sock = mocket.Mocket(b"")
+    sock2 = mocket.Mocket(headers + encoded)
     mocket.socket.call_count = 0  # Reset call count
-    mocket.socket.side_effect = [sock]
+    mocket.socket.side_effect = [sock, sock2]
 
     adafruit_requests.set_socket(mocket, mocket.interface)
 
-    with pytest.raises(RuntimeError):
-        r = adafruit_requests.get("http://" + host + "/testwifi/index.html")
+    r = adafruit_requests.get("http://" + host + "/testwifi/index.html")
 
     sock.send.assert_has_calls(
         [mock.call(b"testwifi/index.html"),]
@@ -131,10 +131,15 @@ def test_first_read_fails():
         [mock.call(b"Host: "), mock.call(host.encode("utf-8")), mock.call(b"\r\n"),]
     )
 
+    sock2.send.assert_has_calls(
+        [mock.call(b"Host: "), mock.call(host.encode("utf-8")), mock.call(b"\r\n"),]
+    )
+
     sock.connect.assert_called_once_with((ip, 80))
+    sock2.connect.assert_called_once_with((ip, 80))
     # Make sure that the socket is closed after the first receive fails.
     sock.close.assert_called_once()
-    assert mocket.socket.call_count == 1
+    assert mocket.socket.call_count == 2
 
 
 def test_second_tls_connect_fails():

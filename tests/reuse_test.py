@@ -170,3 +170,34 @@ def test_second_send_fails():
     sock.close.assert_called_once()
     assert sock2.close.call_count == 0
     assert pool.socket.call_count == 2
+
+
+def test_second_send_lies_recv_fails():
+    pool = mocket.MocketPool()
+    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
+    sock = mocket.Mocket(response)
+    sock2 = mocket.Mocket(response)
+    pool.socket.side_effect = [sock, sock2]
+
+    ssl = mocket.SSLContext()
+
+    s = adafruit_requests.Session(pool, ssl)
+    r = s.get("https://" + host + path)
+
+    sock.send.assert_has_calls(
+        [mock.call(b"testwifi/index.html"),]
+    )
+
+    sock.send.assert_has_calls(
+        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"), mock.call(b"\r\n"),]
+    )
+    assert r.text == str(text, "utf-8")
+
+    s.get("https://" + host + path + "2")
+
+    sock.connect.assert_called_once_with((host, 443))
+    sock2.connect.assert_called_once_with((host, 443))
+    # Make sure that the socket is closed after send fails.
+    sock.close.assert_called_once()
+    assert sock2.close.call_count == 0
+    assert pool.socket.call_count == 2
