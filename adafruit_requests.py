@@ -274,7 +274,7 @@ class Response:
                 self._throw_away(self._remaining)
             elif self._chunked:
                 while True:
-                    chunk_header = self._readto(b"\r\n").split(b";", 1)[0]
+                    chunk_header = _buffer_split0(self._readto(b"\r\n"), b";")
                     chunk_size = int(bytes(chunk_header), 16)
                     if chunk_size == 0:
                         break
