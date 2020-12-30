@@ -39,7 +39,7 @@ print("Connected to", str(esp.ssid, "utf-8"), "\tRSSI:", esp.rssi)
 
 # Initialize a requests object with a socket and esp32spi interface
 socket.set_interface(esp)
-requests.set_socket(socket)
+requests.set_socket(socket, esp)
 
 JSON_GET_URL = "http://httpbin.org/get"
 
@@ -58,9 +58,6 @@ print("-" * 60)
 # Read Response's HTTP status code
 print("Response HTTP Status Code: ", response.status_code)
 print("-" * 60)
-
-# Read Response, as raw bytes instead of pretty text
-print("Raw Response: ", response.content)
 
 # Close, delete and collect the response data
 response.close()
