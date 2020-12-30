@@ -40,7 +40,7 @@ print("Connected to", str(esp.ssid, "utf-8"), "\tRSSI:", esp.rssi)
 
 # Initialize a requests object with a socket and esp32spi interface
 socket.set_interface(esp)
-requests.set_socket(socket)
+requests.set_socket(socket, esp)
 
 TEXT_URL = "http://wifitest.adafruit.com/testwifi/index.html"
 JSON_GET_URL = "http://httpbin.org/get"
