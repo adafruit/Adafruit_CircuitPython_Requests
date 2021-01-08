@@ -1,21 +1,35 @@
 # adafruit_requests usage with a CPython socket
-import socket
+import socketpool
 import ssl
 import adafruit_requests as requests
+import wifi
+import secrets
 
+# Get wifi details and more from a secrets.py file
+try:
+    from secrets import secrets
+except ImportError:
+    print("WiFi secrets are kept in secrets.py, please add them there!")
+    raise
+
+print("Connecting to %s"%secrets["ssid"])
+wifi.radio.connect(secrets["ssid"], secrets["password"])
+print("Connected to %s!"%secrets["ssid"])
+print("My IP address is", wifi.radio.ipv4_address)
+
+socket = socketpool.SocketPool(wifi.radio)
 https = requests.Session(socket, ssl.create_default_context())
 
 TEXT_URL = "https://httpbin.org/get"
 JSON_GET_URL = "https://httpbin.org/get"
 JSON_POST_URL = "https://httpbin.org/post"
 
-# print("Fetching text from %s" % TEXT_URL)
-# response = requests.get(TEXT_URL)
-# print("-" * 40)
-
-# print("Text Response: ", response.text)
-# print("-" * 40)
-# response.close()
+print("Fetching text from %s" % TEXT_URL)
+response = https.get(TEXT_URL)
+print("-" * 40)
+print("Text Response: ", response.text)
+print("-" * 40)
+response.close()
 
 print("Fetching JSON data from %s" % JSON_GET_URL)
 response = https.get(JSON_GET_URL)
