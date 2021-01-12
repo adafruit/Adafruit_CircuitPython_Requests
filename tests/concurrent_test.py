@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
+#
+# SPDX-License-Identifier: Unlicense
+
 from unittest import mock
 import mocket
 import pytest
@@ -28,11 +32,17 @@ def test_second_connect_fails_memoryerror():
     r = s.get("https://" + host + path)
 
     sock.send.assert_has_calls(
-        [mock.call(b"testwifi/index.html"),]
+        [
+            mock.call(b"testwifi/index.html"),
+        ]
     )
 
     sock.send.assert_has_calls(
-        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"), mock.call(b"\r\n"),]
+        [
+            mock.call(b"Host: "),
+            mock.call(b"wifitest.adafruit.com"),
+            mock.call(b"\r\n"),
+        ]
     )
     assert r.text == str(text, "utf-8")
 
@@ -65,11 +75,17 @@ def test_second_connect_fails_oserror():
     r = s.get("https://" + host + path)
 
     sock.send.assert_has_calls(
-        [mock.call(b"testwifi/index.html"),]
+        [
+            mock.call(b"testwifi/index.html"),
+        ]
     )
 
     sock.send.assert_has_calls(
-        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"), mock.call(b"\r\n"),]
+        [
+            mock.call(b"Host: "),
+            mock.call(b"wifitest.adafruit.com"),
+            mock.call(b"\r\n"),
+        ]
     )
     assert r.text == str(text, "utf-8")
 
