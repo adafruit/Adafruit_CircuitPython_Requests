@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
+#
+# SPDX-License-Identifier: Unlicense
+
 from unittest import mock
 import legacy_mocket as mocket
 import json
@@ -63,11 +67,17 @@ def test_second_tls_send_fails():
     r = adafruit_requests.get("https://" + host + "/testwifi/index.html")
 
     sock.send.assert_has_calls(
-        [mock.call(b"testwifi/index.html"),]
+        [
+            mock.call(b"testwifi/index.html"),
+        ]
     )
 
     sock.send.assert_has_calls(
-        [mock.call(b"Host: "), mock.call(host.encode("utf-8")), mock.call(b"\r\n"),]
+        [
+            mock.call(b"Host: "),
+            mock.call(host.encode("utf-8")),
+            mock.call(b"\r\n"),
+        ]
     )
     assert r.text == str(encoded, "utf-8")
 
@@ -93,11 +103,17 @@ def test_second_send_fails():
     r = adafruit_requests.get("http://" + host + "/testwifi/index.html")
 
     sock.send.assert_has_calls(
-        [mock.call(b"testwifi/index.html"),]
+        [
+            mock.call(b"testwifi/index.html"),
+        ]
     )
 
     sock.send.assert_has_calls(
-        [mock.call(b"Host: "), mock.call(host.encode("utf-8")), mock.call(b"\r\n"),]
+        [
+            mock.call(b"Host: "),
+            mock.call(host.encode("utf-8")),
+            mock.call(b"\r\n"),
+        ]
     )
     assert r.text == str(encoded, "utf-8")
 
@@ -124,15 +140,25 @@ def test_first_read_fails():
     r = adafruit_requests.get("http://" + host + "/testwifi/index.html")
 
     sock.send.assert_has_calls(
-        [mock.call(b"testwifi/index.html"),]
+        [
+            mock.call(b"testwifi/index.html"),
+        ]
     )
 
     sock.send.assert_has_calls(
-        [mock.call(b"Host: "), mock.call(host.encode("utf-8")), mock.call(b"\r\n"),]
+        [
+            mock.call(b"Host: "),
+            mock.call(host.encode("utf-8")),
+            mock.call(b"\r\n"),
+        ]
     )
 
     sock2.send.assert_has_calls(
-        [mock.call(b"Host: "), mock.call(host.encode("utf-8")), mock.call(b"\r\n"),]
+        [
+            mock.call(b"Host: "),
+            mock.call(host.encode("utf-8")),
+            mock.call(b"\r\n"),
+        ]
     )
 
     sock.connect.assert_called_once_with((ip, 80))
@@ -155,11 +181,17 @@ def test_second_tls_connect_fails():
     r = adafruit_requests.get("https://" + host + "/testwifi/index.html")
 
     sock.send.assert_has_calls(
-        [mock.call(b"testwifi/index.html"),]
+        [
+            mock.call(b"testwifi/index.html"),
+        ]
     )
 
     sock.send.assert_has_calls(
-        [mock.call(b"Host: "), mock.call(host.encode("utf-8")), mock.call(b"\r\n"),]
+        [
+            mock.call(b"Host: "),
+            mock.call(host.encode("utf-8")),
+            mock.call(b"\r\n"),
+        ]
     )
     assert r.text == str(encoded, "utf-8")
 

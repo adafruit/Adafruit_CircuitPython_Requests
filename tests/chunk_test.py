@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
+#
+# SPDX-License-Identifier: Unlicense
+
 from unittest import mock
 import mocket
 import adafruit_requests
@@ -53,7 +57,10 @@ def do_test_get_text(extra=b""):
         ]
     )
     sock.send.assert_has_calls(
-        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
+        [
+            mock.call(b"Host: "),
+            mock.call(b"wifitest.adafruit.com"),
+        ]
     )
     assert r.text == str(text, "utf-8")
 
@@ -89,7 +96,10 @@ def do_test_close_flush(extra=b""):
         ]
     )
     sock.send.assert_has_calls(
-        [mock.call(b"Host: "), mock.call(b"wifitest.adafruit.com"),]
+        [
+            mock.call(b"Host: "),
+            mock.call(b"wifitest.adafruit.com"),
+        ]
     )
 
     r.close()

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
+#
+# SPDX-License-Identifier: Unlicense
+
 from unittest import mock
 import mocket
 import json
@@ -31,7 +35,10 @@ def test_method():
         ]
     )
     sock.send.assert_has_calls(
-        [mock.call(b"Host: "), mock.call(b"httpbin.org"),]
+        [
+            mock.call(b"Host: "),
+            mock.call(b"httpbin.org"),
+        ]
     )
 
 
