@@ -11,6 +11,7 @@ host = "wifitest.adafruit.com"
 path = "/testwifi/index.html"
 text = b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
 headers = b"HTTP/1.0 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n"
+headers_extra_space = b"HTTP/1.0 200 OK\r\nTransfer-Encoding:  chunked\r\n\r\n"
 
 
 def _chunk(response, split, extra=b""):
@@ -111,3 +112,33 @@ def test_close_flush():
 
 def test_close_flush_extra():
     do_test_close_flush(b";blahblah; blah")
+
+
+def do_test_get_text_extra_space(extra=b""):
+    pool = mocket.MocketPool()
+    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
+    c = _chunk(text, 33, extra)
+    print(c)
+    sock = mocket.Mocket(headers_extra_space + c)
+    pool.socket.return_value = sock
+
+    s = adafruit_requests.Session(pool)
+    r = s.get("http://" + host + path)
+
+    sock.connect.assert_called_once_with((ip, 80))
+
+    sock.send.assert_has_calls(
+        [
+            mock.call(b"GET"),
+            mock.call(b" /"),
+            mock.call(b"testwifi/index.html"),
+            mock.call(b" HTTP/1.1\r\n"),
+        ]
+    )
+    sock.send.assert_has_calls(
+        [
+            mock.call(b"Host: "),
+            mock.call(b"wifitest.adafruit.com"),
+        ]
+    )
+    assert r.text == str(text, "utf-8")
