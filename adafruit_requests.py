@@ -293,7 +293,7 @@ class Response:
                     len(title) == len("transfer-encoding")
                     and title.lower() == "transfer-encoding"
                 ):
-                    self._chunked = content.lower() == "chunked"
+                    self._chunked = content.strip().lower() == "chunked"
                 self._headers[title] = content
 
     @property
