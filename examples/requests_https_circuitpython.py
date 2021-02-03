@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2021 jfabernathy for Adafruit Industries
+# SPDX-License-Identifier: MIT
+
 # adafruit_requests usage with a CircuitPython socket
 # this has been tested with Adafruit Metro ESP32-S2 Express
 
