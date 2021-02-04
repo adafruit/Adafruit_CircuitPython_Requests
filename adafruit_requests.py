@@ -560,7 +560,7 @@ class Session:
             ok = True
             try:
                 self._send_request(socket, host, method, path, headers, data, json)
-            except _SendFailed:
+            except (_SendFailed, OSError):
                 ok = False
             if ok:
                 # Read the H of "HTTP/1.1" to make sure the socket is alive. send can appear to work
