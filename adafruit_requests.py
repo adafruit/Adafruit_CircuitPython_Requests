@@ -569,7 +569,10 @@ class Session:
                     result = socket.recv(1)
                 else:
                     result = bytearray(1)
-                    socket.recv_into(result)
+                    try:
+                        socket.recv_into(result)
+                    except OSError:
+                        pass
                 if result == b"H":
                     # Things seem to be ok so break with socket set.
                     break
