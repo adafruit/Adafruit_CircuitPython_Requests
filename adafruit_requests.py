@@ -580,7 +580,7 @@ class Session:
             socket = None
 
         if not socket:
-            raise OutOfRetries()
+            raise OutOfRetries("Repeated socket failures")
 
         resp = Response(socket, self)  # our response
         if "location" in resp.headers and 300 <= resp.status_code <= 399:
