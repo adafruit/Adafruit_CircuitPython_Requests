@@ -405,6 +405,7 @@ class Session:
             self._close_socket(sock)
 
     def _get_socket(self, host, port, proto, *, timeout=1):
+        # pylint: disable=too-many-branches
         key = (host, port, proto)
         if key in self._open_sockets:
             sock = self._open_sockets[key]
@@ -433,6 +434,8 @@ class Session:
                     addr_info[0], addr_info[1], addr_info[2]
                 )
             except OSError:
+                continue
+            except RuntimeError:
                 continue
 
             connect_host = addr_info[-1][0]
