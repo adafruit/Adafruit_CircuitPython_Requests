@@ -652,9 +652,11 @@ class _FakeSSLContext:
 def set_socket(sock, iface=None):
     """Legacy API for setting the socket and network interface. Use a `Session` instead."""
     global _default_session  # pylint: disable=global-statement,invalid-name
-    _default_session = Session(sock, _FakeSSLContext(iface))
-    if iface:
-        sock.set_interface(iface)
+    if not iface:
+        _default_session = Session(sock, _FakeSSLContext(sock._the_interface))
+    else:
+        _default_session = Session(sock, _FakeSSLContext(iface))
+    sock.set_interface(iface)
 
 
 def request(method, url, data=None, json=None, headers=None, stream=False, timeout=1):
