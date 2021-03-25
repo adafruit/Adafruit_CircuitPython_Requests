@@ -2,10 +2,14 @@
 #
 # SPDX-License-Identifier: Unlicense
 
+""" Mock Socket """
+
 from unittest import mock
 
 
-class MocketPool:
+class MocketPool:  # pylint: disable=too-few-public-methods
+    """ Mock SocketPool """
+
     SOCK_STREAM = 0
 
     def __init__(self):
@@ -13,7 +17,9 @@ class MocketPool:
         self.socket = mock.Mock()
 
 
-class Mocket:
+class Mocket:  # pylint: disable=too-few-public-methods
+    """ Mock Socket """
+
     def __init__(self, response):
         self.settimeout = mock.Mock()
         self.close = mock.Mock()
@@ -34,15 +40,15 @@ class Mocket:
 
     def _readline(self):
         i = self._response.find(b"\r\n", self._position)
-        r = self._response[self._position : i + 2]
+        response = self._response[self._position : i + 2]
         self._position = i + 2
-        return r
+        return response
 
     def _recv(self, count):
         end = self._position + count
-        r = self._response[self._position : end]
+        response = self._response[self._position : end]
         self._position = end
-        return r
+        return response
 
     def _recv_into(self, buf, nbytes=0):
         assert isinstance(nbytes, int) and nbytes >= 0
@@ -56,9 +62,13 @@ class Mocket:
         return read
 
 
-class SSLContext:
+class SSLContext:  # pylint: disable=too-few-public-methods
+    """ Mock SSL Context """
+
     def __init__(self):
         self.wrap_socket = mock.Mock(side_effect=self._wrap_socket)
 
-    def _wrap_socket(self, sock, server_hostname=None):
+    def _wrap_socket(
+        self, sock, server_hostname=None
+    ):  # pylint: disable=no-self-use,unused-argument
         return sock

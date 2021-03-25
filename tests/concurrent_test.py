@@ -2,34 +2,35 @@
 #
 # SPDX-License-Identifier: Unlicense
 
+""" Concurrent Tests """
+
+import errno
 from unittest import mock
 import mocket
-import pytest
-import errno
 import adafruit_requests
 
-ip = "1.2.3.4"
-host = "wifitest.adafruit.com"
-host2 = "wifitest2.adafruit.com"
-path = "/testwifi/index.html"
-text = b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
-response = b"HTTP/1.0 200 OK\r\nContent-Length: 70\r\n\r\n" + text
+IP = "1.2.3.4"
+HOST = "wifitest.adafruit.com"
+HOST2 = "test.adafruit.com"
+PATH = "/testwifi/index.html"
+TEXT = b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
+RESPONSE = b"HTTP/1.0 200 OK\r\nContent-Length: 70\r\n\r\n" + TEXT
 
 
-def test_second_connect_fails_memoryerror():
+def test_second_connect_fails_memoryerror():  # pylint: disable=invalid-name
     pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-    sock = mocket.Mocket(response)
-    sock2 = mocket.Mocket(response)
-    sock3 = mocket.Mocket(response)
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
+    sock = mocket.Mocket(RESPONSE)
+    sock2 = mocket.Mocket(RESPONSE)
+    sock3 = mocket.Mocket(RESPONSE)
     pool.socket.call_count = 0  # Reset call count
     pool.socket.side_effect = [sock, sock2, sock3]
     sock2.connect.side_effect = MemoryError()
 
     ssl = mocket.SSLContext()
 
-    s = adafruit_requests.Session(pool, ssl)
-    r = s.get("https://" + host + path)
+    requests_session = adafruit_requests.Session(pool, ssl)
+    response = requests_session.get("https://" + HOST + PATH)
 
     sock.send.assert_has_calls(
         [
@@ -44,14 +45,13 @@ def test_second_connect_fails_memoryerror():
             mock.call(b"\r\n"),
         ]
     )
-    assert r.text == str(text, "utf-8")
+    assert response.text == str(TEXT, "utf-8")
 
-    host2 = "test.adafruit.com"
-    s.get("https://" + host2 + path)
+    requests_session.get("https://" + HOST2 + PATH)
 
-    sock.connect.assert_called_once_with((host, 443))
-    sock2.connect.assert_called_once_with((host2, 443))
-    sock3.connect.assert_called_once_with((host2, 443))
+    sock.connect.assert_called_once_with((HOST, 443))
+    sock2.connect.assert_called_once_with((HOST2, 443))
+    sock3.connect.assert_called_once_with((HOST2, 443))
     # Make sure that the socket is closed after send fails.
     sock.close.assert_called_once()
     sock2.close.assert_called_once()
@@ -59,20 +59,20 @@ def test_second_connect_fails_memoryerror():
     assert pool.socket.call_count == 3
 
 
-def test_second_connect_fails_oserror():
+def test_second_connect_fails_oserror():  # pylint: disable=invalid-name
     pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-    sock = mocket.Mocket(response)
-    sock2 = mocket.Mocket(response)
-    sock3 = mocket.Mocket(response)
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
+    sock = mocket.Mocket(RESPONSE)
+    sock2 = mocket.Mocket(RESPONSE)
+    sock3 = mocket.Mocket(RESPONSE)
     pool.socket.call_count = 0  # Reset call count
     pool.socket.side_effect = [sock, sock2, sock3]
     sock2.connect.side_effect = OSError(errno.ENOMEM)
 
     ssl = mocket.SSLContext()
 
-    s = adafruit_requests.Session(pool, ssl)
-    r = s.get("https://" + host + path)
+    requests_session = adafruit_requests.Session(pool, ssl)
+    response = requests_session.get("https://" + HOST + PATH)
 
     sock.send.assert_has_calls(
         [
@@ -87,14 +87,13 @@ def test_second_connect_fails_oserror():
             mock.call(b"\r\n"),
         ]
     )
-    assert r.text == str(text, "utf-8")
+    assert response.text == str(TEXT, "utf-8")
 
-    host2 = "test.adafruit.com"
-    s.get("https://" + host2 + path)
+    requests_session.get("https://" + HOST2 + PATH)
 
-    sock.connect.assert_called_once_with((host, 443))
-    sock2.connect.assert_called_once_with((host2, 443))
-    sock3.connect.assert_called_once_with((host2, 443))
+    sock.connect.assert_called_once_with((HOST, 443))
+    sock2.connect.assert_called_once_with((HOST2, 443))
+    sock3.connect.assert_called_once_with((HOST2, 443))
     # Make sure that the socket is closed after send fails.
     sock.close.assert_called_once()
     sock2.close.assert_called_once()
