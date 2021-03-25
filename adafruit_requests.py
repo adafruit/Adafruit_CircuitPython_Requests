@@ -653,6 +653,7 @@ def set_socket(sock, iface=None):
     """Legacy API for setting the socket and network interface. Use a `Session` instead."""
     global _default_session  # pylint: disable=global-statement,invalid-name
     if not iface:
+        # pylint: disable=protected-access
         _default_session = Session(sock, _FakeSSLContext(sock._the_interface))
     else:
         _default_session = Session(sock, _FakeSSLContext(iface))
