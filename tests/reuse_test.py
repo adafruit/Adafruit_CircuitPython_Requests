@@ -2,28 +2,30 @@
 #
 # SPDX-License-Identifier: Unlicense
 
+""" Reuse Tests """
+
 from unittest import mock
 import mocket
 import pytest
 import adafruit_requests
 
-ip = "1.2.3.4"
-host = "wifitest.adafruit.com"
-host2 = "wifitest2.adafruit.com"
-path = "/testwifi/index.html"
-text = b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
-response = b"HTTP/1.0 200 OK\r\nContent-Length: 70\r\n\r\n" + text
+IP = "1.2.3.4"
+HOST = "wifitest.adafruit.com"
+HOST2 = "wifitest2.adafruit.com"
+PATH = "/testwifi/index.html"
+TEXT = b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
+RESPONSE = b"HTTP/1.0 200 OK\r\nContent-Length: 70\r\n\r\n" + TEXT
 
 
 def test_get_twice():
     pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-    sock = mocket.Mocket(response + response)
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
+    sock = mocket.Mocket(RESPONSE + RESPONSE)
     pool.socket.return_value = sock
     ssl = mocket.SSLContext()
 
-    s = adafruit_requests.Session(pool, ssl)
-    r = s.get("https://" + host + path)
+    requests_session = adafruit_requests.Session(pool, ssl)
+    response = requests_session.get("https://" + HOST + PATH)
 
     sock.send.assert_has_calls(
         [
@@ -39,9 +41,9 @@ def test_get_twice():
             mock.call(b"wifitest.adafruit.com"),
         ]
     )
-    assert r.text == str(text, "utf-8")
+    assert response.text == str(TEXT, "utf-8")
 
-    r = s.get("https://" + host + path + "2")
+    response = requests_session.get("https://" + HOST + PATH + "2")
 
     sock.send.assert_has_calls(
         [
@@ -58,20 +60,20 @@ def test_get_twice():
         ]
     )
 
-    assert r.text == str(text, "utf-8")
-    sock.connect.assert_called_once_with((host, 443))
+    assert response.text == str(TEXT, "utf-8")
+    sock.connect.assert_called_once_with((HOST, 443))
     pool.socket.assert_called_once()
 
 
 def test_get_twice_after_second():
     pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-    sock = mocket.Mocket(response + response)
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
+    sock = mocket.Mocket(RESPONSE + RESPONSE)
     pool.socket.return_value = sock
     ssl = mocket.SSLContext()
 
-    s = adafruit_requests.Session(pool, ssl)
-    r = s.get("https://" + host + path)
+    requests_session = adafruit_requests.Session(pool, ssl)
+    response = requests_session.get("https://" + HOST + PATH)
 
     sock.send.assert_has_calls(
         [
@@ -88,7 +90,7 @@ def test_get_twice_after_second():
         ]
     )
 
-    r2 = s.get("https://" + host + path + "2")
+    requests_session.get("https://" + HOST + PATH + "2")
 
     sock.send.assert_has_calls(
         [
@@ -104,25 +106,25 @@ def test_get_twice_after_second():
             mock.call(b"wifitest.adafruit.com"),
         ]
     )
-    sock.connect.assert_called_once_with((host, 443))
+    sock.connect.assert_called_once_with((HOST, 443))
     pool.socket.assert_called_once()
 
     with pytest.raises(RuntimeError):
-        r.text == str(text, "utf-8")
+        response.text == str(TEXT, "utf-8")  # pylint: disable=expression-not-assigned
 
 
 def test_connect_out_of_memory():
     pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-    sock = mocket.Mocket(response)
-    sock2 = mocket.Mocket(response)
-    sock3 = mocket.Mocket(response)
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
+    sock = mocket.Mocket(RESPONSE)
+    sock2 = mocket.Mocket(RESPONSE)
+    sock3 = mocket.Mocket(RESPONSE)
     pool.socket.side_effect = [sock, sock2, sock3]
     sock2.connect.side_effect = MemoryError()
     ssl = mocket.SSLContext()
 
-    s = adafruit_requests.Session(pool, ssl)
-    r = s.get("https://" + host + path)
+    requests_session = adafruit_requests.Session(pool, ssl)
+    response = requests_session.get("https://" + HOST + PATH)
 
     sock.send.assert_has_calls(
         [
@@ -138,9 +140,9 @@ def test_connect_out_of_memory():
             mock.call(b"wifitest.adafruit.com"),
         ]
     )
-    assert r.text == str(text, "utf-8")
+    assert response.text == str(TEXT, "utf-8")
 
-    r = s.get("https://" + host2 + path)
+    response = requests_session.get("https://" + HOST2 + PATH)
     sock3.send.assert_has_calls(
         [
             mock.call(b"GET"),
@@ -156,23 +158,23 @@ def test_connect_out_of_memory():
         ]
     )
 
-    assert r.text == str(text, "utf-8")
+    assert response.text == str(TEXT, "utf-8")
     sock.close.assert_called_once()
-    sock.connect.assert_called_once_with((host, 443))
-    sock3.connect.assert_called_once_with((host2, 443))
+    sock.connect.assert_called_once_with((HOST, 443))
+    sock3.connect.assert_called_once_with((HOST2, 443))
 
 
 def test_second_send_fails():
     pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-    sock = mocket.Mocket(response)
-    sock2 = mocket.Mocket(response)
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
+    sock = mocket.Mocket(RESPONSE)
+    sock2 = mocket.Mocket(RESPONSE)
     pool.socket.side_effect = [sock, sock2]
 
     ssl = mocket.SSLContext()
 
-    s = adafruit_requests.Session(pool, ssl)
-    r = s.get("https://" + host + path)
+    requests_session = adafruit_requests.Session(pool, ssl)
+    response = requests_session.get("https://" + HOST + PATH)
 
     sock.send.assert_has_calls(
         [
@@ -187,30 +189,30 @@ def test_second_send_fails():
             mock.call(b"\r\n"),
         ]
     )
-    assert r.text == str(text, "utf-8")
+    assert response.text == str(TEXT, "utf-8")
 
     sock.fail_next_send = True
-    s.get("https://" + host + path + "2")
+    requests_session.get("https://" + HOST + PATH + "2")
 
-    sock.connect.assert_called_once_with((host, 443))
-    sock2.connect.assert_called_once_with((host, 443))
+    sock.connect.assert_called_once_with((HOST, 443))
+    sock2.connect.assert_called_once_with((HOST, 443))
     # Make sure that the socket is closed after send fails.
     sock.close.assert_called_once()
     assert sock2.close.call_count == 0
     assert pool.socket.call_count == 2
 
 
-def test_second_send_lies_recv_fails():
+def test_second_send_lies_recv_fails():  # pylint: disable=invalid-name
     pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-    sock = mocket.Mocket(response)
-    sock2 = mocket.Mocket(response)
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
+    sock = mocket.Mocket(RESPONSE)
+    sock2 = mocket.Mocket(RESPONSE)
     pool.socket.side_effect = [sock, sock2]
 
     ssl = mocket.SSLContext()
 
-    s = adafruit_requests.Session(pool, ssl)
-    r = s.get("https://" + host + path)
+    requests_session = adafruit_requests.Session(pool, ssl)
+    response = requests_session.get("https://" + HOST + PATH)
 
     sock.send.assert_has_calls(
         [
@@ -225,12 +227,12 @@ def test_second_send_lies_recv_fails():
             mock.call(b"\r\n"),
         ]
     )
-    assert r.text == str(text, "utf-8")
+    assert response.text == str(TEXT, "utf-8")
 
-    s.get("https://" + host + path + "2")
+    requests_session.get("https://" + HOST + PATH + "2")
 
-    sock.connect.assert_called_once_with((host, 443))
-    sock2.connect.assert_called_once_with((host, 443))
+    sock.connect.assert_called_once_with((HOST, 443))
+    sock2.connect.assert_called_once_with((HOST, 443))
     # Make sure that the socket is closed after send fails.
     sock.close.assert_called_once()
     assert sock2.close.call_count == 0

@@ -2,29 +2,31 @@
 #
 # SPDX-License-Identifier: Unlicense
 
+""" Post Tests """
+
 from unittest import mock
-import mocket
 import json
+import mocket
 import adafruit_requests
 
-ip = "1.2.3.4"
-host = "httpbin.org"
-response = {}
-encoded = json.dumps(response).encode("utf-8")
-headers = "HTTP/1.0 200 OK\r\nContent-Length: {}\r\n\r\n".format(len(encoded)).encode(
+IP = "1.2.3.4"
+HOST = "httpbin.org"
+RESPONSE = {}
+ENCODED = json.dumps(RESPONSE).encode("utf-8")
+HEADERS = "HTTP/1.0 200 OK\r\nContent-Length: {}\r\n\r\n".format(len(ENCODED)).encode(
     "utf-8"
 )
 
 
 def test_method():
     pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-    sock = mocket.Mocket(headers + encoded)
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
+    sock = mocket.Mocket(HEADERS + ENCODED)
     pool.socket.return_value = sock
 
-    s = adafruit_requests.Session(pool)
-    r = s.post("http://" + host + "/post")
-    sock.connect.assert_called_once_with((ip, 80))
+    requests_session = adafruit_requests.Session(pool)
+    requests_session.post("http://" + HOST + "/post")
+    sock.connect.assert_called_once_with((IP, 80))
 
     sock.send.assert_has_calls(
         [
@@ -44,38 +46,38 @@ def test_method():
 
 def test_string():
     pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-    sock = mocket.Mocket(headers + encoded)
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
+    sock = mocket.Mocket(HEADERS + ENCODED)
     pool.socket.return_value = sock
 
-    s = adafruit_requests.Session(pool)
+    requests_session = adafruit_requests.Session(pool)
     data = "31F"
-    r = s.post("http://" + host + "/post", data=data)
-    sock.connect.assert_called_once_with((ip, 80))
+    requests_session.post("http://" + HOST + "/post", data=data)
+    sock.connect.assert_called_once_with((IP, 80))
     sock.send.assert_called_with(b"31F")
 
 
 def test_form():
     pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-    sock = mocket.Mocket(headers + encoded)
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
+    sock = mocket.Mocket(HEADERS + ENCODED)
     pool.socket.return_value = sock
 
-    s = adafruit_requests.Session(pool)
+    requests_session = adafruit_requests.Session(pool)
     data = {"Date": "July 25, 2019"}
-    r = s.post("http://" + host + "/post", data=data)
-    sock.connect.assert_called_once_with((ip, 80))
+    requests_session.post("http://" + HOST + "/post", data=data)
+    sock.connect.assert_called_once_with((IP, 80))
     sock.send.assert_called_with(b"Date=July 25, 2019")
 
 
 def test_json():
     pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-    sock = mocket.Mocket(headers + encoded)
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
+    sock = mocket.Mocket(HEADERS + ENCODED)
     pool.socket.return_value = sock
 
-    s = adafruit_requests.Session(pool)
+    requests_session = adafruit_requests.Session(pool)
     json_data = {"Date": "July 25, 2019"}
-    r = s.post("http://" + host + "/post", json=json_data)
-    sock.connect.assert_called_once_with((ip, 80))
+    requests_session.post("http://" + HOST + "/post", json=json_data)
+    sock.connect.assert_called_once_with((IP, 80))
     sock.send.assert_called_with(b'{"Date": "July 25, 2019"}')

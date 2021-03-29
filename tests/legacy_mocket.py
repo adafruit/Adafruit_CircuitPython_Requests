@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: Unlicense
 
+""" Mock for Legacy Socket """
+
 from unittest import mock
 
 SOCK_STREAM = 0
@@ -12,7 +14,9 @@ getaddrinfo = mock.Mock()
 socket = mock.Mock()
 
 
-class Mocket:
+class Mocket:  # pylint: disable=too-few-public-methods
+    """  Mock Socket """
+
     def __init__(self, response):
         self.settimeout = mock.Mock()
         self.close = mock.Mock()
@@ -24,21 +28,20 @@ class Mocket:
         self._response = response
         self._position = 0
 
-    def _send(self, data):
+    def _send(self, data):  # pylint: disable=unused-argument
         if self.fail_next_send:
             self.fail_next_send = False
             raise RuntimeError("Send failed")
-        return None
 
     def _readline(self):
         i = self._response.find(b"\r\n", self._position)
-        r = self._response[self._position : i + 2]
+        response = self._response[self._position : i + 2]
         self._position = i + 2
-        return r
+        return response
 
     def _recv(self, count):
         end = self._position + count
-        r = self._response[self._position : end]
+        response = self._response[self._position : end]
         self._position = end
-        print(r)
-        return r
+        print(response)
+        return response

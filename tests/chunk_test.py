@@ -2,16 +2,18 @@
 #
 # SPDX-License-Identifier: Unlicense
 
+""" Chunk Tests """
+
 from unittest import mock
 import mocket
 import adafruit_requests
 
-ip = "1.2.3.4"
-host = "wifitest.adafruit.com"
-path = "/testwifi/index.html"
-text = b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
-headers = b"HTTP/1.0 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n"
-headers_extra_space = b"HTTP/1.0 200 OK\r\nTransfer-Encoding:  chunked\r\n\r\n"
+IP = "1.2.3.4"
+HOST = "wifitest.adafruit.com"
+PATH = "/testwifi/index.html"
+TEXT = b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
+HEADERS = b"HTTP/1.0 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n"
+HEADERS_EXTRA_SPACE = b"HTTP/1.0 200 OK\r\nTransfer-Encoding:  chunked\r\n\r\n"
 
 
 def _chunk(response, split, extra=b""):
@@ -36,18 +38,20 @@ def _chunk(response, split, extra=b""):
     return chunked
 
 
-def do_test_get_text(extra=b""):
+def do_test_get_text(
+    extra=b"",
+):
     pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-    c = _chunk(text, 33, extra)
-    print(c)
-    sock = mocket.Mocket(headers + c)
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
+    chunk = _chunk(TEXT, 33, extra)
+    print(chunk)
+    sock = mocket.Mocket(HEADERS + chunk)
     pool.socket.return_value = sock
 
-    s = adafruit_requests.Session(pool)
-    r = s.get("http://" + host + path)
+    requests_session = adafruit_requests.Session(pool)
+    response = requests_session.get("http://" + HOST + PATH)
 
-    sock.connect.assert_called_once_with((ip, 80))
+    sock.connect.assert_called_once_with((IP, 80))
 
     sock.send.assert_has_calls(
         [
@@ -63,7 +67,7 @@ def do_test_get_text(extra=b""):
             mock.call(b"wifitest.adafruit.com"),
         ]
     )
-    assert r.text == str(text, "utf-8")
+    assert response.text == str(TEXT, "utf-8")
 
 
 def test_get_text():
@@ -74,19 +78,22 @@ def test_get_text_extra():
     do_test_get_text(b";blahblah; blah")
 
 
-def do_test_close_flush(extra=b""):
-    """Test that a chunked response can be closed even when the request contents were not accessed."""
+def do_test_close_flush(
+    extra=b"",
+):
+    """Test that a chunked response can be closed even when the
+    request contents were not accessed."""
     pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-    c = _chunk(text, 33, extra)
-    print(c)
-    sock = mocket.Mocket(headers + c)
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
+    chunk = _chunk(TEXT, 33, extra)
+    print(chunk)
+    sock = mocket.Mocket(HEADERS + chunk)
     pool.socket.return_value = sock
 
-    s = adafruit_requests.Session(pool)
-    r = s.get("http://" + host + path)
+    requests_session = adafruit_requests.Session(pool)
+    response = requests_session.get("http://" + HOST + PATH)
 
-    sock.connect.assert_called_once_with((ip, 80))
+    sock.connect.assert_called_once_with((IP, 80))
 
     sock.send.assert_has_calls(
         [
@@ -103,7 +110,7 @@ def do_test_close_flush(extra=b""):
         ]
     )
 
-    r.close()
+    response.close()
 
 
 def test_close_flush():
@@ -114,18 +121,20 @@ def test_close_flush_extra():
     do_test_close_flush(b";blahblah; blah")
 
 
-def do_test_get_text_extra_space(extra=b""):
+def do_test_get_text_extra_space(
+    extra=b"",
+):
     pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (ip, 80)),)
-    c = _chunk(text, 33, extra)
-    print(c)
-    sock = mocket.Mocket(headers_extra_space + c)
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
+    chunk = _chunk(TEXT, 33, extra)
+    print(chunk)
+    sock = mocket.Mocket(HEADERS_EXTRA_SPACE + chunk)
     pool.socket.return_value = sock
 
-    s = adafruit_requests.Session(pool)
-    r = s.get("http://" + host + path)
+    requests_session = adafruit_requests.Session(pool)
+    response = requests_session.get("http://" + HOST + PATH)
 
-    sock.connect.assert_called_once_with((ip, 80))
+    sock.connect.assert_called_once_with((IP, 80))
 
     sock.send.assert_has_calls(
         [
@@ -141,4 +150,4 @@ def do_test_get_text_extra_space(extra=b""):
             mock.call(b"wifitest.adafruit.com"),
         ]
     )
-    assert r.text == str(text, "utf-8")
+    assert response.text == str(TEXT, "utf-8")

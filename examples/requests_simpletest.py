@@ -29,6 +29,11 @@ esp32_reset = DigitalInOut(board.ESP_RESET)
 # esp32_ready = DigitalInOut(board.D10)
 # esp32_reset = DigitalInOut(board.D5)
 
+# If you have an AirLift Featherwing or ItsyBitsy Airlift:
+# esp32_cs = DigitalInOut(board.D13)
+# esp32_ready = DigitalInOut(board.D11)
+# esp32_reset = DigitalInOut(board.D12)
+
 spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
 esp = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs, esp32_ready, esp32_reset)
 
@@ -46,8 +51,8 @@ socket.set_interface(esp)
 requests.set_socket(socket, esp)
 
 TEXT_URL = "http://wifitest.adafruit.com/testwifi/index.html"
-JSON_GET_URL = "http://httpbin.org/get"
-JSON_POST_URL = "http://httpbin.org/post"
+JSON_GET_URL = "https://httpbin.org/get"
+JSON_POST_URL = "https://httpbin.org/post"
 
 print("Fetching text from %s" % TEXT_URL)
 response = requests.get(TEXT_URL)
