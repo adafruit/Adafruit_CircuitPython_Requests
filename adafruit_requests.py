@@ -281,18 +281,12 @@ class Response:
 
             content = self._readto(b"\r\n")
             if title and content:
-                title = str(title, "utf-8")
+                # enforce that all headers are lowercase
+                title = str(title, "utf-8").lower()
                 content = str(content, "utf-8")
-                # Check len first so we can skip the .lower allocation most of the time.
-                if (
-                    len(title) == len("content-length")
-                    and title.lower() == "content-length"
-                ):
+                if title == "content-length":
                     self._remaining = int(content)
-                if (
-                    len(title) == len("transfer-encoding")
-                    and title.lower() == "transfer-encoding"
-                ):
+                if title == "transfer-encoding":
                     self._chunked = content.strip().lower() == "chunked"
                 self._headers[title] = content
 
@@ -587,7 +581,27 @@ class Session:
 
         resp = Response(socket, self)  # our response
         if "location" in resp.headers and 300 <= resp.status_code <= 399:
-            raise NotImplementedError("Redirects not yet supported")
+            # a naive handler for redirects
+            redirect = resp.headers["location"]
+
+            if redirect.startswith("http"):
+                # absolute URL
+                url = redirect
+            elif redirect[0] == "/":
+                # relative URL, absolute path
+                url = "/".join([proto, dummy, host, redirect[1:]])
+            else:
+                # relative URL, relative path
+                path = path.rsplit("/", 1)[0]
+
+                while redirect.startswith("../"):
+                    path = path.rsplit("/", 1)[0]
+                    redirect = redirect.split("../", 1)[1]
+
+                url = "/".join([proto, dummy, host, path, redirect])
+
+            self._last_response = resp
+            resp = self.request(method, url, data, json, headers, stream, timeout)
 
         self._last_response = resp
         return resp
