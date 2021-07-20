@@ -10,6 +10,9 @@ http = adafruit_requests.Session(socket)
 TEXT_URL = "http://wifitest.adafruit.com/testwifi/index.html"
 JSON_GET_URL = "http://httpbin.org/get"
 JSON_POST_URL = "http://httpbin.org/post"
+REDIRECT_URL = "http://httpbingo.org/redirect/1"
+RELATIVE_REDIRECT_URL = "http://httpbingo.org/relative-redirect/1"
+ABSOLUTE_REDIRECT_URL = "http://httpbingo.org/absolute-redirect/1"
 
 print("Fetching text from %s" % TEXT_URL)
 response = http.get(TEXT_URL)
@@ -45,3 +48,26 @@ json_resp = response.json()
 # Parse out the 'json' key from json_resp dict.
 print("JSON Data received from server:", json_resp["json"])
 print("-" * 40)
+
+print("Fetching JSON data from redirect url %s" % REDIRECT_URL)
+response = http.get(REDIRECT_URL)
+print("-" * 40)
+
+print("JSON Response: ", response.json())
+print("-" * 40)
+
+print("Fetching JSON data from relative redirect url %s" % RELATIVE_REDIRECT_URL)
+response = http.get(RELATIVE_REDIRECT_URL)
+print("-" * 40)
+
+print("JSON Response: ", response.json())
+print("-" * 40)
+
+print("Fetching JSON data from aboslute redirect url %s" % ABSOLUTE_REDIRECT_URL)
+response = http.get(ABSOLUTE_REDIRECT_URL)
+print("-" * 40)
+
+print("JSON Response: ", response.json())
+print("-" * 40)
+
+response.close()
