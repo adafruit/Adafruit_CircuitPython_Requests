@@ -424,9 +424,7 @@ class Session:
             retry_count += 1
 
             try:
-                sock = self._socket_pool.socket(
-                    addr_info[0], addr_info[1], addr_info[2]
-                )
+                sock = self._socket_pool.socket(addr_info[0], addr_info[1])
             except OSError:
                 continue
             except RuntimeError:
