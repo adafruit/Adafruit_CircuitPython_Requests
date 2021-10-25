@@ -55,6 +55,11 @@ Usage Example
 
 Usage examples are within the `examples` subfolder of this library.
 
+Documentation
+=============
+
+API documentation for this library can be found on `Read the Docs <https://circuitpython.readthedocs.io/projects/requests/en/latest/>`_.
+
 Contributing
 ============
 
