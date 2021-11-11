@@ -54,8 +54,7 @@ class Mocket:  # pylint: disable=too-few-public-methods
         assert isinstance(nbytes, int) and nbytes >= 0
         read = nbytes if nbytes > 0 else len(buf)
         remaining = len(self._response) - self._position
-        if read > remaining:
-            read = remaining
+        read = min(read, remaining)
         end = self._position + read
         buf[:read] = self._response[self._position : end]
         self._position = end

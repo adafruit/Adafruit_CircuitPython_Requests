@@ -383,7 +383,7 @@ class Session:
         sock.close()
         del self._socket_free[sock]
         key = None
-        for k in self._open_sockets:
+        for k in self._open_sockets:  # pylint: disable=consider-using-dict-items
             if self._open_sockets[k] == sock:
                 key = k
                 break
@@ -392,8 +392,8 @@ class Session:
 
     def _free_sockets(self):
         free_sockets = []
-        for sock in self._socket_free:
-            if self._socket_free[sock]:
+        for sock, val in self._socket_free.items():
+            if val:
                 free_sockets.append(sock)
         for sock in free_sockets:
             self._close_socket(sock)
