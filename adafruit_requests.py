@@ -38,10 +38,21 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 
 import errno
 
+try:
+    from typing import Union, Optional, Dict, List, Any
+    import types
+    import adafruit_esp32spi.adafruit_esp32spi_socket as esp32_socket
+    import adafruit_wiznet5k.adafruit_wiznet5k_socket as wiznet_socket
+    import adafruit_fona.adafruit_fona_socket as cellular_socket
+    SocketType = Union[esp32_socket.socket, wiznet_socket.socket, cellular_socket.socket]
+    SocketPoolType = types.MethodType
+except ImportError:
+    pass
+
 # CircuitPython 6.0 does not have the bytearray.split method.
 # This function emulates buf.split(needle)[0], which is the functionality
 # required.
-def _buffer_split0(buf, needle):
+def _buffer_split0(buf, needle): # TODO: add typing
     index = buf.find(needle)
     if index == -1:
         return buf
@@ -49,10 +60,10 @@ def _buffer_split0(buf, needle):
 
 
 class _RawResponse:
-    def __init__(self, response):
+    def __init__(self, response: 'Response') -> None:
         self._response = response
 
-    def read(self, size=-1):
+    def read(self, size: int = -1) -> bytes:
         """Read as much as available or up to size and return it in a byte string.
 
         Do NOT use this unless you really need to. Reusing memory with `readinto` is much better.
@@ -61,7 +72,7 @@ class _RawResponse:
             return self._response.content
         return self._response.socket.recv(size)
 
-    def readinto(self, buf):
+    def readinto(self, buf: bytearray) -> int:
         """Read as much as available into buf or until it is full. Returns the number of bytes read
         into buf."""
         return self._response._readinto(buf)  # pylint: disable=protected-access
@@ -82,7 +93,7 @@ class Response:
 
     encoding = None
 
-    def __init__(self, sock, session=None):
+    def __init__(self, sock: SocketType, session: Optional['Session'] = None) -> None:
         self.socket = sock
         self.encoding = "utf-8"
         self._cached = None
@@ -110,13 +121,13 @@ class Response:
         self._raw = None
         self._session = session
 
-    def __enter__(self):
+    def __enter__(self) -> 'Response':
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None: # TODO: Add type hints for arguments
         self.close()
 
-    def _recv_into(self, buf, size=0):
+    def _recv_into(self, buf: bytearray, size: int = 0) -> int:
         if self._backwards_compatible:
             size = len(buf) if size == 0 else size
             b = self.socket.recv(size)
@@ -126,7 +137,7 @@ class Response:
         return self.socket.recv_into(buf, size)
 
     @staticmethod
-    def _find(buf, needle, start, end):
+    def _find(buf: bytes, needle: bytes, start: int, end: int) -> int:
         if hasattr(buf, "find"):
             return buf.find(needle, start, end)
         result = -1
@@ -142,7 +153,7 @@ class Response:
 
         return result
 
-    def _readto(self, first, second=b""):
+    def _readto(self, first: bytes, second: bytes = b"") -> bytes:
         buf = self._receive_buffer
         end = self._received_length
         while True:
@@ -187,7 +198,7 @@ class Response:
 
         return b""
 
-    def _read_from_buffer(self, buf=None, nbytes=None):
+    def _read_from_buffer(self, buf: Optional[bytearray] = None, nbytes: Optional[int] = None) -> int:
         if self._received_length == 0:
             return 0
         read = self._received_length
@@ -204,7 +215,7 @@ class Response:
             self._received_length = 0
         return read
 
-    def _readinto(self, buf):
+    def _readinto(self, buf: bytearray) -> int:
         if not self.socket:
             raise RuntimeError(
                 "Newer Response closed this one. Use Responses immediately."
@@ -237,7 +248,7 @@ class Response:
 
         return read
 
-    def _throw_away(self, nbytes):
+    def _throw_away(self, nbytes: int) -> None:
         nbytes -= self._read_from_buffer(nbytes=nbytes)
 
         buf = self._receive_buffer
@@ -247,7 +258,7 @@ class Response:
         if remaining:
             self._recv_into(buf, remaining)
 
-    def close(self):
+    def close(self) -> None:
         """Drain the remaining ESP socket buffers. We assume we already got what we wanted."""
         if not self.socket:
             return
@@ -269,7 +280,7 @@ class Response:
             self.socket.close()
         self.socket = None
 
-    def _parse_headers(self):
+    def _parse_headers(self) -> None:
         """
         Parses the header portion of an HTTP request/response from the socket.
         Expects first line of HTTP request/response to have been read already.
@@ -291,7 +302,7 @@ class Response:
                 self._headers[title] = content
 
     @property
-    def headers(self):
+    def headers(self) -> Dict[str, str]:
         """
         The response headers. Does not include headers from the trailer until
         the content has been read.
@@ -299,7 +310,7 @@ class Response:
         return self._headers
 
     @property
-    def content(self):
+    def content(self) -> bytes:
         """The HTTP content direct from the socket, as bytes"""
         if self._cached is not None:
             if isinstance(self._cached, bytes):
@@ -310,7 +321,7 @@ class Response:
         return self._cached
 
     @property
-    def text(self):
+    def text(self) -> str:
         """The HTTP content, encoded into a string according to the HTTP
         header encoding"""
         if self._cached is not None:
@@ -320,7 +331,7 @@ class Response:
         self._cached = str(self.content, self.encoding)
         return self._cached
 
-    def json(self):
+    def json(self) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
         """The HTTP content, parsed into a json dictionary"""
         # pylint: disable=import-outside-toplevel
         import json
@@ -344,7 +355,7 @@ class Response:
         self.close()
         return obj
 
-    def iter_content(self, chunk_size=1, decode_unicode=False):
+    def iter_content(self, chunk_size: int = 1, decode_unicode: bool = False) -> bytes:
         """An iterator that will stream data by only reading 'chunk_size'
         bytes and yielding them, when we can't buffer the whole datastream"""
         if decode_unicode:
