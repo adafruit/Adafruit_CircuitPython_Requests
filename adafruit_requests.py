@@ -37,6 +37,10 @@ __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 
 import errno
+from ssl import SSLSocket
+from types import ModuleType
+
+from tests.mocket import SSLContext
 
 try:
     from typing import Union, TypeVar, Optional, Dict, Any, List
@@ -45,9 +49,14 @@ try:
     import adafruit_esp32spi.adafruit_esp32spi_socket as esp32_socket
     import adafruit_wiznet5k.adafruit_wiznet5k_socket as wiznet_socket
     import adafruit_fona.adafruit_fona_socket as cellular_socket
-    SocketType = TypeVar("SocketType", esp32_socket.socket, wiznet_socket.socket, cellular_socket.socket)
+    from adafruit_esp32spi.adafruit_esp32spi import ESP_SPIcontrol
+    from adafruit_wiznet5k.adafruit_wiznet5k import WIZNET5K
+    from adafruit_fona.adafruit_fona import FONA
+    import socket
+    SocketType = TypeVar("SocketType", esp32_socket.socket, wiznet_socket.socket, cellular_socket.socket, socket.socket)
     SocketpoolModuleType = TypeVar("SocketpoolModuleType", types.ModuleType("socket"), types.ModuleType("socketpool"))
     SSLContextType = TypeVar("SSLContextType", ssl.SSLContext) # Can use either CircuitPython or CPython ssl module
+    InterfaceType = TypeVar("InterfaceType", ESP_SPIcontrol, WIZNET5K, FONA)
 except ImportError:
     pass
 
@@ -480,7 +489,7 @@ class Session:
                 raise _SendFailed()
             total_sent += sent
 
-    def _send_request(self, socket: SocketType, host: str, method: str, path: str, headers: List[Dict[str, str]], data: Any, json: Dict[Any, Any]):
+    def _send_request(self, socket: SocketType, host: str, method: str, path: str, headers: List[Dict[str, str]], data: Any, json: Any):
         # pylint: disable=too-many-arguments
         self._send(socket, bytes(method, "utf-8"))
         self._send(socket, b" /")
@@ -526,7 +535,7 @@ class Session:
 
     # pylint: disable=too-many-branches, too-many-statements, unused-argument, too-many-arguments, too-many-locals
     def request(
-        self, method: str, url: str, data: Optional[Any] = None, json: Optional[Dict[Any, Any]] = None, headers: Optional[List[Dict[str, str]]] = None, stream: bool = False, timeout: float = 60
+        self, method: str, url: str, data: Optional[Any] = None, json: Optional[Any] = None, headers: Optional[List[Dict[str, str]]] = None, stream: bool = False, timeout: float = 60
     ) -> Response:
         """Perform an HTTP request to the given url which we will parse to determine
         whether to use SSL ('https://') or not. We can also send some provided 'data'
@@ -648,7 +657,7 @@ _default_session = None  # pylint: disable=invalid-name
 
 
 class _FakeSSLSocket:
-    def __init__(self, socket, tls_mode):
+    def __init__(self, socket: SocketType, tls_mode: int) -> None:
         self._socket = socket
         self._mode = tls_mode
         self.settimeout = socket.settimeout
@@ -656,25 +665,23 @@ class _FakeSSLSocket:
         self.recv = socket.recv
         self.close = socket.close
 
-    def connect(self, address):
+    def connect(self, address: Union[bytes, str]) -> None:
         """connect wrapper to add non-standard mode parameter"""
         try:
             return self._socket.connect(address, self._mode)
         except RuntimeError as error:
             raise OSError(errno.ENOMEM) from error
 
-
 class _FakeSSLContext:
-    def __init__(self, iface):
+    def __init__(self, iface: InterfaceType) -> None:
         self._iface = iface
 
-    def wrap_socket(self, socket, server_hostname=None):
+    def wrap_socket(self, socket: SocketType, server_hostname: Optional[str] = None) -> _FakeSSLSocket:
         """Return the same socket"""
         # pylint: disable=unused-argument
         return _FakeSSLSocket(socket, self._iface.TLS_MODE)
 
-
-def set_socket(sock, iface=None):
+def set_socket(sock, iface: Optional[InterfaceType] = None) -> None:
     """Legacy API for setting the socket and network interface. Use a `Session` instead."""
     global _default_session  # pylint: disable=global-statement,invalid-name
     if not iface:
@@ -685,7 +692,7 @@ def set_socket(sock, iface=None):
     sock.set_interface(iface)
 
 
-def request(method, url, data=None, json=None, headers=None, stream=False, timeout=1):
+def request(method, url: str, data: Optional[Any] = None, json: Optional[Any] = None, headers: Optional[List[Dict[str, str]]] = None, stream: bool = False, timeout: float = 1) -> None:
     """Send HTTP request"""
     # pylint: disable=too-many-arguments
     _default_session.request(
@@ -699,31 +706,31 @@ def request(method, url, data=None, json=None, headers=None, stream=False, timeo
     )
 
 
-def head(url, **kw):
+def head(url: str, **kw):
     """Send HTTP HEAD request"""
     return _default_session.request("HEAD", url, **kw)
 
 
-def get(url, **kw):
+def get(url: str, **kw):
     """Send HTTP GET request"""
     return _default_session.request("GET", url, **kw)
 
 
-def post(url, **kw):
+def post(url: str, **kw):
     """Send HTTP POST request"""
     return _default_session.request("POST", url, **kw)
 
 
-def put(url, **kw):
+def put(url: str, **kw):
     """Send HTTP PUT request"""
     return _default_session.request("PUT", url, **kw)
 
 
-def patch(url, **kw):
+def patch(url: str, **kw):
     """Send HTTP PATCH request"""
     return _default_session.request("PATCH", url, **kw)
 
 
-def delete(url, **kw):
+def delete(url: str, **kw):
     """Send HTTP DELETE request"""
     return _default_session.request("DELETE", url, **kw)
