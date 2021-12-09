@@ -37,13 +37,10 @@ __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 
 import errno
-from ssl import SSLSocket
-from types import ModuleType
-
-from tests.mocket import SSLContext
+from types import TracebackType
 
 try:
-    from typing import Union, TypeVar, Optional, Dict, Any, List
+    from typing import Union, TypeVar, Optional, Dict, Any, List, Type
     import types
     import ssl
     import adafruit_esp32spi.adafruit_esp32spi_socket as esp32_socket
@@ -52,14 +49,14 @@ try:
     from adafruit_esp32spi.adafruit_esp32spi import ESP_SPIcontrol
     from adafruit_wiznet5k.adafruit_wiznet5k import WIZNET5K
     from adafruit_fona.adafruit_fona import FONA
-    import socket
+    import socket as cpython_socket
 
     SocketType = TypeVar(
         "SocketType",
         esp32_socket.socket,
         wiznet_socket.socket,
         cellular_socket.socket,
-        socket.socket,
+        cpython_socket.socket,
     )
     SocketpoolModuleType = TypeVar(
         "SocketpoolModuleType",
