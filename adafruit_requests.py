@@ -53,9 +53,22 @@ try:
     from adafruit_wiznet5k.adafruit_wiznet5k import WIZNET5K
     from adafruit_fona.adafruit_fona import FONA
     import socket
-    SocketType = TypeVar("SocketType", esp32_socket.socket, wiznet_socket.socket, cellular_socket.socket, socket.socket)
-    SocketpoolModuleType = TypeVar("SocketpoolModuleType", types.ModuleType("socket"), types.ModuleType("socketpool"))
-    SSLContextType = TypeVar("SSLContextType", ssl.SSLContext) # Can use either CircuitPython or CPython ssl module
+
+    SocketType = TypeVar(
+        "SocketType",
+        esp32_socket.socket,
+        wiznet_socket.socket,
+        cellular_socket.socket,
+        socket.socket,
+    )
+    SocketpoolModuleType = TypeVar(
+        "SocketpoolModuleType",
+        types.ModuleType("socket"),
+        types.ModuleType("socketpool"),
+    )
+    SSLContextType = TypeVar(
+        "SSLContextType", ssl.SSLContext
+    )  # Can use either CircuitPython or CPython ssl module
     InterfaceType = TypeVar("InterfaceType", ESP_SPIcontrol, WIZNET5K, FONA)
 except ImportError:
     pass
@@ -63,7 +76,7 @@ except ImportError:
 # CircuitPython 6.0 does not have the bytearray.split method.
 # This function emulates buf.split(needle)[0], which is the functionality
 # required.
-def _buffer_split0(buf, needle): # TODO: add typing
+def _buffer_split0(buf, needle):  # TODO: add typing
     index = buf.find(needle)
     if index == -1:
         return buf
@@ -71,7 +84,7 @@ def _buffer_split0(buf, needle): # TODO: add typing
 
 
 class _RawResponse:
-    def __init__(self, response: 'Response') -> None:
+    def __init__(self, response: "Response") -> None:
         self._response = response
 
     def read(self, size: int = -1) -> bytes:
@@ -104,7 +117,7 @@ class Response:
 
     encoding = None
 
-    def __init__(self, sock: SocketType, session: Optional['Session'] = None) -> None:
+    def __init__(self, sock: SocketType, session: Optional["Session"] = None) -> None:
         self.socket = sock
         self.encoding = "utf-8"
         self._cached = None
@@ -132,10 +145,12 @@ class Response:
         self._raw = None
         self._session = session
 
-    def __enter__(self) -> 'Response':
+    def __enter__(self) -> "Response":
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None: # TODO: Add type hints for arguments
+    def __exit__(
+        self, exc_type, exc_value, traceback
+    ) -> None:  # TODO: Add type hints for arguments
         self.close()
 
     def _recv_into(self, buf: bytearray, size: int = 0) -> int:
@@ -209,7 +224,9 @@ class Response:
 
         return b""
 
-    def _read_from_buffer(self, buf: Optional[bytearray] = None, nbytes: Optional[int] = None) -> int:
+    def _read_from_buffer(
+        self, buf: Optional[bytearray] = None, nbytes: Optional[int] = None
+    ) -> int:
         if self._received_length == 0:
             return 0
         read = self._received_length
@@ -388,7 +405,11 @@ class Response:
 class Session:
     """HTTP session that shares sockets and ssl context."""
 
-    def __init__(self, socket_pool: SocketpoolModuleType, ssl_context: Optional[SSLContextType] = None) -> None:
+    def __init__(
+        self,
+        socket_pool: SocketpoolModuleType,
+        ssl_context: Optional[SSLContextType] = None,
+    ) -> None:
         self._socket_pool = socket_pool
         self._ssl_context = ssl_context
         # Hang onto open sockets so that we can reuse them.
@@ -420,7 +441,9 @@ class Session:
         for sock in free_sockets:
             self._close_socket(sock)
 
-    def _get_socket(self, host:str, port: int, proto: str, *, timeout: float = 1) -> SocketType:
+    def _get_socket(
+        self, host: str, port: int, proto: str, *, timeout: float = 1
+    ) -> SocketType:
         # pylint: disable=too-many-branches
         key = (host, port, proto)
         if key in self._open_sockets:
@@ -489,7 +512,16 @@ class Session:
                 raise _SendFailed()
             total_sent += sent
 
-    def _send_request(self, socket: SocketType, host: str, method: str, path: str, headers: List[Dict[str, str]], data: Any, json: Any):
+    def _send_request(
+        self,
+        socket: SocketType,
+        host: str,
+        method: str,
+        path: str,
+        headers: List[Dict[str, str]],
+        data: Any,
+        json: Any,
+    ):
         # pylint: disable=too-many-arguments
         self._send(socket, bytes(method, "utf-8"))
         self._send(socket, b" /")
@@ -535,7 +567,14 @@ class Session:
 
     # pylint: disable=too-many-branches, too-many-statements, unused-argument, too-many-arguments, too-many-locals
     def request(
-        self, method: str, url: str, data: Optional[Any] = None, json: Optional[Any] = None, headers: Optional[List[Dict[str, str]]] = None, stream: bool = False, timeout: float = 60
+        self,
+        method: str,
+        url: str,
+        data: Optional[Any] = None,
+        json: Optional[Any] = None,
+        headers: Optional[List[Dict[str, str]]] = None,
+        stream: bool = False,
+        timeout: float = 60,
     ) -> Response:
         """Perform an HTTP request to the given url which we will parse to determine
         whether to use SSL ('https://') or not. We can also send some provided 'data'
@@ -672,14 +711,18 @@ class _FakeSSLSocket:
         except RuntimeError as error:
             raise OSError(errno.ENOMEM) from error
 
+
 class _FakeSSLContext:
     def __init__(self, iface: InterfaceType) -> None:
         self._iface = iface
 
-    def wrap_socket(self, socket: SocketType, server_hostname: Optional[str] = None) -> _FakeSSLSocket:
+    def wrap_socket(
+        self, socket: SocketType, server_hostname: Optional[str] = None
+    ) -> _FakeSSLSocket:
         """Return the same socket"""
         # pylint: disable=unused-argument
         return _FakeSSLSocket(socket, self._iface.TLS_MODE)
+
 
 def set_socket(sock, iface: Optional[InterfaceType] = None) -> None:
     """Legacy API for setting the socket and network interface. Use a `Session` instead."""
@@ -692,7 +735,15 @@ def set_socket(sock, iface: Optional[InterfaceType] = None) -> None:
     sock.set_interface(iface)
 
 
-def request(method, url: str, data: Optional[Any] = None, json: Optional[Any] = None, headers: Optional[List[Dict[str, str]]] = None, stream: bool = False, timeout: float = 1) -> None:
+def request(
+    method,
+    url: str,
+    data: Optional[Any] = None,
+    json: Optional[Any] = None,
+    headers: Optional[List[Dict[str, str]]] = None,
+    stream: bool = False,
+    timeout: float = 1,
+) -> None:
     """Send HTTP request"""
     # pylint: disable=too-many-arguments
     _default_session.request(
