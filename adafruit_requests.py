@@ -59,8 +59,8 @@ try:
         cpython_socket.socket,
     )
     SocketpoolModuleType = types.ModuleType
-    SSLContextType = TypeVar(
-        "SSLContextType", ssl.SSLContext
+    SSLContextType = (
+        ssl.SSLContext
     )  # Can use either CircuitPython or CPython ssl module
     InterfaceType = TypeVar("InterfaceType", ESP_SPIcontrol, WIZNET5K, FONA)
 
