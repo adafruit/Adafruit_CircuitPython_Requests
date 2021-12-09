@@ -39,13 +39,15 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 import errno
 
 try:
-    from typing import Union, Optional, Dict, List, Any
+    from typing import Union, TypeVar, Optional, Dict, Any, List
     import types
+    import ssl
     import adafruit_esp32spi.adafruit_esp32spi_socket as esp32_socket
     import adafruit_wiznet5k.adafruit_wiznet5k_socket as wiznet_socket
     import adafruit_fona.adafruit_fona_socket as cellular_socket
-    SocketType = Union[esp32_socket.socket, wiznet_socket.socket, cellular_socket.socket]
-    SocketPoolType = types.MethodType
+    SocketType = TypeVar("SocketType", esp32_socket.socket, wiznet_socket.socket, cellular_socket.socket)
+    SocketpoolModuleType = TypeVar("SocketpoolModuleType", types.ModuleType("socket"), types.ModuleType("socketpool"))
+    SSLContextType = TypeVar("SSLContextType", ssl.SSLContext) # Can use either CircuitPython or CPython ssl module
 except ImportError:
     pass
 
@@ -377,7 +379,7 @@ class Response:
 class Session:
     """HTTP session that shares sockets and ssl context."""
 
-    def __init__(self, socket_pool, ssl_context=None):
+    def __init__(self, socket_pool: SocketpoolModuleType, ssl_context: Optional[SSLContextType] = None) -> None:
         self._socket_pool = socket_pool
         self._ssl_context = ssl_context
         # Hang onto open sockets so that we can reuse them.
@@ -385,12 +387,12 @@ class Session:
         self._socket_free = {}
         self._last_response = None
 
-    def _free_socket(self, socket):
+    def _free_socket(self, socket: SocketType) -> None:
         if socket not in self._open_sockets.values():
             raise RuntimeError("Socket not from session")
         self._socket_free[socket] = True
 
-    def _close_socket(self, sock):
+    def _close_socket(self, sock: SocketType) -> None:
         sock.close()
         del self._socket_free[sock]
         key = None
@@ -401,7 +403,7 @@ class Session:
         if key:
             del self._open_sockets[key]
 
-    def _free_sockets(self):
+    def _free_sockets(self) -> None:
         free_sockets = []
         for sock, val in self._socket_free.items():
             if val:
@@ -409,7 +411,7 @@ class Session:
         for sock in free_sockets:
             self._close_socket(sock)
 
-    def _get_socket(self, host, port, proto, *, timeout=1):
+    def _get_socket(self, host:str, port: int, proto: str, *, timeout: float = 1) -> SocketType:
         # pylint: disable=too-many-branches
         key = (host, port, proto)
         if key in self._open_sockets:
@@ -464,7 +466,7 @@ class Session:
         return sock
 
     @staticmethod
-    def _send(socket, data):
+    def _send(socket: SocketType, data: bytes):
         total_sent = 0
         while total_sent < len(data):
             # ESP32SPI sockets raise a RuntimeError when unable to send.
@@ -478,7 +480,7 @@ class Session:
                 raise _SendFailed()
             total_sent += sent
 
-    def _send_request(self, socket, host, method, path, headers, data, json):
+    def _send_request(self, socket: SocketType, host: str, method: str, path: str, headers: List[Dict[str, str]], data: Any, json: Dict[Any, Any]):
         # pylint: disable=too-many-arguments
         self._send(socket, bytes(method, "utf-8"))
         self._send(socket, b" /")
@@ -524,8 +526,8 @@ class Session:
 
     # pylint: disable=too-many-branches, too-many-statements, unused-argument, too-many-arguments, too-many-locals
     def request(
-        self, method, url, data=None, json=None, headers=None, stream=False, timeout=60
-    ):
+        self, method: str, url: str, data: Optional[Any] = None, json: Optional[Dict[Any, Any]] = None, headers: Optional[List[Dict[str, str]]] = None, stream: bool = False, timeout: float = 60
+    ) -> Response:
         """Perform an HTTP request to the given url which we will parse to determine
         whether to use SSL ('https://') or not. We can also send some provided 'data'
         or a json dictionary which we will stringify. 'headers' is optional HTTP headers
@@ -615,27 +617,27 @@ class Session:
         self._last_response = resp
         return resp
 
-    def head(self, url, **kw):
+    def head(self, url: str, **kw) -> Response:
         """Send HTTP HEAD request"""
         return self.request("HEAD", url, **kw)
 
-    def get(self, url, **kw):
+    def get(self, url: str, **kw) -> Response:
         """Send HTTP GET request"""
         return self.request("GET", url, **kw)
 
-    def post(self, url, **kw):
+    def post(self, url: str, **kw) -> Response:
         """Send HTTP POST request"""
         return self.request("POST", url, **kw)
 
-    def put(self, url, **kw):
+    def put(self, url: str, **kw) -> Response:
         """Send HTTP PUT request"""
         return self.request("PUT", url, **kw)
 
-    def patch(self, url, **kw):
+    def patch(self, url: str, **kw) -> Response:
         """Send HTTP PATCH request"""
         return self.request("PATCH", url, **kw)
 
-    def delete(self, url, **kw):
+    def delete(self, url: str, **kw) -> Response:
         """Send HTTP DELETE request"""
         return self.request("DELETE", url, **kw)
 
