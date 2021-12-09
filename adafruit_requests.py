@@ -67,6 +67,7 @@ try:
         "SSLContextType", ssl.SSLContext
     )  # Can use either CircuitPython or CPython ssl module
     InterfaceType = TypeVar("InterfaceType", ESP_SPIcontrol, WIZNET5K, FONA)
+
 except ImportError:
     pass
 
