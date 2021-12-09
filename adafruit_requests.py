@@ -146,7 +146,10 @@ class Response:
         return self
 
     def __exit__(
-        self, exc_type: Optional[Type[type]], exc_value: Optional[BaseException], traceback: Optional[TracebackType]
+        self,
+        exc_type: Optional[Type[type]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
     ) -> None:
         self.close()
 
