@@ -331,7 +331,7 @@ class Response:
         self._cached = str(self.content, self.encoding)
         return self._cached
 
-    def json(self) -> Union[List[Dict[str, Any]], Dict[str, Any]]: # TODO: Fix typing to match all possible JSON returns
+    def json(self) -> Any:
         """The HTTP content, parsed into a json dictionary"""
         # pylint: disable=import-outside-toplevel
         import json
