@@ -146,8 +146,8 @@ class Response:
         return self
 
     def __exit__(
-        self, exc_type, exc_value, traceback
-    ) -> None:  # TODO: Add type hints for arguments
+        self, exc_type: Optional[Type[type]], exc_value: Optional[BaseException], traceback: Optional[TracebackType]
+    ) -> None:
         self.close()
 
     def _recv_into(self, buf: bytearray, size: int = 0) -> int:
