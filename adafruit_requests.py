@@ -58,11 +58,10 @@ try:
         cellular_socket.socket,
         cpython_socket.socket,
     )
-    SocketpoolModuleType = TypeVar(
-        "SocketpoolModuleType",
+    SocketpoolModuleType = Union[
         types.ModuleType("socket"),
         types.ModuleType("socketpool"),
-    )
+    ]
     SSLContextType = TypeVar(
         "SSLContextType", ssl.SSLContext
     )  # Can use either CircuitPython or CPython ssl module
