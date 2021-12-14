@@ -733,7 +733,7 @@ def set_socket(sock: SocketpoolModuleType, iface: Optional[InterfaceType] = None
 
 
 def request(
-    method,
+    method: str,
     url: str,
     data: Optional[Any] = None,
     json: Optional[Any] = None,
