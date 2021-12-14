@@ -70,7 +70,7 @@ except ImportError:
 # CircuitPython 6.0 does not have the bytearray.split method.
 # This function emulates buf.split(needle)[0], which is the functionality
 # required.
-def _buffer_split0(buf, needle: bytes):
+def _buffer_split0(buf: Union[bytes, bytearray], needle: Union[bytes, bytearray]):
     index = buf.find(needle)
     if index == -1:
         return buf
