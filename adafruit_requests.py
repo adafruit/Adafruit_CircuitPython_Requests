@@ -721,7 +721,9 @@ class _FakeSSLContext:
         return _FakeSSLSocket(socket, self._iface.TLS_MODE)
 
 
-def set_socket(sock: SocketpoolModuleType, iface: Optional[InterfaceType] = None) -> None:
+def set_socket(
+    sock: SocketpoolModuleType, iface: Optional[InterfaceType] = None
+) -> None:
     """Legacy API for setting the socket and network interface. Use a `Session` instead."""
     global _default_session  # pylint: disable=global-statement,invalid-name
     if not iface:
