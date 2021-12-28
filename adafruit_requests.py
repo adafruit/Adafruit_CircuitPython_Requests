@@ -37,11 +37,11 @@ __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 
 import errno
-from types import TracebackType
 
 try:
     from typing import Union, TypeVar, Optional, Dict, Any, List, Type
     import types
+    from types import TracebackType
     import ssl
     import adafruit_esp32spi.adafruit_esp32spi_socket as esp32_socket
     import adafruit_wiznet5k.adafruit_wiznet5k_socket as wiznet_socket
