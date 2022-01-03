@@ -4,6 +4,7 @@
 
 *.mpy
 .idea
+.vscode
 __pycache__
 _build
 *.pyc
