@@ -37,35 +37,117 @@ __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 
 import errno
+import sys
 
-try:
-    from typing import Union, TypeVar, Optional, Dict, Any, List, Type
-    import types
-    from types import TracebackType
-    import ssl
-    import adafruit_esp32spi.adafruit_esp32spi_socket as esp32_socket
-    import adafruit_wiznet5k.adafruit_wiznet5k_socket as wiznet_socket
-    import adafruit_fona.adafruit_fona_socket as cellular_socket
-    from adafruit_esp32spi.adafruit_esp32spi import ESP_SPIcontrol
-    from adafruit_wiznet5k.adafruit_wiznet5k import WIZNET5K
-    from adafruit_fona.adafruit_fona import FONA
-    import socket as cpython_socket
+if sys.implementation.name == "circuitpython":
 
-    SocketType = TypeVar(
-        "SocketType",
-        esp32_socket.socket,
-        wiznet_socket.socket,
-        cellular_socket.socket,
-        cpython_socket.socket,
-    )
-    SocketpoolModuleType = types.ModuleType
-    SSLContextType = (
-        ssl.SSLContext
-    )  # Can use either CircuitPython or CPython ssl module
-    InterfaceType = TypeVar("InterfaceType", ESP_SPIcontrol, WIZNET5K, FONA)
+    def cast(_t, value):
+        """No-op shim for the typing.cast() function which is not available in CircuitPython."""
+        return value
 
-except ImportError:
-    pass
+
+else:
+    from ssl import SSLContext
+    from types import ModuleType, TracebackType
+    from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
+    from typing_extensions import Protocol
+
+    # Based on https://github.com/python/typeshed/blob/master/stdlib/_socket.pyi
+    class CommonSocketType(Protocol):
+        """Describes the common structure every socket type must have."""
+
+        def send(self, data: bytes, flags: int = ...) -> None:
+            """Send data to the socket. The meaning of the optional flags kwarg is
+            implementation-specific."""
+            ...
+
+        def settimeout(self, value: Optional[float]) -> None:
+            """Set a timeout on blocking socket operations."""
+            ...
+
+        def close(self) -> None:
+            """Close the socket."""
+            ...
+
+    class CommonCircuitPythonSocketType(CommonSocketType, Protocol):
+        """Describes the common structure every CircuitPython socket type must have."""
+
+        def connect(
+            self,
+            address: Tuple[str, int],
+            conntype: Optional[int] = ...,
+        ) -> None:
+            """Connect to a remote socket at the provided (host, port) address. The conntype
+            kwarg optionally may indicate SSL or not, depending on the underlying interface."""
+            ...
+
+    class LegacyCircuitPythonSocketType(CommonCircuitPythonSocketType, Protocol):
+        """Describes the structure a legacy CircuitPython socket type must have."""
+
+        def recv(self, bufsize: int = ...) -> bytes:
+            """Receive data from the socket. The return value is a bytes object representing
+            the data received. The maximum amount of data to be received at once is specified
+            by bufsize."""
+            ...
+
+    class SupportsRecvWithFlags(Protocol):
+        """Describes a type that posseses a socket recv() method supporting the flags kwarg."""
+
+        def recv(self, bufsize: int = ..., flags: int = ...) -> bytes:
+            """Receive data from the socket. The return value is a bytes object representing
+            the data received. The maximum amount of data to be received at once is specified
+            by bufsize. The meaning of the optional flags kwarg is implementation-specific."""
+            ...
+
+    class SupportsRecvInto(Protocol):
+        """Describes a type that possesses a socket recv_into() method."""
+
+        def recv_into(
+            self, buffer: bytearray, nbytes: int = ..., flags: int = ...
+        ) -> int:
+            """Receive up to nbytes bytes from the socket, storing the data into the provided
+            buffer. If nbytes is not specified (or 0), receive up to the size available in the
+            given buffer. The meaning of the optional flags kwarg is implementation-specific.
+            Returns the number of bytes received."""
+            ...
+
+    class CircuitPythonSocketType(
+        CommonCircuitPythonSocketType,
+        SupportsRecvInto,
+        SupportsRecvWithFlags,
+        Protocol,
+    ):  # pylint: disable=too-many-ancestors
+        """Describes the structure every modern CircuitPython socket type must have."""
+
+        ...
+
+    class StandardPythonSocketType(
+        CommonSocketType, SupportsRecvInto, SupportsRecvWithFlags, Protocol
+    ):
+        """Describes the structure every standard Python socket type must have."""
+
+        def connect(self, address: Union[Tuple[Any, ...], str, bytes]) -> None:
+            """Connect to a remote socket at the provided address."""
+            ...
+
+    SocketType = Union[
+        LegacyCircuitPythonSocketType,
+        CircuitPythonSocketType,
+        StandardPythonSocketType,
+    ]
+
+    SocketpoolModuleType = ModuleType
+
+    class InterfaceType(Protocol):
+        """Describes the structure every interface type must have."""
+
+        @property
+        def TLS_MODE(self) -> int:  # pylint: disable=invalid-name
+            """Constant representing that a socket's connection mode is TLS."""
+            ...
+
+    SSLContextType = Union[SSLContext, "_FakeSSLContext"]
+
 
 # CircuitPython 6.0 does not have the bytearray.split method.
 # This function emulates buf.split(needle)[0], which is the functionality
@@ -157,7 +239,7 @@ class Response:
             read_size = len(b)
             buf[:read_size] = b
             return read_size
-        return self.socket.recv_into(buf, size)
+        return cast("SupportsRecvInto", self.socket).recv_into(buf, size)
 
     @staticmethod
     def _find(buf: bytes, needle: bytes, start: int, end: int) -> int:
@@ -440,7 +522,7 @@ class Session:
 
     def _get_socket(
         self, host: str, port: int, proto: str, *, timeout: float = 1
-    ) -> SocketType:
+    ) -> CircuitPythonSocketType:
         # pylint: disable=too-many-branches
         key = (host, port, proto)
         if key in self._open_sockets:
@@ -693,7 +775,7 @@ _default_session = None  # pylint: disable=invalid-name
 
 
 class _FakeSSLSocket:
-    def __init__(self, socket: SocketType, tls_mode: int) -> None:
+    def __init__(self, socket: CircuitPythonSocketType, tls_mode: int) -> None:
         self._socket = socket
         self._mode = tls_mode
         self.settimeout = socket.settimeout
@@ -701,7 +783,7 @@ class _FakeSSLSocket:
         self.recv = socket.recv
         self.close = socket.close
 
-    def connect(self, address: Union[bytes, str]) -> None:
+    def connect(self, address: Tuple[str, int]) -> None:
         """connect wrapper to add non-standard mode parameter"""
         try:
             return self._socket.connect(address, self._mode)
@@ -714,7 +796,7 @@ class _FakeSSLContext:
         self._iface = iface
 
     def wrap_socket(
-        self, socket: SocketType, server_hostname: Optional[str] = None
+        self, socket: CircuitPythonSocketType, server_hostname: Optional[str] = None
     ) -> _FakeSSLSocket:
         """Return the same socket"""
         # pylint: disable=unused-argument
