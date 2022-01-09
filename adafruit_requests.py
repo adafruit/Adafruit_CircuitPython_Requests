@@ -65,7 +65,11 @@ try:
     InterfaceType = TypeVar("InterfaceType", ESP_SPIcontrol, WIZNET5K, FONA)
 
 except ImportError:
-    pass
+    # pylint: disable=invalid-name
+    SocketType = None
+    SocketpoolModuleType = None
+    SSLContextType = None
+    InterfaceType = None
 
 # CircuitPython 6.0 does not have the bytearray.split method.
 # This function emulates buf.split(needle)[0], which is the functionality
