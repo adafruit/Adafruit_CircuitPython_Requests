@@ -49,8 +49,7 @@ if sys.implementation.name == "circuitpython":
 else:
     from ssl import SSLContext
     from types import ModuleType, TracebackType
-    from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
-    from typing_extensions import Protocol
+    from typing import Any, Dict, List, Optional, Protocol, Tuple, Type, Union, cast
 
     # Based on https://github.com/python/typeshed/blob/master/stdlib/_socket.pyi
     class CommonSocketType(Protocol):

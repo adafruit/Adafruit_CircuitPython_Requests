@@ -34,7 +34,7 @@ setup(
     author="Adafruit Industries",
     author_email="circuitpython@adafruit.com",
     python_requires=">=3.8",
-    install_requires=["Adafruit-Blinka", "typing-extensions"],
+    install_requires=["Adafruit-Blinka"],
     # Choose your license
     license="MIT",
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
