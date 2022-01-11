@@ -33,6 +33,7 @@ setup(
     # Author details
     author="Adafruit Industries",
     author_email="circuitpython@adafruit.com",
+    python_requires=">=3.8",
     install_requires=["Adafruit-Blinka", "typing-extensions"],
     # Choose your license
     license="MIT",
@@ -44,8 +45,7 @@ setup(
         "Topic :: System :: Hardware",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.8",
     ],
     # What does your project relate to?
     keywords="adafruit blinka circuitpython micropython requests requests, networking",
