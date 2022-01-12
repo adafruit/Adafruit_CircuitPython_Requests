@@ -22,10 +22,10 @@ jobs:
         awk -F '\/' '{ print tolower($2) }' |
         tr '_' '-'
         )
-    - name: Set up Python 3.7
+    - name: Set up Python 3.8
       uses: actions/setup-python@v1
       with:
-        python-version: 3.7
+        python-version: 3.8
     - name: Versions
       run: |
         python3 --version
@@ -71,5 +71,9 @@ jobs:
         python setup.py sdist
         python setup.py bdist_wheel --universal
         twine check dist/*
+    - name: Test Python package
+      run: |
+        pip install tox==3.24.5
+        tox
     - name: Setup problem matchers
       uses: adafruit/circuitpython-action-library-ci-problem-matchers@v1

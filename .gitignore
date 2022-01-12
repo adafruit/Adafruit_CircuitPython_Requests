@@ -4,10 +4,12 @@
 
 *.mpy
 .idea
+.vscode
 __pycache__
 _build
 *.pyc
 .env
+.tox
 bundles
 *.DS_Store
 .eggs
