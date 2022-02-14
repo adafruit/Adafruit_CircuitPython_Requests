@@ -434,6 +434,12 @@ class Response:
             if isinstance(self._cached, str):
                 return self._cached
             raise RuntimeError("Cannot access text after getting content or json")
+
+        if self.headers["content-encoding"] == "gzip":
+            raise ValueError(
+                "Content-encoding is gzip, data cannot be accessed as json or text. "
+                "Use content property to access raw bytes."
+            )
         self._cached = str(self.content, self.encoding)
         return self._cached
 
@@ -450,6 +456,11 @@ class Response:
         if not self._raw:
             self._raw = _RawResponse(self)
 
+        if self.headers["content-encoding"] == "gzip":
+            raise ValueError(
+                "Content-encoding is gzip, data cannot be accessed as json or text. "
+                "Use content property to access raw bytes."
+            )
         try:
             obj = json.load(self._raw)
         except OSError:
