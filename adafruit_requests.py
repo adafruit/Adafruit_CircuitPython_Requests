@@ -45,7 +45,6 @@ if sys.implementation.name == "circuitpython":
         """No-op shim for the typing.cast() function which is not available in CircuitPython."""
         return value
 
-
 else:
     from ssl import SSLContext
     from types import ModuleType, TracebackType
@@ -148,16 +147,6 @@ else:
     SSLContextType = Union[SSLContext, "_FakeSSLContext"]
 
 
-# CircuitPython 6.0 does not have the bytearray.split method.
-# This function emulates buf.split(needle)[0], which is the functionality
-# required.
-def _buffer_split0(buf: Union[bytes, bytearray], needle: Union[bytes, bytearray]):
-    index = buf.find(needle)
-    if index == -1:
-        return buf
-    return buf[:index]
-
-
 class _RawResponse:
     def __init__(self, response: "Response") -> None:
         self._response = response
@@ -175,10 +164,6 @@ class _RawResponse:
         """Read as much as available into buf or until it is full. Returns the number of bytes read
         into buf."""
         return self._response._readinto(buf)  # pylint: disable=protected-access
-
-
-class _SendFailed(Exception):
-    """Custom exception to abort sending a request."""
 
 
 class OutOfRetries(Exception):
@@ -240,56 +225,25 @@ class Response:
             return read_size
         return cast("SupportsRecvInto", self.socket).recv_into(buf, size)
 
-    @staticmethod
-    def _find(buf: bytes, needle: bytes, start: int, end: int) -> int:
-        if hasattr(buf, "find"):
-            return buf.find(needle, start, end)
-        result = -1
-        i = start
-        while i < end:
-            j = 0
-            while j < len(needle) and i + j < end and buf[i + j] == needle[j]:
-                j += 1
-            if j == len(needle):
-                result = i
-                break
-            i += 1
-
-        return result
-
-    def _readto(self, first: bytes, second: bytes = b"") -> bytes:
+    def _readto(self, stop: bytes) -> bytearray:
         buf = self._receive_buffer
         end = self._received_length
         while True:
-            firsti = self._find(buf, first, 0, end)
-            secondi = -1
-            if second:
-                secondi = self._find(buf, second, 0, end)
-
-            i = -1
-            needle_len = 0
-            if firsti >= 0:
-                i = firsti
-                needle_len = len(first)
-            if secondi >= 0 and (firsti < 0 or secondi < firsti):
-                i = secondi
-                needle_len = len(second)
+            i = buf.find(stop, 0, end)
             if i >= 0:
+                # Stop was found. Return everything up to but not including stop.
                 result = buf[:i]
-                new_start = i + needle_len
-
-                if i + needle_len <= end:
-                    new_end = end - new_start
-                    buf[:new_end] = buf[new_start:end]
-                    self._received_length = new_end
+                new_start = i + len(stop)
+                # Remove everything up to and including stop from the buffer.
+                new_end = end - new_start
+                buf[:new_end] = buf[new_start:end]
+                self._received_length = new_end
                 return result
 
-            # Not found so load more.
-
+            # Not found so load more bytes.
             # If our buffer is full, then make it bigger to load more.
             if end == len(buf):
-                new_size = len(buf) + 32
-                new_buf = bytearray(new_size)
+                new_buf = bytearray(len(buf) + 32)
                 new_buf[: len(buf)] = buf
                 buf = new_buf
                 self._receive_buffer = buf
@@ -299,8 +253,6 @@ class Response:
                 self._received_length = 0
                 return buf[:end]
             end += read
-
-        return b""
 
     def _read_from_buffer(
         self, buf: Optional[bytearray] = None, nbytes: Optional[int] = None
@@ -333,7 +285,7 @@ class Response:
                 # Consume trailing \r\n for chunks 2+
                 if self._remaining == 0:
                     self._throw_away(2)
-                chunk_header = _buffer_split0(self._readto(b"\r\n"), b";")
+                chunk_header = bytes(self._readto(b"\r\n")).split(b";", 1)[0]
                 http_chunk_size = int(bytes(chunk_header), 16)
                 if http_chunk_size == 0:
                     self._chunked = False
@@ -374,7 +326,7 @@ class Response:
                 self._throw_away(self._remaining)
             elif self._chunked:
                 while True:
-                    chunk_header = _buffer_split0(self._readto(b"\r\n"), b";")
+                    chunk_header = bytes(self._readto(b"\r\n")).split(b";", 1)[0]
                     chunk_size = int(bytes(chunk_header), 16)
                     if chunk_size == 0:
                         break
@@ -392,11 +344,10 @@ class Response:
         Expects first line of HTTP request/response to have been read already.
         """
         while True:
-            title = self._readto(b": ", b"\r\n")
-            if not title:
+            header = self._readto(b"\r\n")
+            if not header:
                 break
-
-            content = self._readto(b"\r\n")
+            title, content = bytes(header).split(b": ", 1)
             if title and content:
                 # enforce that all headers are lowercase
                 title = str(title, "utf-8").lower()
@@ -406,6 +357,17 @@ class Response:
                 if title == "transfer-encoding":
                     self._chunked = content.strip().lower() == "chunked"
                 self._headers[title] = content
+
+    def _validate_not_gzip(self) -> None:
+        """gzip encoding is not supported. Raise an exception if found."""
+        if (
+            "content-encoding" in self.headers
+            and self.headers["content-encoding"] == "gzip"
+        ):
+            raise ValueError(
+                "Content-encoding is gzip, data cannot be accessed as json or text. "
+                "Use content property to access raw bytes."
+            )
 
     @property
     def headers(self) -> Dict[str, str]:
@@ -435,14 +397,8 @@ class Response:
                 return self._cached
             raise RuntimeError("Cannot access text after getting content or json")
 
-        if (
-            "content-encoding" in self.headers
-            and self.headers["content-encoding"] == "gzip"
-        ):
-            raise ValueError(
-                "Content-encoding is gzip, data cannot be accessed as json or text. "
-                "Use content property to access raw bytes."
-            )
+        self._validate_not_gzip()
+
         self._cached = str(self.content, self.encoding)
         return self._cached
 
@@ -459,20 +415,9 @@ class Response:
         if not self._raw:
             self._raw = _RawResponse(self)
 
-        if (
-            "content-encoding" in self.headers
-            and self.headers["content-encoding"] == "gzip"
-        ):
-            raise ValueError(
-                "Content-encoding is gzip, data cannot be accessed as json or text. "
-                "Use content property to access raw bytes."
-            )
-        try:
-            obj = json.load(self._raw)
-        except OSError:
-            # <5.3.1 doesn't piecemeal load json from any object with readinto so load the whole
-            # string.
-            obj = json.loads(self._raw.read())
+        self._validate_not_gzip()
+
+        obj = json.load(self._raw)
         if not self._cached:
             self._cached = obj
         self.close()
@@ -599,12 +544,19 @@ class Session:
             # ESP32SPI sockets raise a RuntimeError when unable to send.
             try:
                 sent = socket.send(data[total_sent:])
-            except RuntimeError:
-                sent = 0
+            except OSError as exc:
+                if exc.errno == errno.EAGAIN:
+                    # Can't send right now (e.g., no buffer space), try again.
+                    continue
+                # Some worse error.
+                raise
+            except RuntimeError as exc:
+                raise OSError(errno.EIO) from exc
             if sent is None:
                 sent = len(data)
             if sent == 0:
-                raise _SendFailed()
+                # Not EAGAIN; that was already handled.
+                raise OSError(errno.EIO)
             total_sent += sent
 
     def _send_request(
@@ -637,11 +589,9 @@ class Session:
         if json is not None:
             assert data is None
             # pylint: disable=import-outside-toplevel
-            try:
-                import json as json_module
-            except ImportError:
-                import ujson as json_module
-            data = json_module.dumps(json)
+            import json
+
+            data = json.dumps(json)
             self._send(socket, b"Content-Type: application/json\r\n")
         if data:
             if isinstance(data, dict):
@@ -711,7 +661,7 @@ class Session:
             ok = True
             try:
                 self._send_request(socket, host, method, path, headers, data, json)
-            except (_SendFailed, OSError):
+            except OSError:
                 ok = False
             if ok:
                 # Read the H of "HTTP/1.1" to make sure the socket is alive. send can appear to work

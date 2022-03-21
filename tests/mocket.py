@@ -8,7 +8,7 @@ from unittest import mock
 
 
 class MocketPool:  # pylint: disable=too-few-public-methods
-    """ Mock SocketPool """
+    """Mock SocketPool"""
 
     SOCK_STREAM = 0
 
@@ -18,7 +18,7 @@ class MocketPool:  # pylint: disable=too-few-public-methods
 
 
 class Mocket:  # pylint: disable=too-few-public-methods
-    """ Mock Socket """
+    """Mock Socket"""
 
     def __init__(self, response):
         self.settimeout = mock.Mock()
@@ -62,7 +62,7 @@ class Mocket:  # pylint: disable=too-few-public-methods
 
 
 class SSLContext:  # pylint: disable=too-few-public-methods
-    """ Mock SSL Context """
+    """Mock SSL Context"""
 
     def __init__(self):
         self.wrap_socket = mock.Mock(side_effect=self._wrap_socket)
