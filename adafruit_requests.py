@@ -39,6 +39,8 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 import errno
 import sys
 
+import json as json_module
+
 if sys.implementation.name == "circuitpython":
 
     def cast(_t, value):
@@ -404,9 +406,6 @@ class Response:
 
     def json(self) -> Any:
         """The HTTP content, parsed into a json dictionary"""
-        # pylint: disable=import-outside-toplevel
-        import json
-
         # The cached JSON will be a list or dictionary.
         if self._cached:
             if isinstance(self._cached, (list, dict)):
@@ -417,7 +416,7 @@ class Response:
 
         self._validate_not_gzip()
 
-        obj = json.load(self._raw)
+        obj = json_module.load(self._raw)
         if not self._cached:
             self._cached = obj
         self.close()
@@ -588,10 +587,7 @@ class Session:
             self._send(socket, b"\r\n")
         if json is not None:
             assert data is None
-            # pylint: disable=import-outside-toplevel
-            import json
-
-            data = json.dumps(json)
+            data = json_module.dumps(json)
             self._send(socket, b"Content-Type: application/json\r\n")
         if data:
             if isinstance(data, dict):
