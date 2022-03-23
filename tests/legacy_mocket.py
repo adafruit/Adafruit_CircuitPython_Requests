@@ -15,7 +15,7 @@ socket = mock.Mock()
 
 
 class Mocket:  # pylint: disable=too-few-public-methods
-    """  Mock Socket """
+    """Mock Socket"""
 
     def __init__(self, response):
         self.settimeout = mock.Mock()
