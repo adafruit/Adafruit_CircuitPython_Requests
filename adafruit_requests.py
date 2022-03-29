@@ -47,11 +47,15 @@ if sys.implementation.name == "circuitpython":
         """No-op shim for the typing.cast() function which is not available in CircuitPython."""
         return value
 
-
 else:
     from ssl import SSLContext
     from types import ModuleType, TracebackType
-    from typing import Any, Dict, List, Optional, Protocol, Tuple, Type, Union, cast
+    from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
+
+    try:
+        from typing import Protocol
+    except ImportError:
+        from typing_extensions import Protocol
 
     # Based on https://github.com/python/typeshed/blob/master/stdlib/_socket.pyi
     class CommonSocketType(Protocol):
