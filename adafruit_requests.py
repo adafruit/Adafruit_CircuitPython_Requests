@@ -359,7 +359,7 @@ class Response:
                 if title == "transfer-encoding":
                     self._chunked = content.strip().lower() == "chunked"
                 if title == "set-cookie" and title in self._headers:
-                    self._headers[title] = self._headers[title] + ", " + content
+                    self._headers[title] += ", " + content
                 else:
                     self._headers[title] = content
 
