@@ -21,7 +21,7 @@ except ImportError:
     raise
 
 # Connect to the Wi-Fi network
-print("Connecting to %s"%secrets["ssid"])
+print("Connecting to %s" % secrets["ssid"])
 wifi.radio.connect(secrets["ssid"], secrets["password"])
 
 # Set up the requests library

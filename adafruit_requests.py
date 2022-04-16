@@ -47,6 +47,7 @@ if sys.implementation.name == "circuitpython":
         """No-op shim for the typing.cast() function which is not available in CircuitPython."""
         return value
 
+
 else:
     from ssl import SSLContext
     from types import ModuleType, TracebackType
