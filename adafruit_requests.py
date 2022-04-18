@@ -363,7 +363,10 @@ class Response:
                     self._remaining = int(content)
                 if title == "transfer-encoding":
                     self._chunked = content.strip().lower() == "chunked"
-                self._headers[title] = content
+                if title == "set-cookie" and title in self._headers:
+                    self._headers[title] += ", " + content
+                else:
+                    self._headers[title] = content
 
     def _validate_not_gzip(self) -> None:
         """gzip encoding is not supported. Raise an exception if found."""
