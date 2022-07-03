@@ -319,9 +319,9 @@ class Response:
         buf = self._receive_buffer
         len_buf = len(buf)
         for _ in range(nbytes // len_buf):
-            read = 0
-            while read < len_buf:
-                read += self._recv_into(buf, len_buf - read)
+            to_read = len_buf
+            while to_read > 0:
+                to_read -= self._recv_into(buf, to_read)
         remaining = nbytes % len_buf
         if remaining:
             read = 0
