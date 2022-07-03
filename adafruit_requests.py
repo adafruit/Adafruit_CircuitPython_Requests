@@ -321,12 +321,12 @@ class Response:
         for _ in range(nbytes // len_buf):
             read = 0
             while read < len_buf:
-                read += self._recv_into(buf, len_buf-read)
+                read += self._recv_into(buf, len_buf - read)
         remaining = nbytes % len_buf
         if remaining:
             read = 0
             while read < remaining:
-                read += self._recv_into(buf, remaining-read)
+                read += self._recv_into(buf, remaining - read)
 
     def close(self) -> None:
         """Drain the remaining ESP socket buffers. We assume we already got what we wanted."""
