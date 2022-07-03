@@ -6,12 +6,15 @@
 
 from unittest import mock
 import mocket
-import adafruit_requests
 from chunk_test import _chunk
+import adafruit_requests
 
 IP = "1.2.3.4"
 HOST = "docs.google.com"
-PATH = "/spreadsheets/d/e/2PACX-1vR1WjUKz35-ek6SiR5droDfvPp51MTds4wUs57vEZNh2uDfihSTPhTaiiRovLbNe1mkeRgurppRJ_Zy/pub?output=tsv"
+PATH = (
+    "/spreadsheets/d/e/2PACX-1vR1WjUKz35-ek6SiR5droDfvPp51MTds4wUs57vEZNh2uDfihSTPhTaiiRo"
+    "vLbNe1mkeRgurppRJ_Zy/pub?output=tsv"
+)
 
 # response headers returned from the initial request
 HEADERS_REDIRECT = (
@@ -21,16 +24,21 @@ HEADERS_REDIRECT = (
     b"Pragma: no-cache\r\n"
     b"Expires: Mon, 01 Jan 1990 00:00:00 GMT\r\n"
     b"Date: Sat, 25 Jun 2022 21:08:48 GMT\r\n"
-    b"Location: https://doc-14-2g-sheets.googleusercontent.com/pub/70cmver1f290kjsnpar5ku2h9g/3llvt5u8njbvat22m9l19db1h4/1656191325000"
-    b"/109226138307867586192/*/e@2PACX-1vR1WjUKz35-ek6SiR5droDfvPp51MTds4wUs57vEZNh2uDfihSTPhTaiiRovLbNe1mkeRgurppRJ_Zy?output=tsv\r\n"
+    b"Location: https://doc-14-2g-sheets.googleusercontent.com/pub/70cmver1f290kjsnpar5ku2h9g/3"
+    b"llvt5u8njbvat22m9l19db1h4/1656191325000"
+    b"/109226138307867586192/*/e@2PACX-1vR1WjUKz35-ek6SiR5droDfvPp51MTds4wUs57vEZNh2uDfihSTPhTai"
+    b"iRovLbNe1mkeRgurppRJ_Zy?output=tsv\r\n"
     b'P3P: CP="This is not a P3P policy! See g.co/p3phelp for more info."\r\n'
     b"X-Content-Type-Options: nosniff\r\n"
     b"X-XSS-Protection: 1; mode=block\r\n"
     b"Server: GSE\r\n"
-    b"Set-Cookie: NID=511=EcnO010Porg0NIrxM8tSG6MhfQiVtWrQS42CjhKEpzwIvzBj2PFYH0-H_N--EAXaPBkR2jFjAWEAxIJNqhvKb0vswOWp9hqcCrO51S8kO5I4C3"
-    b"Is2ctWe1b_ysRU-6hjnJyLHzqjXotAWzEmr_qA3bpqWDwlRaQIiC6SvxM8L0M; expires=Sun, 25-Dec-2022 21:08:48 GMT; path=/; "
+    b"Set-Cookie: NID=511=EcnO010Porg0NIrxM8tSG6MhfQiVtWrQS42CjhKEpzwIvzBj2PFYH0-H_N--EAXaPBkR2j"
+    b"FjAWEAxIJNqhvKb0vswOWp9hqcCrO51S8kO5I4C3"
+    b"Is2ctWe1b_ysRU-6hjnJyLHzqjXotAWzEmr_qA3bpqWDwlRaQIiC6SvxM8L0M; expires=Sun, 25-Dec-2022 "
+    b"21:08:48 GMT; path=/; "
     b"domain=.google.com; HttpOnly\r\n"
-    b'Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000,h3-Q050=":443"; ma=2592000,h3-Q046=":443";'
+    b'Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000,h3-Q050=":443"; '
+    b'ma=2592000,h3-Q046=":443";'
     b' ma=2592000,h3-Q043=":443"; ma=2592000,quic=":443"; ma=2592000; v="46,43"\r\n'
     b"Accept-Ranges: none\r\n"
     b"Vary: Accept-Encoding\r\n"
@@ -39,10 +47,14 @@ HEADERS_REDIRECT = (
 
 # response body returned from the initial request (needs to be chunked.)
 BODY_REDIRECT = (
-    b'<HTML>\n<HEAD>\n<TITLE>Temporary Redirect</TITLE>\n</HEAD>\n<BODY BGCOLOR="#FFFFFF" TEXT="#000000">\n'
-    b'<H1>Temporary Redirect</H1>\nThe document has moved <A HREF="https://doc-14-2g-sheets.googleusercontent.com/pub'
-    b"/70cmver1f290kjsnpar5ku2h9g/3llvt5u8njbvat22m9l19db1h4/1656191325000/109226138307867586192/*/e@2PACX-1vR1WjUKz35-"
-    b'ek6SiR5droDfvPp51MTds4wUs57vEZNh2uDfihSTPhTaiiRovLbNe1mkeRgurppRJ_Zy?output=tsv">here</A>.\n</BODY>\n</HTML>\n'
+    b"<HTML>\n<HEAD>\n<TITLE>Temporary Redirect</TITLE>\n</HEAD>\n"
+    b'<BODY BGCOLOR="#FFFFFF" TEXT="#000000">\n'
+    b"<H1>Temporary Redirect</H1>\nThe document has moved "
+    b'<A HREF="https://doc-14-2g-sheets.googleusercontent.com/pub'
+    b"/70cmver1f290kjsnpar5ku2h9g/3llvt5u8njbvat22m9l19db1h4/1656191325000"
+    b"/109226138307867586192/*/e@2PACX-1vR1WjUKz35-"
+    b"ek6SiR5droDfvPp51MTds4wUs57vEZNh2uDfihSTPhTaiiRovLbNe1mkeRgurppRJ_Zy?"
+    b'output=tsv">here</A>.\n</BODY>\n</HTML>\n'
 )
 
 # response headers from the request to the redirected location
@@ -54,16 +66,21 @@ HEADERS = (
     b"Expires: Sat, 25 Jun 2022 21:08:49 GMT\r\n"
     b"Date: Sat, 25 Jun 2022 21:08:49 GMT\r\n"
     b"Cache-Control: private, max-age=300\r\n"
-    b"Content-Disposition: attachment; filename=\"WeeklyPlanner-Sheet1.tsv\"; filename*=UTF-8''Weekly%20Planner%20-%20Sheet1.tsv\r\n"
+    b'Content-Disposition: attachment; filename="WeeklyPlanner-Sheet1.tsv"; '
+    b"filename*=UTF-8''Weekly%20Planner%20-%20Sheet1.tsv\r\n"
     b"Access-Control-Allow-Origin: *\r\n"
-    b"Access-Control-Expose-Headers: Cache-Control,Content-Disposition,Content-Encoding,Content-Length,Content-Type,Date,Expires,Server,Transfer-Encoding\r\n"
+    b"Access-Control-Expose-Headers: Cache-Control,Content-Disposition,Content-Encoding,"
+    b"Content-Length,Content-Type,Date,Expires,Server,Transfer-Encoding\r\n"
     b"Content-Security-Policy: frame-ancestors 'self' https://docs.google.com\r\n"
-    b"Content-Security-Policy: base-uri 'self';object-src 'self';report-uri https://doc-14-2g-sheets.googleusercontent.com/spreadsheets/cspreport;"
-    b"script-src 'report-sample' 'nonce-6V57medLoq3hw2BWeyGu_A' 'unsafe-inline' 'strict-dynamic' https: http: 'unsafe-eval';worker-src 'self' blob:\r\n"
+    b"Content-Security-Policy: base-uri 'self';object-src 'self';report-uri https://"
+    b"doc-14-2g-sheets.googleusercontent.com/spreadsheets/cspreport;"
+    b"script-src 'report-sample' 'nonce-6V57medLoq3hw2BWeyGu_A' 'unsafe-inline' 'strict-dynamic'"
+    b" https: http: 'unsafe-eval';worker-src 'self' blob:\r\n"
     b"X-Content-Type-Options: nosniff\r\n"
     b"X-XSS-Protection: 1; mode=block\r\n"
     b"Server: GSE\r\n"
-    b'Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000,h3-Q050=":443"; ma=2592000,h3-Q046=":443"; ma=2592000,h3-Q043=":443";'
+    b'Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000,h3-Q050=":443"; '
+    b'ma=2592000,h3-Q046=":443"; ma=2592000,h3-Q043=":443";'
     b' ma=2592000,quic=":443"; ma=2592000; v="46,43"\r\n'
     b"Accept-Ranges: none\r\n"
     b"Vary: Accept-Encoding\r\n"
