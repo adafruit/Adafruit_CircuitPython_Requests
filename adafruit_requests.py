@@ -609,13 +609,12 @@ class Session:
                 for k in data:
                     _post_data = "{}&{}={}".format(_post_data, k, data[k])
                 data = _post_data[1:]
+            if isinstance(data, str):
+                data = bytes(data, "utf-8")
             self._send(socket, b"Content-Length: %d\r\n" % len(data))
         self._send(socket, b"\r\n")
         if data:
-            if isinstance(data, bytearray):
-                self._send(socket, bytes(data))
-            else:
-                self._send(socket, bytes(data, "utf-8"))
+            self._send(socket, bytes(data))
 
     # pylint: disable=too-many-branches, too-many-statements, unused-argument, too-many-arguments, too-many-locals
     def request(
