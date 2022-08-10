@@ -36,6 +36,12 @@ class AsyncSession(Session):
             ssl_context: Optional[SSLContextType] = None,
     ) -> None:
         Session.__init__(socket_pool, ssl_context)
+
+        #FIXME Alex Herrmann: Don't know why the below are required to make TOX work
+        self._socket_pool = socket_pool
+        self._ssl_context = ssl_context
+        self._open_sockets = {}
+        self._socket_free = {}
         self._last_response = None
 
     @staticmethod
