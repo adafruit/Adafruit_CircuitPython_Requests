@@ -6,8 +6,8 @@
 import gc
 import time
 import ssl
-import wifi
 import json
+import wifi
 import socketpool
 import adafruit_requests
 
