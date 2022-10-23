@@ -1,8 +1,7 @@
-# SPDX-FileCopyrightText: 2022 DJDevon3
+# SPDX-FileCopyrightText: 2022 DJDevon3 for Adafruit Industries
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.0
 """DJDevon3 Adafruit Feather ESP32-S2 Adafruit_Discord_Active_Users_Example"""
-#  pylint: disable=line-too-long
 import gc
 import re
 import time
@@ -41,9 +40,7 @@ else:
     sleep_time_conversion = "days"
 
 # https://img.shields.io/discord/327254708534116352.svg
-ADA_DISCORD_SVG = (
-    "https://img.shields.io/discord/327254708534116352.json"
-)
+ADA_DISCORD_SVG = "https://img.shields.io/discord/327254708534116352.json"
 
 # Connect to Wi-Fi
 print("\n===============================")
@@ -51,7 +48,7 @@ print("Connecting to WiFi...")
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
 while not wifi.radio.ipv4_address:
     try:
-        wifi.radio.connect(secrets['ssid'], secrets['password'])
+        wifi.radio.connect(secrets["ssid"], secrets["password"])
     except ConnectionError as e:
         print("Connection Error:", e)
         print("Retrying in 10 seconds")
@@ -72,17 +69,17 @@ while True:
         except ConnectionError as e:
             print("Connection Error:", e)
             print("Retrying in 10 seconds")
-            
+
         # Print Full JSON to Serial
-        full_ada_SVG_json_response = True # Change to true to see full response
+        full_ada_SVG_json_response = True  # Change to true to see full response
         if full_ada_SVG_json_response:
             ada_SVG_dump_object = json.dumps(ada_SVG_response)
             print("JSON Dump: ", ada_SVG_dump_object)
-            
+
         # Print Debugging to Serial
-        ada_SVG_debug = True # Set to True to print Serial data
+        ada_SVG_debug = True  # Set to True to print Serial data
         if ada_SVG_debug:
-            ada_SVG_users = ada_SVG_response['value']
+            ada_SVG_users = ada_SVG_response["value"]
             print("SVG Value: ", ada_SVG_users)
             regex = " online"
             replace_with_nothing = ""
@@ -94,7 +91,7 @@ while True:
         print("Next Update in %s %s" % (int(sleep_int), sleep_time_conversion))
         print("===============================")
         gc.collect()
-    # pylint: disable=broad-except
+
     except (ValueError, RuntimeError) as e:
         print("Failed to get data, retrying\n", e)
         time.sleep(60)

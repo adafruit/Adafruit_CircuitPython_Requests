@@ -1,8 +1,7 @@
-# SPDX-FileCopyrightText: 2022 DJDevon3
+# SPDX-FileCopyrightText: 2022 DJDevon3 for Adafruit Industries
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.0
 """DJDevon3 Adafruit Feather ESP32-S2 Github_API_Example"""
-#  pylint: disable=line-too-long
 import gc
 import time
 import ssl
@@ -12,7 +11,7 @@ import socketpool
 import adafruit_requests
 
 # Github developer token required.
-# Ensure these are uncommented and in secrets.py or .env 
+# Ensure these are uncommented and in secrets.py or .env
 # "Github_username": "Your Github Username",
 # "Github_token": "Your long API token",
 
@@ -42,11 +41,8 @@ else:
     sleep_int = sleep_time / 60 / 60 / 24
     sleep_time_conversion = "days"
 
-github_header = {'Authorization':' token ' + secrets["Github_token"]}
-GH_SOURCE = (
-    "https://api.github.com/users/"
-    + secrets["Github_username"]
-)
+github_header = {"Authorization": " token " + secrets["Github_token"]}
+GH_SOURCE = "https://api.github.com/users/" + secrets["Github_username"]
 
 # Connect to Wi-Fi
 print("\n===============================")
@@ -54,7 +50,7 @@ print("Connecting to WiFi...")
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
 while not wifi.radio.ipv4_address:
     try:
-        wifi.radio.connect(secrets['ssid'], secrets['password'])
+        wifi.radio.connect(secrets["ssid"], secrets["password"])
     except ConnectionError as e:
         print("Connection Error:", e)
         print("Retrying in 10 seconds")
@@ -75,33 +71,33 @@ while True:
         except ConnectionError as e:
             print("Connection Error:", e)
             print("Retrying in 10 seconds")
-            
+
         # Print Response to Serial
         debug_response = False  # Set true to see full response
         if debug_response:
             dump_object = json.dumps(github_response)
             print("JSON Dump: ", dump_object)
-            
+
         # Print Keys to Serial
-        gh_debug_keys = True # Set True to print Serial data
+        gh_debug_keys = True  # Set True to print Serial data
         if gh_debug_keys:
-            
-            github_id = github_response['id']
+
+            github_id = github_response["id"]
             print("UserID: ", github_id)
-            
-            github_username = github_response['name']
+
+            github_username = github_response["name"]
             print("Username: ", github_username)
-            
-            github_followers = github_response['followers']
+
+            github_followers = github_response["followers"]
             print("Followers: ", github_followers)
-            
+
         print("Monotonic: ", time.monotonic())
 
         print("\nFinished!")
         print("Next Update in %s %s" % (int(sleep_int), sleep_time_conversion))
         print("===============================")
         gc.collect()
-    # pylint: disable=broad-except
+
     except (ValueError, RuntimeError) as e:
         print("Failed to get data, retrying\n", e)
         time.sleep(60)

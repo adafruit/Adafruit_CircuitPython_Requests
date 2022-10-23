@@ -1,8 +1,7 @@
-# SPDX-FileCopyrightText: 2022 DJDevon3
+# SPDX-FileCopyrightText: 2022 DJDevon3 for Adafruit Industries
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.0
 """DJDevon3 Adafruit Feather ESP32-S2 Twitter_API_Example"""
-#  pylint: disable=line-too-long
 import gc
 import time
 import ssl
@@ -12,7 +11,7 @@ import socketpool
 import adafruit_requests
 
 # Twitter developer account bearer token required.
-# Ensure these are uncommented and in secrets.py or .env 
+# Ensure these are uncommented and in secrets.py or .env
 # "TW_userid": "Your Twitter user id",  # numerical id not username
 # "TW_bearer_token": "Your long API Bearer token",
 
@@ -43,7 +42,7 @@ else:
     sleep_time_conversion = "days"
 
 # Used with any Twitter 0auth request.
-twitter_header = {'Authorization': 'Bearer ' + secrets["TW_bearer_token"]}
+twitter_header = {"Authorization": "Bearer " + secrets["TW_bearer_token"]}
 TW_SOURCE = (
     "https://api.twitter.com/2/users/"
     + secrets["TW_userid"]
@@ -58,7 +57,7 @@ print("Connecting to WiFi...")
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
 while not wifi.radio.ipv4_address:
     try:
-        wifi.radio.connect(secrets['ssid'], secrets['password'])
+        wifi.radio.connect(secrets["ssid"], secrets["password"])
     except ConnectionError as e:
         print("Connection Error:", e)
         print("Retrying in 10 seconds")
@@ -79,39 +78,39 @@ while True:
         except ConnectionError as e:
             print("Connection Error:", e)
             print("Retrying in 10 seconds")
-            
+
         # Print Full JSON to Serial
         debug_response = False  # Set true to see full response
         if debug_response:
             dump_object = json.dumps(tw_json)
             print("JSON Dump: ", dump_object)
-            
+
         # Print to Serial
         tw_debug_keys = True  # Set true to print Serial data
         if tw_debug_keys:
-            
-            tw_userid = tw_json['data']['id']
+
+            tw_userid = tw_json["data"]["id"]
             print("User ID: ", tw_userid)
-            
-            tw_username = tw_json['data']['name']
+
+            tw_username = tw_json["data"]["name"]
             print("Name: ", tw_username)
-            
-            tw_join_date = tw_json['data']['created_at']
+
+            tw_join_date = tw_json["data"]["created_at"]
             print("Member Since: ", tw_join_date)
-            
-            tw_tweets = tw_json['data']['public_metrics']['tweet_count']
+
+            tw_tweets = tw_json["data"]["public_metrics"]["tweet_count"]
             print("Tweets: ", tw_tweets)
-            
-            tw_followers = tw_json['data']['public_metrics']['followers_count']
+
+            tw_followers = tw_json["data"]["public_metrics"]["followers_count"]
             print("Followers: ", tw_followers)
-            
+
             print("Monotonic: ", time.monotonic())
 
         print("\nFinished!")
         print("Next Update in %s %s" % (int(sleep_int), sleep_time_conversion))
         print("===============================")
         gc.collect()
-    # pylint: disable=broad-except
+
     except (ValueError, RuntimeError) as e:
         print("Failed to get data, retrying\n", e)
         time.sleep(60)

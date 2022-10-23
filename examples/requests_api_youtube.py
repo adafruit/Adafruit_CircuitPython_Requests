@@ -1,8 +1,7 @@
-# SPDX-FileCopyrightText: 2022 DJDevon3
+# SPDX-FileCopyrightText: 2022 DJDevon3 for Adafruit Industries
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.0
 """DJDevon3 Adafruit Feather ESP32-S2 YouTube_API_Example"""
-#  pylint: disable=line-too-long
 import gc
 import time
 import ssl
@@ -11,7 +10,7 @@ import wifi
 import socketpool
 import adafruit_requests
 
-# Ensure these are uncommented and in secrets.py or .env 
+# Ensure these are uncommented and in secrets.py or .env
 # "YT_username": "Your YouTube Username",
 # "YT_token" : "Your long API developer token",
 
@@ -57,7 +56,7 @@ print("Connecting to WiFi...")
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
 while not wifi.radio.ipv4_address:
     try:
-        wifi.radio.connect(secrets['ssid'], secrets['password'])
+        wifi.radio.connect(secrets["ssid"], secrets["password"])
     except ConnectionError as e:
         print("Connection Error:", e)
         print("Retrying in 10 seconds")
@@ -87,24 +86,24 @@ while True:
         # Print to Serial
         yt_debug_keys = True  # Set to True to print Serial data
         if yt_debug_keys:
-            print("Matching Results: ", response['pageInfo']['totalResults'])
+            print("Matching Results: ", response["pageInfo"]["totalResults"])
 
-            YT_request_kind = response['items'][0]['kind']
+            YT_request_kind = response["items"][0]["kind"]
             print("Request Kind: ", YT_request_kind)
-            
-            YT_response_kind = response['kind']
+
+            YT_response_kind = response["kind"]
             print("Response Kind: ", YT_response_kind)
 
-            YT_channel_id = response['items'][0]['id']
+            YT_channel_id = response["items"][0]["id"]
             print("Channel ID: ", YT_channel_id)
 
-            YT_videoCount = response['items'][0]['statistics']['videoCount']
+            YT_videoCount = response["items"][0]["statistics"]["videoCount"]
             print("Videos: ", YT_videoCount)
 
-            YT_viewCount = response['items'][0]['statistics']['viewCount']
+            YT_viewCount = response["items"][0]["statistics"]["viewCount"]
             print("Views: ", YT_viewCount)
 
-            YT_subsCount = response['items'][0]['statistics']['subscriberCount']
+            YT_subsCount = response["items"][0]["statistics"]["subscriberCount"]
             print("Subscribers: ", YT_subsCount)
             print("Monotonic: ", time.monotonic())
 
@@ -112,7 +111,7 @@ while True:
         print("Next Update in %s %s" % (int(sleep_int), sleep_time_conversion))
         print("===============================")
         gc.collect()
-    # pylint: disable=broad-except
+
     except (ValueError, RuntimeError) as e:
         print("Failed to get data, retrying\n", e)
         time.sleep(60)
