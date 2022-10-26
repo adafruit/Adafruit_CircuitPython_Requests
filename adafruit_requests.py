@@ -50,7 +50,7 @@ if sys.implementation.name == "circuitpython":
 else:
     from ssl import SSLContext
     from types import ModuleType, TracebackType
-    from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
+    from typing import Any, Dict, Optional, Tuple, Type, Union, cast
 
     try:
         from typing import Protocol
