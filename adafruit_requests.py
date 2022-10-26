@@ -575,7 +575,7 @@ class Session:
         host: str,
         method: str,
         path: str,
-        headers: List[Dict[str, str]],
+        headers: Dict[str, str],
         data: Any,
         json: Any,
     ):
@@ -623,7 +623,7 @@ class Session:
         url: str,
         data: Optional[Any] = None,
         json: Optional[Any] = None,
-        headers: Optional[List[Dict[str, str]]] = None,
+        headers: Optional[Dict[str, str]] = None,
         stream: bool = False,
         timeout: float = 60,
     ) -> Response:
@@ -793,7 +793,7 @@ def request(
     url: str,
     data: Optional[Any] = None,
     json: Optional[Any] = None,
-    headers: Optional[List[Dict[str, str]]] = None,
+    headers: Optional[Dict[str, str]] = None,
     stream: bool = False,
     timeout: float = 1,
 ) -> None:
