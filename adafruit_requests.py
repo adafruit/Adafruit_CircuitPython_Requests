@@ -33,7 +33,7 @@ license='MIT'
 
 """
 
-__version__ = "0.0.0-auto.0"
+__version__ = "0.0.0+auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 
 import errno
@@ -50,7 +50,7 @@ if sys.implementation.name == "circuitpython":
 else:
     from ssl import SSLContext
     from types import ModuleType, TracebackType
-    from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
+    from typing import Any, Dict, Optional, Tuple, Type, Union, cast
 
     try:
         from typing import Protocol
@@ -575,7 +575,7 @@ class Session:
         host: str,
         method: str,
         path: str,
-        headers: List[Dict[str, str]],
+        headers: Dict[str, str],
         data: Any,
         json: Any,
     ):
@@ -623,7 +623,7 @@ class Session:
         url: str,
         data: Optional[Any] = None,
         json: Optional[Any] = None,
-        headers: Optional[List[Dict[str, str]]] = None,
+        headers: Optional[Dict[str, str]] = None,
         stream: bool = False,
         timeout: float = 60,
     ) -> Response:
@@ -793,7 +793,7 @@ def request(
     url: str,
     data: Optional[Any] = None,
     json: Optional[Any] = None,
-    headers: Optional[List[Dict[str, str]]] = None,
+    headers: Optional[Dict[str, str]] = None,
     stream: bool = False,
     timeout: float = 1,
 ) -> None:
