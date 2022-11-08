@@ -117,7 +117,6 @@ else:
     ):  # pylint: disable=too-many-ancestors
         """Describes the structure every modern CircuitPython socket type must have."""
 
-
     class StandardPythonSocketType(
         CommonSocketType, SupportsRecvInto, SupportsRecvWithFlags, Protocol
     ):
