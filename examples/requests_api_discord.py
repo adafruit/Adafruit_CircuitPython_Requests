@@ -10,11 +10,11 @@ import wifi
 import socketpool
 import adafruit_requests
 
-# Web scrape authorization key required
+# Active Logged in User Account Required, no tokens required
+# WEB SCRAPE authorization key required. Visit URL below.
 # Learn how: https://github.com/lorenz234/Discord-Data-Scraping
 
-# Ensure these are uncommented and in secrets.py or .env
-# "Discord_Adafruit_Channel": "327254708534116352",  # Adafruit Channel ID
+# Ensure this is in secrets.py or .env
 # "Discord_Authorization": "Discord Authorization from browser console"
 
 # Initialize WiFi Pool (There can be only 1 pool & top of script)
@@ -46,7 +46,7 @@ else:
 discord_header = {"Authorization": "" + secrets["Discord_Authorization"]}
 ADA_SOURCE = (
     "https://discord.com/api/v10/guilds/"
-    + secrets["Discord_Adafruit_Channel"]
+    + "327254708534116352"  # Adafruit Discord ID
     + "/preview"
 )
 
