@@ -59,7 +59,9 @@ print("Connected!\n")
 
 while True:
     try:
-        print("\nAttempting to GET DISCORD SHIELD JSON!")  # --------------------------------
+        print(
+            "\nAttempting to GET DISCORD SHIELD JSON!"
+        )  # --------------------------------
         # Print Request to Serial
         debug_request = True  # Set true to see full request
         if debug_request:
@@ -84,7 +86,9 @@ while True:
             print("JSON Value: ", ada_users)
             online_string = " online"
             replace_with_nothing = ""
-            string_replace_users = ada_users.replace(online_string, replace_with_nothing)
+            string_replace_users = ada_users.replace(
+                online_string, replace_with_nothing
+            )
             print("Replaced Value: ", string_replace_users)
         print("Monotonic: ", time.monotonic())
 
