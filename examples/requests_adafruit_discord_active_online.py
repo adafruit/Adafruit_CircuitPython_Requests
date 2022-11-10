@@ -3,7 +3,6 @@
 # Coded for Circuit Python 8.0
 """DJDevon3 Adafruit Feather ESP32-S2 Adafruit_Discord_Active_Users_Example"""
 import gc
-import re
 import time
 import ssl
 import json
@@ -11,7 +10,8 @@ import wifi
 import socketpool
 import adafruit_requests
 
-# No user or token required, web scrape.
+# No user or token required, 100% JSON web scrape from SHIELDS.IO
+# Adafruit uses Shields.IO to see online users
 
 # Initialize WiFi Pool (There can be only 1 pool & top of script)
 pool = socketpool.SocketPool(wifi.radio)
@@ -39,8 +39,9 @@ else:
     sleep_int = sleep_time / 60 / 60 / 24
     sleep_time_conversion = "days"
 
+# Originally attempted to use SVG. Found JSON exists with same filename.
 # https://img.shields.io/discord/327254708534116352.svg
-ADA_DISCORD_SVG = "https://img.shields.io/discord/327254708534116352.json"
+ADA_DISCORD_JSON = "https://img.shields.io/discord/327254708534116352.json"
 
 # Connect to Wi-Fi
 print("\n===============================")
@@ -58,33 +59,33 @@ print("Connected!\n")
 
 while True:
     try:
-        print("\nAttempting to GET DISCORD SVG!")  # --------------------------------
+        print("\nAttempting to GET DISCORD SHIELD JSON!")  # --------------------------------
         # Print Request to Serial
         debug_request = True  # Set true to see full request
         if debug_request:
-            print("Full API GET URL: ", ADA_DISCORD_SVG)
+            print("Full API GET URL: ", ADA_DISCORD_JSON)
         print("===============================")
         try:
-            ada_SVG_response = requests.get(ADA_DISCORD_SVG).json()
+            ada_response = requests.get(ADA_DISCORD_JSON).json()
         except ConnectionError as e:
             print("Connection Error:", e)
             print("Retrying in 10 seconds")
 
         # Print Full JSON to Serial
-        full_ada_SVG_json_response = True  # Change to true to see full response
-        if full_ada_SVG_json_response:
-            ada_SVG_dump_object = json.dumps(ada_SVG_response)
-            print("JSON Dump: ", ada_SVG_dump_object)
+        full_ada_json_response = True  # Change to true to see full response
+        if full_ada_json_response:
+            ada_dump_object = json.dumps(ada_response)
+            print("JSON Dump: ", ada_dump_object)
 
         # Print Debugging to Serial
-        ada_SVG_debug = True  # Set to True to print Serial data
-        if ada_SVG_debug:
-            ada_SVG_users = ada_SVG_response["value"]
-            print("SVG Value: ", ada_SVG_users)
-            regex = " online"
+        ada_debug = True  # Set to True to print Serial data
+        if ada_debug:
+            ada_users = ada_response["value"]
+            print("JSON Value: ", ada_users)
+            online_string = " online"
             replace_with_nothing = ""
-            regex_users = re.sub(regex, replace_with_nothing, ada_SVG_users)
-            print("Regex Value: ", regex_users)
+            string_replace_users = ada_users.replace(online_string, replace_with_nothing)
+            print("Replaced Value: ", string_replace_users)
         print("Monotonic: ", time.monotonic())
 
         print("\nFinished!")
