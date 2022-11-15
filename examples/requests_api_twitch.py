@@ -10,6 +10,7 @@ import socketpool
 import adafruit_requests
 
 # Twitch Developer Account & 0Auth App Required:
+# Visit https://dev.twitch.tv/console to create an app
 # Ensure Twitch_ClientID & Twitch_Client_Secret are in secrets.py or .env
 
 # "Twitch_ClientID": "Your Developer APP ID Here",
