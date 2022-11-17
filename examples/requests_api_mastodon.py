@@ -54,9 +54,7 @@ def time_calc(input_time):
 
 # Publicly available data no header required
 MAST_SOURCE = (
-    "https://mastodon.cloud/api/v1/accounts/"
-    + Mastodon_UserID
-    + "/statuses?limit=1"
+    "https://mastodon.cloud/api/v1/accounts/" + Mastodon_UserID + "/statuses?limit=1"
 )
 
 # Connect to Wi-Fi
@@ -91,16 +89,16 @@ while True:
         if debug_mastodon_full_response:
             print("Full API GET URL: ", MAST_SOURCE)
             print(mastodon_json)
-            mastodon_userid = mastodon_json['account']['id']
+            mastodon_userid = mastodon_json["account"]["id"]
             print("User ID: ", mastodon_userid)
-            
-        mastodon_username = mastodon_json['account']['display_name']
+
+        mastodon_username = mastodon_json["account"]["display_name"]
         print("Name: ", mastodon_username)
-        mastodon_join_date = mastodon_json['account']['created_at']
+        mastodon_join_date = mastodon_json["account"]["created_at"]
         print("Member Since: ", mastodon_join_date)
-        mastodon_toot_count = mastodon_json['account']['statuses_count']
+        mastodon_toot_count = mastodon_json["account"]["statuses_count"]
         print("Toots: ", mastodon_toot_count)
-        mastodon_follower_count = mastodon_json['account']['followers_count']
+        mastodon_follower_count = mastodon_json["account"]["followers_count"]
         print("Followers: ", mastodon_follower_count)
         print("Monotonic: ", time.monotonic())
 
