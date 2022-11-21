@@ -15,6 +15,7 @@ import adafruit_requests
 # Login to your mastodon server in a browser, visit your profile, UserID is in the URL.
 # Example: https://mastodon.YOURSERVER/web/accounts/YOURUSERIDISHERE
 
+Mastodon_Server = "mastodon.social"  # Set server instance
 Mastodon_UserID = "000000000000000000"  # Set User ID you want endpoints from
 # Test in browser first, this will pull up a JSON webpage
 # https://mastodon.YOURSERVER/api/v1/accounts/YOURUSERIDHERE/statuses?limit=1
@@ -53,8 +54,11 @@ def time_calc(input_time):
 
 
 # Publicly available data no header required
-MAST_SOURCE = (
-    "https://mastodon.cloud/api/v1/accounts/" + Mastodon_UserID + "/statuses?limit=1"
+MAST_SOURCE = ("https://"
+    + Mastodon_Server
+    + "/api/v1/accounts/"
+    + Mastodon_UserID
+    + "/statuses?limit=1"
 )
 
 # Connect to Wi-Fi
