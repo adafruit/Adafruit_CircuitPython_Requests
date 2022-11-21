@@ -54,7 +54,8 @@ def time_calc(input_time):
 
 
 # Publicly available data no header required
-MAST_SOURCE = ("https://"
+MAST_SOURCE = (
+    "https://"
     + Mastodon_Server
     + "/api/v1/accounts/"
     + Mastodon_UserID
