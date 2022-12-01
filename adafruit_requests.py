@@ -288,17 +288,24 @@ class Response:
                     self._parse_headers()
                     return 0
                 self._remaining = http_chunk_size
+            elif self._remaining is None:
+                # the Content-Length is not provided in the HTTP header
+                # so try parsing as long as their is data in the socket
+                pass
             else:
                 return 0
 
         nbytes = len(buf)
-        if nbytes > self._remaining:
-            nbytes = self._remaining
+        if self._remaining and nbytes > self._remaining:
+            # if Content-Length was provided and remaining bytes larges than buffer
+            nbytes = self._remaining  # adjust read amount
 
         read = self._read_from_buffer(buf, nbytes)
         if read == 0:
             read = self._recv_into(buf, nbytes)
-        self._remaining -= read
+        if self._remaining:
+            # if Content-Length was provided, adjust the remaining amount to still read
+            self._remaining -= read
 
         return read
 
