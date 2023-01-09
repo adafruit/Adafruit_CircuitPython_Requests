@@ -499,19 +499,22 @@ class Session:
         )[0]
         retry_count = 0
         sock = None
+        last_exc = None
         while retry_count < 5 and sock is None:
             if retry_count > 0:
                 if any(self._socket_free.items()):
                     self._free_sockets()
                 else:
-                    raise RuntimeError("Sending request failed")
+                    raise RuntimeError("Sending request failed") from last_exc
             retry_count += 1
 
             try:
                 sock = self._socket_pool.socket(addr_info[0], addr_info[1])
-            except OSError:
+            except OSError as exc:
+                last_exc = exc
                 continue
-            except RuntimeError:
+            except RuntimeError as exc:
+                last_exc = exc
                 continue
 
             connect_host = addr_info[-1][0]
@@ -522,15 +525,17 @@ class Session:
 
             try:
                 sock.connect((connect_host, port))
-            except MemoryError:
+            except MemoryError as exc:
+                last_exc = exc
                 sock.close()
                 sock = None
-            except OSError:
+            except OSError as exc:
+                last_exc = exc
                 sock.close()
                 sock = None
 
         if sock is None:
-            raise RuntimeError("Repeated socket failures")
+            raise RuntimeError("Repeated socket failures") from last_exc
 
         self._open_sockets[key] = sock
         self._socket_free[sock] = False
@@ -650,13 +655,15 @@ class Session:
         # We may fail to send the request if the socket we got is closed already. So, try a second
         # time in that case.
         retry_count = 0
+        last_exc = None
         while retry_count < 2:
             retry_count += 1
             socket = self._get_socket(host, port, proto, timeout=timeout)
             ok = True
             try:
                 self._send_request(socket, host, method, path, headers, data, json)
-            except OSError:
+            except OSError as exc:
+                last_exc = exc
                 ok = False
             if ok:
                 # Read the H of "HTTP/1.1" to make sure the socket is alive. send can appear to work
@@ -676,7 +683,7 @@ class Session:
             socket = None
 
         if not socket:
-            raise OutOfRetries("Repeated socket failures")
+            raise OutOfRetries("Repeated socket failures") from last_exc
 
         resp = Response(socket, self)  # our response
         if "location" in resp.headers and 300 <= resp.status_code <= 399:
