@@ -13,10 +13,10 @@ import adafruit_requests
 
 # Ensure these are setup in settings.toml
 # Requires Steam Developer API key
-ssid = os.getenv('AP_SSID')
-appw = os.getenv('AP_PASSWORD')
-steam_usernumber = os.getenv('steam_id')
-steam_apikey = os.getenv('steam_api_key')
+ssid = os.getenv("AP_SSID")
+appw = os.getenv("AP_PASSWORD")
+steam_usernumber = os.getenv("steam_id")
+steam_apikey = os.getenv("steam_api_key")
 
 # Initialize WiFi Pool (There can be only 1 pool & top of script)
 pool = socketpool.SocketPool(wifi.radio)
@@ -27,13 +27,14 @@ sleep_time = 900
 
 # Deconstruct URL
 # http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=XXXXXXXXXXXXXXXXXXXXX&steamid=XXXXXXXXXXXXXXXX&format=json
-Steam_OwnedGames_URL = ("http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?"
-                + "key="
-                + steam_apikey
-                + "&steamid="
-                + steam_usernumber
-                + "&format=json"
-                )
+Steam_OwnedGames_URL = (
+    "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?"
+    + "key="
+    + steam_apikey
+    + "&steamid="
+    + steam_usernumber
+    + "&format=json"
+)
 
 if sleep_time < 60:
     sleep_time_conversion = "seconds"
@@ -86,18 +87,17 @@ while True:
         # Print Keys to Serial
         steam_debug_keys = True  # Set True to print Serial data
         if steam_debug_keys:
-
             game_count = steam_response["response"]["game_count"]
             print("Total Games: ", game_count)
             total_minutes = 0
-            
+
             for game in steam_response["response"]["games"]:
                 total_minutes += game["playtime_forever"]
-            total_hours = total_minutes/60
-            total_days = total_minutes/60/24
-            print(f'Total Hours: {total_hours}')
-            print(f'Total Days: {total_days}')
-            
+            total_hours = total_minutes / 60
+            total_days = total_minutes / 60 / 24
+            print(f"Total Hours: {total_hours}")
+            print(f"Total Days: {total_days}")
+
         print("Monotonic: ", time.monotonic())
 
         print("\nFinished!")
