@@ -63,7 +63,6 @@ while not wifi.radio.ipv4_address:
     gc.collect()
 print("Connected!\n")
 
-
 while True:
     try:
         print("\nAttempting to GET STEAM Stats!")  # --------------------------------
@@ -99,7 +98,6 @@ while True:
             print(f"Total Days: {total_days}")
 
         print("Monotonic: ", time.monotonic())
-
         print("\nFinished!")
         print("Next Update in %s %s" % (int(sleep_int), sleep_time_conversion))
         print("===============================")
