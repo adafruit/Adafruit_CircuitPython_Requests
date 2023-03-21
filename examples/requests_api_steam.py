@@ -13,7 +13,8 @@ import adafruit_requests
 
 # Steam API Docs: https://steamcommunity.com/dev
 # Steam API Key: https://steamcommunity.com/dev/apikey
-# Steam Usernumber: Visit https://steamcommunity.com, click on your profile icon, your usernumber will be in the browser url.
+# Steam Usernumber: Visit https://steamcommunity.com
+# click on your profile icon, your usernumber will be in the browser url.
 
 # Ensure these are setup in settings.toml
 # Requires Steam Developer API key
@@ -29,8 +30,9 @@ pool = socketpool.SocketPool(wifi.radio)
 # 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
 sleep_time = 900
 
-# Deconstruct URL
-# http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=XXXXXXXXXXXXXXXXXXXXX&include_played_free_games=1&steamid=XXXXXXXXXXXXXXXX&format=json
+# Deconstruct URL (pylint hates long lines)
+# http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/
+#?key=XXXXXXXXXXXXXXXXXXXXX&include_played_free_games=1&steamid=XXXXXXXXXXXXXXXX&format=json
 Steam_OwnedGames_URL = (
     "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?"
     + "key="
