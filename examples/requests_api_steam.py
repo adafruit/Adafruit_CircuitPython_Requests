@@ -11,6 +11,10 @@ import wifi
 import socketpool
 import adafruit_requests
 
+# Steam API Docs: https://steamcommunity.com/dev
+# Steam API Key: https://steamcommunity.com/dev/apikey
+# Steam Usernumber: Visit https://steamcommunity.com, click on your profile icon, your usernumber will be in the browser url.
+
 # Ensure these are setup in settings.toml
 # Requires Steam Developer API key
 ssid = os.getenv("AP_SSID")
@@ -26,11 +30,12 @@ pool = socketpool.SocketPool(wifi.radio)
 sleep_time = 900
 
 # Deconstruct URL
-# http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=XXXXXXXXXXXXXXXXXXXXX&steamid=XXXXXXXXXXXXXXXX&format=json
+# http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=XXXXXXXXXXXXXXXXXXXXX&include_played_free_games=1&steamid=XXXXXXXXXXXXXXXX&format=json
 Steam_OwnedGames_URL = (
     "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?"
     + "key="
     + steam_apikey
+    + "&include_played_free_games=1"
     + "&steamid="
     + steam_usernumber
     + "&format=json"
