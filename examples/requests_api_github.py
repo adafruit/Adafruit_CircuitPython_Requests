@@ -81,7 +81,6 @@ while True:
         # Print Keys to Serial
         gh_debug_keys = True  # Set True to print Serial data
         if gh_debug_keys:
-
             github_id = github_response["id"]
             print("UserID: ", github_id)
 

@@ -32,7 +32,7 @@ sleep_time = 900
 
 # Deconstruct URL (pylint hates long lines)
 # http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/
-#?key=XXXXXXXXXXXXXXXXXXXXX&include_played_free_games=1&steamid=XXXXXXXXXXXXXXXX&format=json
+# ?key=XXXXXXXXXXXXXXXXXXXXX&include_played_free_games=1&steamid=XXXXXXXXXXXXXXXX&format=json
 Steam_OwnedGames_URL = (
     "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?"
     + "key="
