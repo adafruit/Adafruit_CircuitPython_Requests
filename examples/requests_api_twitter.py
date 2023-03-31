@@ -88,7 +88,6 @@ while True:
         # Print to Serial
         tw_debug_keys = True  # Set true to print Serial data
         if tw_debug_keys:
-
             tw_userid = tw_json["data"]["id"]
             print("User ID: ", tw_userid)
 

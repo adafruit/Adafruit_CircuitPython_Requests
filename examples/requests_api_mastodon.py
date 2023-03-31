@@ -33,6 +33,7 @@ except ImportError:
     print("Secrets File Import Error")
     raise
 
+
 # Converts seconds in minutes/hours/days
 def time_calc(input_time):
     if input_time < 60:

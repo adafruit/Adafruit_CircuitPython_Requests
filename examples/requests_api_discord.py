@@ -89,7 +89,6 @@ while True:
         # Print keys to Serial
         discord_debug_keys = True  # Set to True to print Serial data
         if discord_debug_keys:
-
             ada_discord_all_members = ada_res["approximate_member_count"]
             print("Members: ", ada_discord_all_members)
 
