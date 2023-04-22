@@ -195,8 +195,10 @@ class Response:
             else:
                 self.socket.close()
             raise RuntimeError("Unable to read HTTP response.")
-        self.status_code = int(bytes(self._readto(b" ")))
-        self.reason = self._readto(b"\r\n")
+        self.status_code: int = int(bytes(self._readto(b" ")))
+        """The status code returned by the server"""
+        self.reason: bytearray = self._readto(b"\r\n")
+        """The status reason returned by the server"""
         self._parse_headers()
         self._raw = None
         self._session = session
