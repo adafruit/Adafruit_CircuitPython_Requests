@@ -80,7 +80,8 @@ else:
             conntype: Optional[int] = ...,
         ) -> None:
             """Connect to a remote socket at the provided (host, port) address. The conntype
-            kwarg optionally may indicate SSL or not, depending on the underlying interface."""
+            kwarg optionally may indicate SSL or not, depending on the underlying interface.
+            """
 
     class LegacyCircuitPythonSocketType(CommonCircuitPythonSocketType, Protocol):
         """Describes the structure a legacy CircuitPython socket type must have."""
@@ -96,7 +97,8 @@ else:
         def recv(self, bufsize: int = ..., flags: int = ...) -> bytes:
             """Receive data from the socket. The return value is a bytes object representing
             the data received. The maximum amount of data to be received at once is specified
-            by bufsize. The meaning of the optional flags kwarg is implementation-specific."""
+            by bufsize. The meaning of the optional flags kwarg is implementation-specific.
+            """
 
     class SupportsRecvInto(Protocol):
         """Describes a type that possesses a socket recv_into() method."""
