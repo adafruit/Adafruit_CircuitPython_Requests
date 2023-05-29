@@ -124,13 +124,10 @@ while True:
                 print("This flight has no active data or you're polling too fast.")
                 print("You will eventually get temp banned for polling too fast!")
                 print(
-                    "Please read: https://openskynetwork.github.io/opensky-api/rest.html#limitations"
+                    "Read: https://openskynetwork.github.io/opensky-api/rest.html#limitations"
                 )
                 print(
                     "Public Limits: 10 second max poll rate & 400 weighted calls daily"
-                )
-                print(
-                    'There is no JSON error, states/all html page will say "Too many requests" and the script will fail '
                 )
 
             print("\nFinished!")
