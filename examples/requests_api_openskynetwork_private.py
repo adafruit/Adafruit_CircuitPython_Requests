@@ -9,8 +9,8 @@ import ssl
 import json
 import wifi
 import socketpool
-import adafruit_requests
 import circuitpython_base64 as base64
+import adafruit_requests
 
 # OpenSky-Network.org Login required for this API
 # REST API: https://openskynetwork.github.io/opensky-api/rest.html
