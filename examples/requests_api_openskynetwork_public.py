@@ -28,19 +28,16 @@ sleep_time = 1800
 
 # this example uses settings.toml for credentials
 # timezone offset is in seconds plus or minus GMT
-ssid = os.getenv('AP_SSID')
-appw = os.getenv('AP_PASSWORD')
-timezone = os.getenv('timezone')
-tz_offset_seconds = os.getenv('timezone_offset')
+ssid = os.getenv("AP_SSID")
+appw = os.getenv("AP_PASSWORD")
+timezone = os.getenv("timezone")
+tz_offset_seconds = os.getenv("timezone_offset")
 
 # https://opensky-network.org/api/states/all
 # example https://opensky-network.org/api/states/all?icao24=a808c5
 # You can use states/own to pull your owned craft data without rate limit.
-OPENSKY_SOURCE = (
-    "https://opensky-network.org/api/states/all?"
-    + "icao24="
-    + transponder
-)
+OPENSKY_SOURCE = "https://opensky-network.org/api/states/all?" + "icao24=" + transponder
+
 
 def time_calc(input_time):
     if input_time < 60:
@@ -60,6 +57,7 @@ def time_calc(input_time):
         time_output = f"{sleep_int:.0f} days"
     return time_output
 
+
 def _format_datetime(datetime):
     return "{:02}/{:02}/{} {:02}:{:02}:{:02}".format(
         datetime.tm_mon,
@@ -69,6 +67,7 @@ def _format_datetime(datetime):
         datetime.tm_min,
         datetime.tm_sec,
     )
+
 
 # Connect to Wi-Fi
 print("\n===============================")
@@ -105,35 +104,41 @@ while True:
     osn_debug_keys = True  # Set true to print Serial data
     if osn_debug_keys:
         try:
-            osn_flight = osn_json['time']
+            osn_flight = osn_json["time"]
             print("Current Unix Time: ", osn_flight)
-            
+
             current_struct_time = time.localtime(osn_flight)
             current_date = "{}".format(_format_datetime(current_struct_time))
             print(f"Unix to Readable Time: {current_date}")
 
-            osn_single_flight_data = osn_json['states']
+            osn_single_flight_data = osn_json["states"]
             if osn_single_flight_data is not None:
                 print("Flight Data: ", osn_single_flight_data)
-                transponder = osn_json['states'][0][0]
+                transponder = osn_json["states"][0][0]
                 print("Transponder: ", transponder)
-                callsign = osn_json['states'][0][1]
+                callsign = osn_json["states"][0][1]
                 print("Callsign: ", callsign)
-                country = osn_json['states'][0][2]
+                country = osn_json["states"][0][2]
                 print("Flight Country: ", country)
             else:
                 print("This flight has no active data or you're polling too fast.")
                 print("You will eventually get temp banned for polling too fast!")
-                print("Please read: https://openskynetwork.github.io/opensky-api/rest.html#limitations")
-                print("Public Limits: 10 second max poll rate & 400 weighted calls daily")
-                print("There is no JSON error, states/all html page will say \"Too many requests\" and the script will fail ")
-            
+                print(
+                    "Please read: https://openskynetwork.github.io/opensky-api/rest.html#limitations"
+                )
+                print(
+                    "Public Limits: 10 second max poll rate & 400 weighted calls daily"
+                )
+                print(
+                    'There is no JSON error, states/all html page will say "Too many requests" and the script will fail '
+                )
+
             print("\nFinished!")
-            print("Board Uptime: ", time_calc(time.monotonic())) 
+            print("Board Uptime: ", time_calc(time.monotonic()))
             print("Next Update: ", time_calc(sleep_time))
             time.sleep(sleep_time)
             print("===============================")
-        
+
         except (ConnectionError, ValueError, NameError) as e:
             print("OSN Connection Error:", e)
             print("You are likely banned for 24 hours")
