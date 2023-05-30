@@ -631,6 +631,7 @@ class Session:
         headers: Optional[Dict[str, str]] = None,
         stream: bool = False,
         timeout: float = 60,
+        allow_redirects: bool = True,
     ) -> Response:
         """Perform an HTTP request to the given url which we will parse to determine
         whether to use SSL ('https://') or not. We can also send some provided 'data'
@@ -697,28 +698,29 @@ class Session:
             raise OutOfRetries("Repeated socket failures") from last_exc
 
         resp = Response(socket, self)  # our response
-        if "location" in resp.headers and 300 <= resp.status_code <= 399:
-            # a naive handler for redirects
-            redirect = resp.headers["location"]
+        if allow_redirects:
+            if "location" in resp.headers and 300 <= resp.status_code <= 399:
+                # a naive handler for redirects
+                redirect = resp.headers["location"]
 
-            if redirect.startswith("http"):
-                # absolute URL
-                url = redirect
-            elif redirect[0] == "/":
-                # relative URL, absolute path
-                url = "/".join([proto, dummy, host, redirect[1:]])
-            else:
-                # relative URL, relative path
-                path = path.rsplit("/", 1)[0]
-
-                while redirect.startswith("../"):
+                if redirect.startswith("http"):
+                    # absolute URL
+                    url = redirect
+                elif redirect[0] == "/":
+                    # relative URL, absolute path
+                    url = "/".join([proto, dummy, host, redirect[1:]])
+                else:
+                    # relative URL, relative path
                     path = path.rsplit("/", 1)[0]
-                    redirect = redirect.split("../", 1)[1]
 
-                url = "/".join([proto, dummy, host, path, redirect])
+                    while redirect.startswith("../"):
+                        path = path.rsplit("/", 1)[0]
+                        redirect = redirect.split("../", 1)[1]
 
-            self._last_response = resp
-            resp = self.request(method, url, data, json, headers, stream, timeout)
+                    url = "/".join([proto, dummy, host, path, redirect])
+
+                self._last_response = resp
+                resp = self.request(method, url, data, json, headers, stream, timeout)
 
         self._last_response = resp
         return resp
