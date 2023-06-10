@@ -188,8 +188,6 @@ class Response:
         self._remaining = None
         self._chunked = False
 
-        self._backwards_compatible = not hasattr(sock, "recv_into")
-
         http = self._readto(b" ")
         if not http:
             if session:
@@ -217,12 +215,6 @@ class Response:
         self.close()
 
     def _recv_into(self, buf: bytearray, size: int = 0) -> int:
-        if self._backwards_compatible:
-            size = len(buf) if size == 0 else size
-            b = self.socket.recv(size)
-            read_size = len(b)
-            buf[:read_size] = b
-            return read_size
         return cast("SupportsRecvInto", self.socket).recv_into(buf, size)
 
     def _readto(self, stop: bytes) -> bytearray:
@@ -763,6 +755,7 @@ class _FakeSSLSocket:
         self.send = socket.send
         self.recv = socket.recv
         self.close = socket.close
+        self.recv_into = socket.recv_into
 
     def connect(self, address: Tuple[str, int]) -> None:
         """connect wrapper to add non-standard mode parameter"""
