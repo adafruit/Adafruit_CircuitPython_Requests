@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2023 DJDevon3
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.1
-# DJDevon3 ESP32-S3 OpenSkyNetwork_Private__Area_API_Example
+# DJDevon3 ESP32-S3 OpenSkyNetwork_Private_Area_API_Example
 
 import os
 import time
@@ -12,9 +12,8 @@ import socketpool
 import circuitpython_base64 as base64
 import adafruit_requests
 
-# OpenSky-Network.org Login required for this API
+# OpenSky-Network.org Website Login required for this API
 # REST API: https://openskynetwork.github.io/opensky-api/rest.html
-# All active flights JSON: https://opensky-network.org/api/states/all  # PICK ONE! :)
 
 # Retrieves all traffic within a geographic area (Orlando example)
 latmin = "27.22"  # east bounding box
@@ -41,7 +40,7 @@ osnp = os.getenv("OSN_Password")
 osn_cred = str(osnu) + ":" + str(osnp)
 bytes_to_encode = b" " + str(osn_cred) + " "
 base64_string = base64.encodebytes(bytes_to_encode)
-basepw = repr(base64_string)[2:-1]
+base64cred = repr(base64_string)[2:-1]
 
 Debug_Auth = False  # STREAMER WARNING this will show your credentials!
 if Debug_Auth:
@@ -50,14 +49,14 @@ if Debug_Auth:
     print(repr(bytes_to_encode))
     base64_string = base64.encodebytes(bytes_to_encode)
     print(repr(base64_string)[2:-1])
-    basepw = repr(base64_string)[2:-1]
-    print("Decoded Bytes:", str(basepw))
+    base64cred = repr(base64_string)[2:-1]
+    print("Decoded Bytes:", str(base64cred))
 
 # OSN requires your username:password to be base64 encoded
 # so technically it's not transmitted in the clear but w/e
-osn_header = {"Authorization": "Basic " + str(basepw)}
+osn_header = {"Authorization": "Basic " + str(base64cred)}
 
-# Example of all traffic over Florida, geographic areas cost less per call.
+# Example request of all traffic over Florida, geographic areas cost less per call.
 # https://opensky-network.org/api/states/all?lamin=25.21&lomin=-84.36&lamax=30.0&lomax=-78.40
 OPENSKY_SOURCE = (
     "https://opensky-network.org/api/states/all?"
@@ -71,8 +70,8 @@ OPENSKY_SOURCE = (
     + lonmax
 )
 
-
-def time_calc(input_time):
+# Converts seconds to human readable minutes/hours/days
+def time_calc(input_time):  # input_time in seconds
     if input_time < 60:
         sleep_int = input_time
         time_output = f"{sleep_int:.0f} seconds"
@@ -82,14 +81,10 @@ def time_calc(input_time):
     elif 3600 <= input_time < 86400:
         sleep_int = input_time / 60 / 60
         time_output = f"{sleep_int:.1f} hours"
-    elif 86400 <= input_time < 432000:
+    else:
         sleep_int = input_time / 60 / 60 / 24
         time_output = f"{sleep_int:.1f} days"
-    else:  # if > 5 days convert float to int & display whole days
-        sleep_int = input_time / 60 / 60 / 24
-        time_output = f"{sleep_int:.0f} days"
     return time_output
-
 
 def _format_datetime(datetime):
     return "{:02}/{:02}/{} {:02}:{:02}:{:02}".format(
@@ -100,7 +95,6 @@ def _format_datetime(datetime):
         datetime.tm_min,
         datetime.tm_sec,
     )
-
 
 # Connect to Wi-Fi
 print("\n===============================")
@@ -117,7 +111,7 @@ print("Connected!\n")
 
 while True:
     # STREAMER WARNING this will show your credentials!
-    debug_request = False  # Set true to see full request
+    debug_request = False  # Set True to see full request
     if debug_request:
         print("Full API HEADER: ", str(osn_header))
         print("Full API GET URL: ", OPENSKY_SOURCE)
@@ -125,14 +119,15 @@ while True:
 
     print("\nAttempting to GET OpenSky-Network Data!")
     opensky_response = request.get(url=OPENSKY_SOURCE, headers=osn_header).json()
+    
     # Print Full JSON to Serial (doesn't show credentials)
-    debug_response = False  # Set true to see full response
+    debug_response = False  # Set True to see full response
     if debug_response:
         dump_object = json.dumps(opensky_response)
         print("JSON Dump: ", dump_object)
 
-    # Print to Serial
-    osn_debug_keys = True  # Set true to print Serial data
+    # Key:Value Serial Debug (doesn't show credentials)
+    osn_debug_keys = True  # Set True to print Serial data
     if osn_debug_keys:
         try:
             osn_flight = opensky_response["time"]
@@ -182,6 +177,5 @@ while True:
 
         except (ConnectionError, ValueError, NameError) as e:
             print("OSN Connection Error:", e)
-            print("You are likely banned for 24 hours")
             print("Next Retry: ", time_calc(sleep_time))
             time.sleep(sleep_time)
