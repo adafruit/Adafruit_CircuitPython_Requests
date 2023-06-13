@@ -56,6 +56,7 @@ if Debug_Auth:
 osn_header = {"Authorization": "Basic " + str(base64cred)}
 OPENSKY_SOURCE = "https://opensky-network.org/api/states/all?" + "icao24=" + transponder
 
+
 # Converts seconds to human readable minutes/hours/days
 def time_calc(input_time):  # input_time in seconds
     if input_time < 60:
@@ -72,6 +73,7 @@ def time_calc(input_time):  # input_time in seconds
         time_output = f"{sleep_int:.1f} days"
     return time_output
 
+
 def _format_datetime(datetime):
     return "{:02}/{:02}/{} {:02}:{:02}:{:02}".format(
         datetime.tm_mon,
@@ -81,6 +83,7 @@ def _format_datetime(datetime):
         datetime.tm_min,
         datetime.tm_sec,
     )
+
 
 # Connect to Wi-Fi
 print("\n===============================")
@@ -105,7 +108,7 @@ while True:
 
     print("\nAttempting to GET OpenSky-Network Data!")
     opensky_response = request.get(url=OPENSKY_SOURCE, headers=osn_header).json()
-    
+
     # Print Full JSON to Serial (doesn't show credentials)
     debug_response = False  # Set True to see full response
     if debug_response:
