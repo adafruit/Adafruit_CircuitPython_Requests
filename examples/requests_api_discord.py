@@ -29,6 +29,7 @@ pool = socketpool.SocketPool(wifi.radio)
 # 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
 sleep_time = 900
 
+
 # Converts seconds to human readable minutes/hours/days
 def time_calc(input_time):  # input_time in seconds
     if input_time < 60:
@@ -44,6 +45,7 @@ def time_calc(input_time):  # input_time in seconds
         sleep_int = input_time / 60 / 60 / 24
         time_output = f"{sleep_int:.1f} days"
     return time_output
+
 
 discord_header = {"Authorization": "" + Discord_Auth}
 ADA_SOURCE = (
@@ -67,9 +69,7 @@ print("Connected!✅")
 
 while True:
     try:
-        print(
-            "\nAttempting to GET Discord Data!"
-        )  # --------------------------------
+        print("\nAttempting to GET Discord Data!")  # --------------------------------
         # STREAMER WARNING this will show your credentials!
         debug_request = False  # Set True to see full request
         if debug_request:
@@ -106,4 +106,3 @@ while True:
         time.sleep(60)
         continue
     time.sleep(sleep_time)
-    
