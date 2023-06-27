@@ -77,14 +77,6 @@ if not sys.implementation.name == "circuitpython":
             kwarg optionally may indicate SSL or not, depending on the underlying interface.
             """
 
-    class LegacyCircuitPythonSocketType(CommonCircuitPythonSocketType, Protocol):
-        """Describes the structure a legacy CircuitPython socket type must have."""
-
-        def recv(self, bufsize: int = ...) -> bytes:
-            """Receive data from the socket. The return value is a bytes object representing
-            the data received. The maximum amount of data to be received at once is specified
-            by bufsize."""
-
     class SupportsRecvWithFlags(Protocol):
         """Describes a type that posseses a socket recv() method supporting the flags kwarg."""
 
@@ -122,7 +114,6 @@ if not sys.implementation.name == "circuitpython":
             """Connect to a remote socket at the provided address."""
 
     SocketType = Union[
-        LegacyCircuitPythonSocketType,
         CircuitPythonSocketType,
         StandardPythonSocketType,
     ]
