@@ -41,16 +41,10 @@ import sys
 
 import json as json_module
 
-if sys.implementation.name == "circuitpython":
-
-    def cast(_t, value):
-        """No-op shim for the typing.cast() function which is not available in CircuitPython."""
-        return value
-
-else:
+if not sys.implementation.name == "circuitpython":
     from ssl import SSLContext
     from types import ModuleType, TracebackType
-    from typing import Any, Dict, Optional, Tuple, Type, Union, cast
+    from typing import Any, Dict, Optional, Tuple, Type, Union
 
     try:
         from typing import Protocol
@@ -215,7 +209,7 @@ class Response:
         self.close()
 
     def _recv_into(self, buf: bytearray, size: int = 0) -> int:
-        return cast("SupportsRecvInto", self.socket).recv_into(buf, size)
+        return self.socket.recv_into(buf, size)
 
     def _readto(self, stop: bytes) -> bytearray:
         buf = self._receive_buffer
