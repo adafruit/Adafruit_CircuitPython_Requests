@@ -41,16 +41,10 @@ import sys
 
 import json as json_module
 
-if sys.implementation.name == "circuitpython":
-
-    def cast(_t, value):
-        """No-op shim for the typing.cast() function which is not available in CircuitPython."""
-        return value
-
-else:
+if not sys.implementation.name == "circuitpython":
     from ssl import SSLContext
     from types import ModuleType, TracebackType
-    from typing import Any, Dict, Optional, Tuple, Type, Union, cast
+    from typing import Any, Dict, Optional, Tuple, Type, Union
 
     try:
         from typing import Protocol
@@ -64,15 +58,12 @@ else:
         def send(self, data: bytes, flags: int = ...) -> None:
             """Send data to the socket. The meaning of the optional flags kwarg is
             implementation-specific."""
-            ...
 
         def settimeout(self, value: Optional[float]) -> None:
             """Set a timeout on blocking socket operations."""
-            ...
 
         def close(self) -> None:
             """Close the socket."""
-            ...
 
     class CommonCircuitPythonSocketType(CommonSocketType, Protocol):
         """Describes the common structure every CircuitPython socket type must have."""
@@ -83,17 +74,8 @@ else:
             conntype: Optional[int] = ...,
         ) -> None:
             """Connect to a remote socket at the provided (host, port) address. The conntype
-            kwarg optionally may indicate SSL or not, depending on the underlying interface."""
-            ...
-
-    class LegacyCircuitPythonSocketType(CommonCircuitPythonSocketType, Protocol):
-        """Describes the structure a legacy CircuitPython socket type must have."""
-
-        def recv(self, bufsize: int = ...) -> bytes:
-            """Receive data from the socket. The return value is a bytes object representing
-            the data received. The maximum amount of data to be received at once is specified
-            by bufsize."""
-            ...
+            kwarg optionally may indicate SSL or not, depending on the underlying interface.
+            """
 
     class SupportsRecvWithFlags(Protocol):
         """Describes a type that posseses a socket recv() method supporting the flags kwarg."""
@@ -101,8 +83,8 @@ else:
         def recv(self, bufsize: int = ..., flags: int = ...) -> bytes:
             """Receive data from the socket. The return value is a bytes object representing
             the data received. The maximum amount of data to be received at once is specified
-            by bufsize. The meaning of the optional flags kwarg is implementation-specific."""
-            ...
+            by bufsize. The meaning of the optional flags kwarg is implementation-specific.
+            """
 
     class SupportsRecvInto(Protocol):
         """Describes a type that possesses a socket recv_into() method."""
@@ -114,7 +96,6 @@ else:
             buffer. If nbytes is not specified (or 0), receive up to the size available in the
             given buffer. The meaning of the optional flags kwarg is implementation-specific.
             Returns the number of bytes received."""
-            ...
 
     class CircuitPythonSocketType(
         CommonCircuitPythonSocketType,
@@ -124,8 +105,6 @@ else:
     ):  # pylint: disable=too-many-ancestors
         """Describes the structure every modern CircuitPython socket type must have."""
 
-        ...
-
     class StandardPythonSocketType(
         CommonSocketType, SupportsRecvInto, SupportsRecvWithFlags, Protocol
     ):
@@ -133,10 +112,8 @@ else:
 
         def connect(self, address: Union[Tuple[Any, ...], str, bytes]) -> None:
             """Connect to a remote socket at the provided address."""
-            ...
 
     SocketType = Union[
-        LegacyCircuitPythonSocketType,
         CircuitPythonSocketType,
         StandardPythonSocketType,
     ]
@@ -149,7 +126,6 @@ else:
         @property
         def TLS_MODE(self) -> int:  # pylint: disable=invalid-name
             """Constant representing that a socket's connection mode is TLS."""
-            ...
 
     SSLContextType = Union[SSLContext, "_FakeSSLContext"]
 
@@ -197,8 +173,6 @@ class Response:
         self._remaining = None
         self._chunked = False
 
-        self._backwards_compatible = not hasattr(sock, "recv_into")
-
         http = self._readto(b" ")
         if not http:
             if session:
@@ -206,8 +180,10 @@ class Response:
             else:
                 self.socket.close()
             raise RuntimeError("Unable to read HTTP response.")
-        self.status_code = int(bytes(self._readto(b" ")))
-        self.reason = self._readto(b"\r\n")
+        self.status_code: int = int(bytes(self._readto(b" ")))
+        """The status code returned by the server"""
+        self.reason: bytearray = self._readto(b"\r\n")
+        """The status reason returned by the server"""
         self._parse_headers()
         self._raw = None
         self._session = session
@@ -224,13 +200,7 @@ class Response:
         self.close()
 
     def _recv_into(self, buf: bytearray, size: int = 0) -> int:
-        if self._backwards_compatible:
-            size = len(buf) if size == 0 else size
-            b = self.socket.recv(size)
-            read_size = len(b)
-            buf[:read_size] = b
-            return read_size
-        return cast("SupportsRecvInto", self.socket).recv_into(buf, size)
+        return self.socket.recv_into(buf, size)
 
     def _readto(self, stop: bytes) -> bytearray:
         buf = self._receive_buffer
@@ -299,17 +269,24 @@ class Response:
                     self._parse_headers()
                     return 0
                 self._remaining = http_chunk_size
+            elif self._remaining is None:
+                # the Content-Length is not provided in the HTTP header
+                # so try parsing as long as their is data in the socket
+                pass
             else:
                 return 0
 
         nbytes = len(buf)
-        if nbytes > self._remaining:
-            nbytes = self._remaining
+        if self._remaining and nbytes > self._remaining:
+            # if Content-Length was provided and remaining bytes larges than buffer
+            nbytes = self._remaining  # adjust read amount
 
         read = self._read_from_buffer(buf, nbytes)
         if read == 0:
             read = self._recv_into(buf, nbytes)
-        self._remaining -= read
+        if self._remaining:
+            # if Content-Length was provided, adjust the remaining amount to still read
+            self._remaining -= read
 
         return read
 
@@ -510,19 +487,22 @@ class Session:
         )[0]
         retry_count = 0
         sock = None
+        last_exc = None
         while retry_count < 5 and sock is None:
             if retry_count > 0:
                 if any(self._socket_free.items()):
                     self._free_sockets()
                 else:
-                    raise RuntimeError("Sending request failed")
+                    raise RuntimeError("Sending request failed") from last_exc
             retry_count += 1
 
             try:
                 sock = self._socket_pool.socket(addr_info[0], addr_info[1])
-            except OSError:
+            except OSError as exc:
+                last_exc = exc
                 continue
-            except RuntimeError:
+            except RuntimeError as exc:
+                last_exc = exc
                 continue
 
             connect_host = addr_info[-1][0]
@@ -533,15 +513,17 @@ class Session:
 
             try:
                 sock.connect((connect_host, port))
-            except MemoryError:
+            except MemoryError as exc:
+                last_exc = exc
                 sock.close()
                 sock = None
-            except OSError:
+            except OSError as exc:
+                last_exc = exc
                 sock.close()
                 sock = None
 
         if sock is None:
-            raise RuntimeError("Repeated socket failures")
+            raise RuntimeError("Repeated socket failures") from last_exc
 
         self._open_sockets[key] = sock
         self._socket_free[sock] = False
@@ -626,6 +608,7 @@ class Session:
         headers: Optional[Dict[str, str]] = None,
         stream: bool = False,
         timeout: float = 60,
+        allow_redirects: bool = True,
     ) -> Response:
         """Perform an HTTP request to the given url which we will parse to determine
         whether to use SSL ('https://') or not. We can also send some provided 'data'
@@ -661,13 +644,15 @@ class Session:
         # We may fail to send the request if the socket we got is closed already. So, try a second
         # time in that case.
         retry_count = 0
+        last_exc = None
         while retry_count < 2:
             retry_count += 1
             socket = self._get_socket(host, port, proto, timeout=timeout)
             ok = True
             try:
                 self._send_request(socket, host, method, path, headers, data, json)
-            except OSError:
+            except OSError as exc:
+                last_exc = exc
                 ok = False
             if ok:
                 # Read the H of "HTTP/1.1" to make sure the socket is alive. send can appear to work
@@ -687,31 +672,32 @@ class Session:
             socket = None
 
         if not socket:
-            raise OutOfRetries("Repeated socket failures")
+            raise OutOfRetries("Repeated socket failures") from last_exc
 
         resp = Response(socket, self)  # our response
-        if "location" in resp.headers and 300 <= resp.status_code <= 399:
-            # a naive handler for redirects
-            redirect = resp.headers["location"]
+        if allow_redirects:
+            if "location" in resp.headers and 300 <= resp.status_code <= 399:
+                # a naive handler for redirects
+                redirect = resp.headers["location"]
 
-            if redirect.startswith("http"):
-                # absolute URL
-                url = redirect
-            elif redirect[0] == "/":
-                # relative URL, absolute path
-                url = "/".join([proto, dummy, host, redirect[1:]])
-            else:
-                # relative URL, relative path
-                path = path.rsplit("/", 1)[0]
-
-                while redirect.startswith("../"):
+                if redirect.startswith("http"):
+                    # absolute URL
+                    url = redirect
+                elif redirect[0] == "/":
+                    # relative URL, absolute path
+                    url = "/".join([proto, dummy, host, redirect[1:]])
+                else:
+                    # relative URL, relative path
                     path = path.rsplit("/", 1)[0]
-                    redirect = redirect.split("../", 1)[1]
 
-                url = "/".join([proto, dummy, host, path, redirect])
+                    while redirect.startswith("../"):
+                        path = path.rsplit("/", 1)[0]
+                        redirect = redirect.split("../", 1)[1]
 
-            self._last_response = resp
-            resp = self.request(method, url, data, json, headers, stream, timeout)
+                    url = "/".join([proto, dummy, host, path, redirect])
+
+                self._last_response = resp
+                resp = self.request(method, url, data, json, headers, stream, timeout)
 
         self._last_response = resp
         return resp
@@ -754,6 +740,7 @@ class _FakeSSLSocket:
         self.send = socket.send
         self.recv = socket.recv
         self.close = socket.close
+        self.recv_into = socket.recv_into
 
     def connect(self, address: Tuple[str, int]) -> None:
         """connect wrapper to add non-standard mode parameter"""
