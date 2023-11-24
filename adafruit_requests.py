@@ -41,16 +41,10 @@ import sys
 
 import json as json_module
 
-if sys.implementation.name == "circuitpython":
-
-    def cast(_t, value):
-        """No-op shim for the typing.cast() function which is not available in CircuitPython."""
-        return value
-
-else:
+if not sys.implementation.name == "circuitpython":
     from ssl import SSLContext
     from types import ModuleType, TracebackType
-    from typing import Any, Dict, Optional, Tuple, Type, Union, cast
+    from typing import Any, Dict, Optional, Tuple, Type, Union
 
     try:
         from typing import Protocol
@@ -82,14 +76,6 @@ else:
             """Connect to a remote socket at the provided (host, port) address. The conntype
             kwarg optionally may indicate SSL or not, depending on the underlying interface.
             """
-
-    class LegacyCircuitPythonSocketType(CommonCircuitPythonSocketType, Protocol):
-        """Describes the structure a legacy CircuitPython socket type must have."""
-
-        def recv(self, bufsize: int = ...) -> bytes:
-            """Receive data from the socket. The return value is a bytes object representing
-            the data received. The maximum amount of data to be received at once is specified
-            by bufsize."""
 
     class SupportsRecvWithFlags(Protocol):
         """Describes a type that posseses a socket recv() method supporting the flags kwarg."""
@@ -128,7 +114,6 @@ else:
             """Connect to a remote socket at the provided address."""
 
     SocketType = Union[
-        LegacyCircuitPythonSocketType,
         CircuitPythonSocketType,
         StandardPythonSocketType,
     ]
@@ -188,8 +173,6 @@ class Response:
         self._remaining = None
         self._chunked = False
 
-        self._backwards_compatible = not hasattr(sock, "recv_into")
-
         http = self._readto(b" ")
         if not http:
             if session:
@@ -217,13 +200,7 @@ class Response:
         self.close()
 
     def _recv_into(self, buf: bytearray, size: int = 0) -> int:
-        if self._backwards_compatible:
-            size = len(buf) if size == 0 else size
-            b = self.socket.recv(size)
-            read_size = len(b)
-            buf[:read_size] = b
-            return read_size
-        return cast("SupportsRecvInto", self.socket).recv_into(buf, size)
+        return self.socket.recv_into(buf, size)
 
     def _readto(self, stop: bytes) -> bytearray:
         buf = self._receive_buffer
@@ -763,6 +740,7 @@ class _FakeSSLSocket:
         self.send = socket.send
         self.recv = socket.recv
         self.close = socket.close
+        self.recv_into = socket.recv_into
 
     def connect(self, address: Tuple[str, int]) -> None:
         """connect wrapper to add non-standard mode parameter"""
