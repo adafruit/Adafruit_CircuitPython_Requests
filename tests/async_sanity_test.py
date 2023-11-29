@@ -5,28 +5,25 @@
 """ Asynchronous Requests sanity tests """
 import asyncio
 from time import sleep
-from typing import Optional, Tuple
 
-from circuitpython_typing.socket import CircuitPythonSocketType, InterfaceType
+from circuitpython_typing.socket import InterfaceType
 
 import pytest
-import socket
+
 import mocket
 import adafruit_async_requests
-from adafruit_requests import SocketpoolModuleType, _FakeSSLContext, CommonSocketType
+from adafruit_requests import CommonSocketType
 
 IP = "1.2.3.4"
 HOST = "httpbin.org"
 RESPONSE_HEADERS = b"HTTP/1.0 200 OK\r\nContent-Length: 0\r\n\r\n"
 
-class IFace(InterfaceType):
-    @property
-    def TLS_MODE(self) -> int:
-        return 1
+# class IFace(InterfaceType):
+#     @property
+#     def TLS_MODE(self) -> int:
+#         return 1
 
 class SlowReceivingSocket(mocket.Mocket):
-
-
     """A socket that delays before it "recvs" bytes """
 
     def __init__(self, response, delay=2):
@@ -56,7 +53,8 @@ async def three():
     delayUrl = f"https://{HOST}/delay/5"
     pool = mocket.MocketPool()
     pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
-    sock: lambda: CommonSocketType = lambda: mocket.Mocket(b"""HTTP/1.0 200 OK\r\nContent-Length: 4\r\n\r\n1234""")
+    sock: lambda: CommonSocketType = lambda: mocket.Mocket(
+        b"""HTTP/1.0 200 OK\r\nContent-Length: 4\r\n\r\n1234""")
 
     # We're gonna ask for three sockets in a row
     sock1 = sock()

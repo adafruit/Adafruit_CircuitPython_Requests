@@ -105,7 +105,8 @@ class AsyncSession(Session):
                 )
                 _post_data = ""
                 for k in data:
-                    _post_data = "{}&{}={}".format(_post_data, k, data[k])
+                    _post_data = f"{_post_data}&{k}={data[k]}"
+                    # _post_data = "{}&{}={}".format(_post_data, k, data[k])
                 data = _post_data[1:]
             await self._asend(socket, b"Content-Length: %d\r\n" % len(data))
         await self._asend(socket, b"\r\n")
