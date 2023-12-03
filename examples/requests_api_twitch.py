@@ -1,57 +1,49 @@
-# SPDX-FileCopyrightText: 2022 DJDevon3 for Adafruit Industries
+# SPDX-FileCopyrightText: 2023 DJDevon3
 # SPDX-License-Identifier: MIT
-# Coded for Circuit Python 8.0
-"""DJDevon3 Adafruit Feather ESP32-S2 Twitch_API_Example"""
-import gc
+# Coded for Circuit Python 8.2.x
+# Twitch_API_Example
+
+import os
 import time
 import ssl
 import wifi
 import socketpool
 import adafruit_requests
 
-# Twitch Developer Account & 0Auth App Required:
-# Visit https://dev.twitch.tv/console to create an app
-# Ensure Twitch_ClientID & Twitch_Client_Secret are in secrets.py or .env
-
-# "Twitch_ClientID": "Your Developer APP ID Here",
-# "Twitch_Client_Secret": "APP ID secret here",
-
-# For finding your Twitch User ID
-# https://www.streamweasels.com/tools/convert-twitch-username-to-user-id/
-Twitch_UserID = "0000000"  # Set User ID you want endpoints from
-
 # Initialize WiFi Pool (There can be only 1 pool & top of script)
 pool = socketpool.SocketPool(wifi.radio)
+
+# Twitch Developer Account & oauth App Required:
+# Visit https://dev.twitch.tv/console to create an app
+
+# Ensure these are in secrets.py or settings.toml
+# "Twitch_ClientID": "Your Developer APP ID Here",
+# "Twitch_Client_Secret": "APP ID secret here",
+# "Twitch_UserID": "Your Twitch UserID here",
+
+# Use settings.toml for credentials
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+appw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
+twitch_client_id = os.getenv("Twitch_ClientID")
+twitch_client_secret = os.getenv("Twitch_Client_Secret")
+# For finding your Twitch User ID
+# https://www.streamweasels.com/tools/convert-twitch-username-to-user-id/
+twitch_user_id = os.getenv("Twitch_UserID")  # User ID you want endpoints from
 
 # Time between API refreshes
 # 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
 sleep_time = 900
 
-try:
-    from secrets import secrets
-except ImportError:
-    print("Secrets File Import Error")
-    raise
 
-
-# Converts seconds in minutes/hours/days
+# Converts seconds to minutes/hours/days
 def time_calc(input_time):
     if input_time < 60:
-        sleep_int = input_time
-        time_output = f"{sleep_int:.0f} seconds"
-    elif 60 <= input_time < 3600:
-        sleep_int = input_time / 60
-        time_output = f"{sleep_int:.0f} minutes"
-    elif 3600 <= input_time < 86400:
-        sleep_int = input_time / 60 / 60
-        time_output = f"{sleep_int:.0f} hours"
-    elif 86400 <= input_time < 432000:
-        sleep_int = input_time / 60 / 60 / 24
-        time_output = f"{sleep_int:.1f} days"
-    else:  # if > 5 days convert float to int & display whole days
-        sleep_int = input_time / 60 / 60 / 24
-        time_output = f"{sleep_int:.0f} days"
-    return time_output
+        return f"{input_time:.0f} seconds"
+    if input_time < 3600:
+        return f"{input_time / 60:.0f} minutes"
+    if input_time < 86400:
+        return f"{input_time / 60 / 60:.0f} hours"
+    return f"{input_time / 60 / 60 / 24:.1f} days"
 
 
 # First we use Client ID & Client Secret to create a token with POST
@@ -63,21 +55,20 @@ TWITCH_0AUTH_TOKEN = "https://id.twitch.tv/oauth2/token"
 print("\n===============================")
 print("Connecting to WiFi...")
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
-while not wifi.radio.ipv4_address:
+while not wifi.radio.connected:
     try:
-        wifi.radio.connect(secrets["ssid"], secrets["password"])
+        wifi.radio.connect(ssid, appw)
     except ConnectionError as e:
         print("Connection Error:", e)
         print("Retrying in 10 seconds")
     time.sleep(10)
-    gc.collect()
 print("Connected!\n")
 
 while True:
     try:
         # ----------------------------- POST FOR BEARER TOKEN -----------------------
         print(
-            "\nAttempting to GENERATE Twitch Bearer Token!"
+            "Attempting Bearer Token Request!"
         )  # ---------------------------------------
         # Print Request to Serial
         debug_bearer_request = (
@@ -88,9 +79,9 @@ while True:
         print("===============================")
         twitch_0auth_data = (
             "&client_id="
-            + secrets["Twitch_ClientID"]
+            + twitch_client_id
             + "&client_secret="
-            + secrets["Twitch_Client_Secret"]
+            + twitch_client_secret
             + "&grant_type=client_credentials"
         )
 
@@ -113,12 +104,12 @@ while True:
             print("JSON Dump: ", twitch_0auth_json)
             print("Header: ", twitch_0auth_header)
             print("Access Token: ", twitch_access_token)
+            twitch_token_type = twitch_0auth_json["token_type"]
+            print("Token Type: ", twitch_token_type)
 
+        print("Board Uptime: ", time_calc(time.monotonic()))
         twitch_token_expiration = twitch_0auth_json["expires_in"]
         print("Token Expires in: ", time_calc(twitch_token_expiration))
-        twitch_token_type = twitch_0auth_json["token_type"]
-        print("Token Type: ", twitch_token_type)
-        print("Monotonic: ", time.monotonic())
 
         # ----------------------------- GET DATA -------------------------------------
         # Bearer token is refreshed every time script runs :)
@@ -128,14 +119,13 @@ while True:
         # ----------------------------------------------------------------------------
         twitch_header = {
             "Authorization": "Bearer " + twitch_access_token + "",
-            "Client-Id": "" + secrets["Twitch_ClientID"] + "",
+            "Client-Id": "" + twitch_client_id + "",
         }
         TWITCH_FOLLOWERS_SOURCE = (
-            "https://api.twitch.tv/helix/users"
-            + "/follows?"
-            + "to_id="
-            + Twitch_UserID
-            + "&first=1"
+            "https://api.twitch.tv/helix/channels"
+            + "/followers?"
+            + "broadcaster_id="
+            + twitch_user_id
         )
         print(
             "\nAttempting to GET TWITCH Stats!"
@@ -159,16 +149,11 @@ while True:
             print("Header: ", twitch_header)
             print("JSON Full Response: ", twitch_followers_json)
 
-        twitch_username = twitch_followers_json["data"][0]["to_name"]
-        print("Username: ", twitch_username)
         twitch_followers = twitch_followers_json["total"]
         print("Followers: ", twitch_followers)
-        print("Monotonic: ", time.monotonic())  # Board Up-Time seconds
-
-        print("\nFinished!")
+        print("Finished!")
         print("Next Update in: ", time_calc(sleep_time))
         print("===============================")
-        gc.collect()
 
     except (ValueError, RuntimeError) as e:
         print("Failed to get data, retrying\n", e)
