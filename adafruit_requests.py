@@ -176,7 +176,7 @@ class Response:
         http = self._readto(b" ")
         if not http:
             if session:
-                session._close_socket(self.socket)
+                session._socket_handler.close_socket(self.socket)
             else:
                 self.socket.close()
             raise RuntimeError("Unable to read HTTP response.")
@@ -320,7 +320,8 @@ class Response:
                     self._throw_away(chunk_size + 2)
                 self._parse_headers()
         if self._session:
-            self._session._free_socket(self.socket)  # pylint: disable=protected-access
+            # pylint: disable=protected-access
+            self._session._socket_handler.free_socket(self.socket)
         else:
             self.socket.close()
         self.socket = None
@@ -429,8 +430,8 @@ class Response:
         self.close()
 
 
-class Session:
-    """HTTP session that shares sockets and ssl context."""
+class SocketHandler:
+    """Socket handler for sharing sockets and ssl context."""
 
     def __init__(
         self,
@@ -442,14 +443,24 @@ class Session:
         # Hang onto open sockets so that we can reuse them.
         self._open_sockets = {}
         self._socket_free = {}
-        self._last_response = None
 
-    def _free_socket(self, socket: SocketType) -> None:
+    def _free_sockets(self) -> None:
+        free_sockets = []
+        for sock, val in self._socket_free.items():
+            if val:
+                free_sockets.append(sock)
+
+        for sock in free_sockets:
+            self.close_socket(sock)
+
+    def free_socket(self, socket: SocketType) -> None:
+        """Mark a socket as free so it can be reused if needed"""
         if socket not in self._open_sockets.values():
             raise RuntimeError("Socket not from session")
         self._socket_free[socket] = True
 
-    def _close_socket(self, sock: SocketType) -> None:
+    def close_socket(self, sock: SocketType) -> None:
+        """Close a socket"""
         sock.close()
         del self._socket_free[sock]
         key = None
@@ -460,17 +471,16 @@ class Session:
         if key:
             del self._open_sockets[key]
 
-    def _free_sockets(self) -> None:
-        free_sockets = []
-        for sock, val in self._socket_free.items():
-            if val:
-                free_sockets.append(sock)
-        for sock in free_sockets:
-            self._close_socket(sock)
-
-    def _get_socket(
-        self, host: str, port: int, proto: str, *, timeout: float = 1
+    def get_socket(
+        self,
+        host: str,
+        port: int,
+        proto: str,
+        *,
+        timeout: float = 1,
+        is_ssl: bool = False
     ) -> CircuitPythonSocketType:
+        """Get socket and connect"""
         # pylint: disable=too-many-branches
         key = (host, port, proto)
         if key in self._open_sockets:
@@ -478,7 +488,9 @@ class Session:
             if self._socket_free[sock]:
                 self._socket_free[sock] = False
                 return sock
-        if proto == "https:" and not self._ssl_context:
+        if proto == "https:":
+            is_ssl = True
+        if is_ssl and not self._ssl_context:
             raise RuntimeError(
                 "ssl_context must be set before using adafruit_requests for https"
             )
@@ -506,7 +518,7 @@ class Session:
                 continue
 
             connect_host = addr_info[-1][0]
-            if proto == "https:":
+            if is_ssl:
                 sock = self._ssl_context.wrap_socket(sock, server_hostname=host)
                 connect_host = host
             sock.settimeout(timeout)  # socket read timeout
@@ -528,6 +540,21 @@ class Session:
         self._open_sockets[key] = sock
         self._socket_free[sock] = False
         return sock
+
+
+class Session:
+    """HTTP session that shares sockets and ssl context."""
+
+    def __init__(
+        self,
+        socket_pool: SocketpoolModuleType,
+        ssl_context: Optional[SSLContextType] = None,
+        socket_handler: Optional[SocketHandler] = None,
+    ) -> None:
+        if socket_handler is None:
+            socket_handler = SocketHandler(socket_pool, ssl_context)
+        self._socket_handler = socket_handler
+        self._last_response = None
 
     @staticmethod
     def _send(socket: SocketType, data: bytes):
@@ -647,7 +674,7 @@ class Session:
         last_exc = None
         while retry_count < 2:
             retry_count += 1
-            socket = self._get_socket(host, port, proto, timeout=timeout)
+            socket = self._socket_handler.get_socket(host, port, proto, timeout=timeout)
             ok = True
             try:
                 self._send_request(socket, host, method, path, headers, data, json)
@@ -668,7 +695,7 @@ class Session:
                 if result == b"H":
                     # Things seem to be ok so break with socket set.
                     break
-            self._close_socket(socket)
+            self._socket_handler.close_socket(socket)
             socket = None
 
         if not socket:
@@ -762,17 +789,33 @@ class _FakeSSLContext:
         return _FakeSSLSocket(socket, self._iface.TLS_MODE)
 
 
+def create_fake_ssl_context(
+    pool: SocketpoolModuleType, iface: Optional[InterfaceType] = None
+) -> _FakeSSLContext:
+    """Legacy API for creating a fake SSL context"""
+    if not iface:
+        # pylint: disable=protected-access
+        iface = pool._the_interface
+    pool.set_interface(iface)
+    return _FakeSSLContext(iface)
+
+
+def set_socketpool(
+    pool: SocketpoolModuleType,
+    iface: Optional[InterfaceType] = None,
+    socket_handler: Optional[SocketHandler] = None,
+) -> None:
+    """Legacy API for setting the socket and network interface. Use a `Session` instead."""
+    global _default_session  # pylint: disable=global-statement,invalid-name
+    ssl_context = create_fake_ssl_context(pool, iface)
+    _default_session = Session(pool, ssl_context, socket_handler)
+
+
 def set_socket(
     sock: SocketpoolModuleType, iface: Optional[InterfaceType] = None
 ) -> None:
     """Legacy API for setting the socket and network interface. Use a `Session` instead."""
-    global _default_session  # pylint: disable=global-statement,invalid-name
-    if not iface:
-        # pylint: disable=protected-access
-        _default_session = Session(sock, _FakeSSLContext(sock._the_interface))
-    else:
-        _default_session = Session(sock, _FakeSSLContext(iface))
-    sock.set_interface(iface)
+    set_socketpool(sock, iface)
 
 
 def request(
