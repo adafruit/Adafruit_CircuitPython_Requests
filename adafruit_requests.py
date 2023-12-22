@@ -44,7 +44,7 @@ import sys
 
 import json as json_module
 
-from adafruit_connectionmanager import get_connection_manager
+from adafruit_connection_manager import get_connection_manager
 
 
 if not sys.implementation.name == "circuitpython":
