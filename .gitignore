@@ -46,3 +46,10 @@ _build
 .idea
 .vscode
 *~
+
+# tox-specific files
+.tox
+build
+
+# coverage-specific files
+.coverage

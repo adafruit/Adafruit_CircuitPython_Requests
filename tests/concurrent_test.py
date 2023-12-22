@@ -17,7 +17,7 @@ TEXT = b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :
 RESPONSE = b"HTTP/1.0 200 OK\r\nContent-Length: 70\r\n\r\n" + TEXT
 
 
-def test_second_connect_fails_memoryerror():  # pylint: disable=invalid-name
+def test_second_connect_fails_memoryerror():
     pool = mocket.MocketPool()
     pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
     sock = mocket.Mocket(RESPONSE)
@@ -59,7 +59,7 @@ def test_second_connect_fails_memoryerror():  # pylint: disable=invalid-name
     assert pool.socket.call_count == 3
 
 
-def test_second_connect_fails_oserror():  # pylint: disable=invalid-name
+def test_second_connect_fails_oserror():
     pool = mocket.MocketPool()
     pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
     sock = mocket.Mocket(RESPONSE)

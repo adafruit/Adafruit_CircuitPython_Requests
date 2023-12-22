@@ -202,7 +202,7 @@ def test_second_send_fails():
     assert pool.socket.call_count == 2
 
 
-def test_second_send_lies_recv_fails():  # pylint: disable=invalid-name
+def test_second_send_lies_recv_fails():
     pool = mocket.MocketPool()
     pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
     sock = mocket.Mocket(RESPONSE)
