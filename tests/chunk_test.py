@@ -63,7 +63,8 @@ def do_test_get_text(
     )
     sock.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"wifitest.adafruit.com"),
         ]
     )
@@ -105,7 +106,8 @@ def do_test_close_flush(
     )
     sock.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"wifitest.adafruit.com"),
         ]
     )
@@ -146,7 +148,8 @@ def do_test_get_text_extra_space(
     )
     sock.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"wifitest.adafruit.com"),
         ]
     )

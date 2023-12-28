@@ -530,6 +530,13 @@ class Session:
         return sock
 
     @staticmethod
+    def _header_suppplied(header, supplied_headers):
+        for supplied_header in supplied_headers:
+            if supplied_header.lower() == header.lower():
+                return True
+        return False
+
+    @staticmethod
     def _send(socket: SocketType, data: bytes):
         total_sent = 0
         while total_sent < len(data):
@@ -551,6 +558,16 @@ class Session:
                 raise OSError(errno.EIO)
             total_sent += sent
 
+    def _send_as_bytes(self, socket: SocketType, data: str):
+        return self._send(socket, bytes(data, "utf-8"))
+
+    def _send_header(self, socket, header, value):
+        self._send_as_bytes(socket, header)
+        self._send_as_bytes(socket, ": ")
+        self._send_as_bytes(socket, value)
+        self._send_as_bytes(socket, "\r\n")
+
+    # pylint: disable=too-many-arguments
     def _send_request(
         self,
         socket: SocketType,
@@ -561,40 +578,48 @@ class Session:
         data: Any,
         json: Any,
     ):
-        # pylint: disable=too-many-arguments
-        self._send(socket, bytes(method, "utf-8"))
-        self._send(socket, b" /")
-        self._send(socket, bytes(path, "utf-8"))
-        self._send(socket, b" HTTP/1.1\r\n")
-        if "Host" not in headers:
-            self._send(socket, b"Host: ")
-            self._send(socket, bytes(host, "utf-8"))
-            self._send(socket, b"\r\n")
-        if "User-Agent" not in headers:
-            self._send(socket, b"User-Agent: Adafruit CircuitPython\r\n")
-        # Iterate over keys to avoid tuple alloc
-        for k in headers:
-            self._send(socket, k.encode())
-            self._send(socket, b": ")
-            self._send(socket, headers[k].encode())
-            self._send(socket, b"\r\n")
+        # Convert data
+        content_type_header = None
+
+        # If json is sent, set content type header and convert to string
         if json is not None:
             assert data is None
+            content_type_header = "application/json"
             data = json_module.dumps(json)
-            self._send(socket, b"Content-Type: application/json\r\n")
-        if data:
-            if isinstance(data, dict):
-                self._send(
-                    socket, b"Content-Type: application/x-www-form-urlencoded\r\n"
-                )
-                _post_data = ""
-                for k in data:
-                    _post_data = "{}&{}={}".format(_post_data, k, data[k])
-                data = _post_data[1:]
-            if isinstance(data, str):
-                data = bytes(data, "utf-8")
-            self._send(socket, b"Content-Length: %d\r\n" % len(data))
+
+        # If data is sent and it's a dict, set content type header and convert to string
+        if data and isinstance(data, dict):
+            content_type_header = "application/x-www-form-urlencoded"
+            _post_data = ""
+            for k in data:
+                _post_data = "{}&{}={}".format(_post_data, k, data[k])
+            # remove first "&" from concatenation
+            data = _post_data[1:]
+
+        # Convert str data to bytes
+        if data and isinstance(data, str):
+            data = bytes(data, "utf-8")
+
+        self._send_as_bytes(socket, method)
+        self._send_as_bytes(socket, " /")
+        self._send_as_bytes(socket, path)
+        self._send_as_bytes(socket, " HTTP/1.1\r\n")
+
+        # Send headers
+        if not self._header_suppplied("Host", headers):
+            self._send_header(socket, "Host", host)
+        if not self._header_suppplied("User-Agent", headers):
+            self._send_header(socket, "User-Agent", "Adafruit CircuitPython")
+        if content_type_header and not self._header_suppplied("Content-Type", headers):
+            self._send_header(socket, "Content-Type", content_type_header)
+        if data and not self._header_suppplied("Content-Length", headers):
+            self._send_header(socket, "Content-Length", str(len(data)))
+        # Iterate over keys to avoid tuple alloc
+        for header in headers:
+            self._send_header(socket, header, headers[header])
         self._send(socket, b"\r\n")
+
+        # Send data
         if data:
             self._send(socket, bytes(data))
 
