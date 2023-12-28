@@ -530,13 +530,6 @@ class Session:
         return sock
 
     @staticmethod
-    def _header_suppplied(header, supplied_headers):
-        for supplied_header in supplied_headers:
-            if supplied_header.lower() == header.lower():
-                return True
-        return False
-
-    @staticmethod
     def _send(socket: SocketType, data: bytes):
         total_sent = 0
         while total_sent < len(data):
@@ -563,9 +556,9 @@ class Session:
 
     def _send_header(self, socket, header, value):
         self._send_as_bytes(socket, header)
-        self._send_as_bytes(socket, ": ")
+        self._send(socket, b": ")
         self._send_as_bytes(socket, value)
-        self._send_as_bytes(socket, "\r\n")
+        self._send(socket, b"\r\n")
 
     # pylint: disable=too-many-arguments
     def _send_request(
@@ -601,18 +594,21 @@ class Session:
             data = bytes(data, "utf-8")
 
         self._send_as_bytes(socket, method)
-        self._send_as_bytes(socket, " /")
+        self._send(socket, b" /")
         self._send_as_bytes(socket, path)
-        self._send_as_bytes(socket, " HTTP/1.1\r\n")
+        self._send(socket, b" HTTP/1.1\r\n")
+
+        # create lower-case supplied header list
+        supplied_headers = {header.lower() for header in headers}
 
         # Send headers
-        if not self._header_suppplied("Host", headers):
+        if not "host" in supplied_headers:
             self._send_header(socket, "Host", host)
-        if not self._header_suppplied("User-Agent", headers):
+        if not "user-agent" in supplied_headers:
             self._send_header(socket, "User-Agent", "Adafruit CircuitPython")
-        if content_type_header and not self._header_suppplied("Content-Type", headers):
+        if content_type_header and not "content-type" in supplied_headers:
             self._send_header(socket, "Content-Type", content_type_header)
-        if data and not self._header_suppplied("Content-Length", headers):
+        if data and not "content-length" in supplied_headers:
             self._send_header(socket, "Content-Length", str(len(data)))
         # Iterate over keys to avoid tuple alloc
         for header in headers:
