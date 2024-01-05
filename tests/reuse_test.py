@@ -37,7 +37,8 @@ def test_get_twice():
     )
     sock.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"wifitest.adafruit.com"),
         ]
     )
@@ -55,7 +56,8 @@ def test_get_twice():
     )
     sock.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"wifitest.adafruit.com"),
         ]
     )
@@ -85,7 +87,8 @@ def test_get_twice_after_second():
     )
     sock.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"wifitest.adafruit.com"),
         ]
     )
@@ -102,7 +105,8 @@ def test_get_twice_after_second():
     )
     sock.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"wifitest.adafruit.com"),
         ]
     )
@@ -136,7 +140,8 @@ def test_connect_out_of_memory():
     )
     sock.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"wifitest.adafruit.com"),
         ]
     )
@@ -153,7 +158,8 @@ def test_connect_out_of_memory():
     )
     sock3.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"wifitest2.adafruit.com"),
         ]
     )
@@ -184,7 +190,8 @@ def test_second_send_fails():
 
     sock.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"wifitest.adafruit.com"),
             mock.call(b"\r\n"),
         ]
@@ -222,7 +229,8 @@ def test_second_send_lies_recv_fails():  # pylint: disable=invalid-name
 
     sock.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"wifitest.adafruit.com"),
             mock.call(b"\r\n"),
         ]
