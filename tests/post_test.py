@@ -38,7 +38,8 @@ def test_method():
     )
     sock.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"httpbin.org"),
         ]
     )
@@ -64,10 +65,18 @@ def test_form():
     pool.socket.return_value = sock
 
     requests_session = adafruit_requests.Session(pool)
-    data = {"Date": "July 25, 2019"}
+    data = {"Date": "July 25, 2019", "Time": "12:00"}
     requests_session.post("http://" + HOST + "/post", data=data)
     sock.connect.assert_called_once_with((IP, 80))
-    sock.send.assert_called_with(b"Date=July 25, 2019")
+    sock.send.assert_has_calls(
+        [
+            mock.call(b"Content-Type"),
+            mock.call(b": "),
+            mock.call(b"application/x-www-form-urlencoded"),
+            mock.call(b"\r\n"),
+        ]
+    )
+    sock.send.assert_called_with(b"Date=July 25, 2019&Time=12:00")
 
 
 def test_json():
@@ -77,7 +86,15 @@ def test_json():
     pool.socket.return_value = sock
 
     requests_session = adafruit_requests.Session(pool)
-    json_data = {"Date": "July 25, 2019"}
+    json_data = {"Date": "July 25, 2019", "Time": "12:00"}
     requests_session.post("http://" + HOST + "/post", json=json_data)
     sock.connect.assert_called_once_with((IP, 80))
-    sock.send.assert_called_with(b'{"Date": "July 25, 2019"}')
+    sock.send.assert_has_calls(
+        [
+            mock.call(b"Content-Type"),
+            mock.call(b": "),
+            mock.call(b"application/json"),
+            mock.call(b"\r\n"),
+        ]
+    )
+    sock.send.assert_called_with(b'{"Date": "July 25, 2019", "Time": "12:00"}')
