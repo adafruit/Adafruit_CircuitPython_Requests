@@ -49,7 +49,8 @@ def test_get_https_text():
     )
     sock.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"wifitest.adafruit.com"),
         ]
     )
@@ -80,7 +81,8 @@ def test_get_http_text():
     )
     sock.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"wifitest.adafruit.com"),
         ]
     )
@@ -109,7 +111,8 @@ def test_get_close():
     )
     sock.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"wifitest.adafruit.com"),
         ]
     )

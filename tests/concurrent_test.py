@@ -40,7 +40,8 @@ def test_second_connect_fails_memoryerror():
 
     sock.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"wifitest.adafruit.com"),
             mock.call(b"\r\n"),
         ]
@@ -82,7 +83,8 @@ def test_second_connect_fails_oserror():
 
     sock.send.assert_has_calls(
         [
-            mock.call(b"Host: "),
+            mock.call(b"Host"),
+            mock.call(b": "),
             mock.call(b"wifitest.adafruit.com"),
             mock.call(b"\r\n"),
         ]
