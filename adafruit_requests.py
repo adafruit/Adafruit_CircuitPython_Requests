@@ -356,9 +356,6 @@ class Response:
         self.close()
 
 
-_global_session = None  # pylint: disable=invalid-name
-
-
 class Session:
     """HTTP session that shares sockets and ssl context."""
 
@@ -366,16 +363,12 @@ class Session:
         self,
         socket_pool: SocketpoolModuleType,
         ssl_context: Optional[SSLContextType] = None,
-        set_global_session: bool = True,
+        session_id: Optional[str] = None,
     ) -> None:
         self._connection_manager = get_connection_manager(socket_pool)
         self._ssl_context = ssl_context
+        self._session_id = session_id
         self._last_response = None
-
-        if set_global_session:
-            # pylint: disable=global-statement
-            global _global_session
-            _global_session = self
 
     @staticmethod
     def _check_headers(headers: Dict[str, str]):
@@ -537,7 +530,12 @@ class Session:
         while retry_count < 2:
             retry_count += 1
             socket = self._connection_manager.get_socket(
-                host, port, proto, timeout=timeout, ssl_context=self._ssl_context
+                host,
+                port,
+                proto,
+                session_id=self._session_id,
+                timeout=timeout,
+                ssl_context=self._ssl_context,
             )
             ok = True
             try:
@@ -618,6 +616,18 @@ class Session:
         return self.request("DELETE", url, **kw)
 
 
+_default_session = None  # pylint: disable=invalid-name
+
+
+def create_default_session(
+    socket_pool: SocketpoolModuleType,
+    ssl_context: Optional[SSLContextType] = None,
+):
+    """Create a default session for using globally"""
+    global _default_session  # pylint: disable=global-statement
+    _default_session = Session(socket_pool, ssl_context)
+
+
 def request(
     method: str,
     url: str,
@@ -629,7 +639,7 @@ def request(
 ) -> None:
     """Send HTTP request"""
     # pylint: disable=too-many-arguments
-    _global_session.request(
+    _default_session.request(
         method,
         url,
         data=data,
@@ -642,29 +652,29 @@ def request(
 
 def head(url: str, **kw):
     """Send HTTP HEAD request"""
-    return _global_session.request("HEAD", url, **kw)
+    return _default_session.request("HEAD", url, **kw)
 
 
 def get(url: str, **kw):
     """Send HTTP GET request"""
-    return _global_session.request("GET", url, **kw)
+    return _default_session.request("GET", url, **kw)
 
 
 def post(url: str, **kw):
     """Send HTTP POST request"""
-    return _global_session.request("POST", url, **kw)
+    return _default_session.request("POST", url, **kw)
 
 
 def put(url: str, **kw):
     """Send HTTP PUT request"""
-    return _global_session.request("PUT", url, **kw)
+    return _default_session.request("PUT", url, **kw)
 
 
 def patch(url: str, **kw):
     """Send HTTP PATCH request"""
-    return _global_session.request("PATCH", url, **kw)
+    return _default_session.request("PATCH", url, **kw)
 
 
 def delete(url: str, **kw):
     """Send HTTP DELETE request"""
-    return _global_session.request("DELETE", url, **kw)
+    return _default_session.request("DELETE", url, **kw)
