@@ -378,6 +378,18 @@ class Session:
             _global_session = self
 
     @staticmethod
+    def _check_headers(headers: Dict[str, str]):
+        if not isinstance(headers, dict):
+            raise AttributeError("headers must be in dict format")
+
+        for key, value in headers.items():
+            if isinstance(value, (str, bytes)) or value is None:
+                continue
+            raise AttributeError(
+                f"Header part ({value}) from {key} must be of type str or bytes, not {type(value)}"
+            )
+
+    @staticmethod
     def _send(socket: SocketType, data: bytes):
         total_sent = 0
         while total_sent < len(data):
@@ -403,9 +415,14 @@ class Session:
         return self._send(socket, bytes(data, "utf-8"))
 
     def _send_header(self, socket, header, value):
+        if value is None:
+            return
         self._send_as_bytes(socket, header)
         self._send(socket, b": ")
-        self._send_as_bytes(socket, value)
+        if isinstance(value, bytes):
+            self._send(socket, value)
+        else:
+            self._send_as_bytes(socket, value)
         self._send(socket, b"\r\n")
 
     # pylint: disable=too-many-arguments
@@ -419,6 +436,9 @@ class Session:
         data: Any,
         json: Any,
     ):
+        # Check headers
+        self._check_headers(headers)
+
         # Convert data
         content_type_header = None
 
