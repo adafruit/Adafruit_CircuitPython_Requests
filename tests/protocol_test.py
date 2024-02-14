@@ -23,7 +23,7 @@ def test_get_https_no_ssl():
     pool.socket.return_value = sock
 
     requests_session = adafruit_requests.Session(pool)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(AttributeError):
         requests_session.get("https://" + HOST + PATH)
 
 

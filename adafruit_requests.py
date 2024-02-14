@@ -49,7 +49,7 @@ from adafruit_connection_manager import get_connection_manager
 if not sys.implementation.name == "circuitpython":
     from types import TracebackType
     from typing import Any, Dict, Optional, Type
-    from adafruit_connection_manager import (
+    from circuitpython_typing.socket import (
         SocketType,
         SocketpoolModuleType,
         SSLContextType,
