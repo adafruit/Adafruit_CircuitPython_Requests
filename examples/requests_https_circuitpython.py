@@ -5,11 +5,11 @@
 # this has been tested with Adafruit Metro ESP32-S2 Express
 
 import ssl
-import wifi
+
 import socketpool
+import wifi
 
 import adafruit_requests as requests
-
 
 # Get wifi details and more from a secrets.py file
 try:

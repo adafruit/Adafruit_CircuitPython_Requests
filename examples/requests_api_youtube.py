@@ -3,11 +3,13 @@
 # Coded for Circuit Python 8.0
 """DJDevon3 Adafruit Feather ESP32-S2 YouTube_API_Example"""
 import gc
-import time
-import ssl
 import json
-import wifi
+import ssl
+import time
+
 import socketpool
+import wifi
+
 import adafruit_requests
 
 # Ensure these are uncommented and in secrets.py or .env

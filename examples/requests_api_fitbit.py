@@ -3,11 +3,13 @@
 # Coded for Circuit Python 8.2
 
 import os
-import time
 import ssl
-import wifi
-import socketpool
+import time
+
 import microcontroller
+import socketpool
+import wifi
+
 import adafruit_requests
 
 # Initialize WiFi Pool (There can be only 1 pool & top of script)

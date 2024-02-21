@@ -2,12 +2,14 @@
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.1
 # Adafruit Feather ESP32-S3 OpenSkyNetwork_Public_API_Example
-import os
-import time
-import ssl
 import json
-import wifi
+import os
+import ssl
+import time
+
 import socketpool
+import wifi
+
 import adafruit_requests
 
 # No login necessary for Public API. Drastically reduced daily limit vs Private

@@ -40,18 +40,18 @@ __version__ = "0.0.0+auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 
 import errno
-import sys
-
 import json as json_module
+import sys
 
 from adafruit_connection_manager import get_connection_manager
 
 if not sys.implementation.name == "circuitpython":
     from types import TracebackType
     from typing import Any, Dict, Optional, Type
+
     from circuitpython_typing.socket import (
-        SocketType,
         SocketpoolModuleType,
+        SocketType,
         SSLContextType,
     )
 

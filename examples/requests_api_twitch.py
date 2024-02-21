@@ -4,10 +4,12 @@
 # Twitch_API_Example
 
 import os
-import time
 import ssl
-import wifi
+import time
+
 import socketpool
+import wifi
+
 import adafruit_requests
 
 # Initialize WiFi Pool (There can be only 1 pool & top of script)

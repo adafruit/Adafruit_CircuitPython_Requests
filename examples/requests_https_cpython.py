@@ -4,6 +4,7 @@
 # adafruit_requests usage with a CPython socket
 import socket
 import ssl
+
 import adafruit_requests as requests
 
 https = requests.Session(socket, ssl.create_default_context())

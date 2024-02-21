@@ -2,12 +2,14 @@
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.2
 # DJDevon3 Adafruit Feather ESP32-S3 Discord API Example
-import os
-import time
-import ssl
 import json
-import wifi
+import os
+import ssl
+import time
+
 import socketpool
+import wifi
+
 import adafruit_requests
 
 # Active Logged in User Account Required, no tokens required

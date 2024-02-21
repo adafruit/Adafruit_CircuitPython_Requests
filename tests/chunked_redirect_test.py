@@ -5,8 +5,10 @@
 """ Redirection Tests """
 
 from unittest import mock
+
 import mocket
 from chunk_test import _chunk
+
 import adafruit_requests
 
 IP = "1.2.3.4"

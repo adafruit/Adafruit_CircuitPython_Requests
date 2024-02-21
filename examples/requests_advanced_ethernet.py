@@ -1,11 +1,12 @@
 # SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
 # SPDX-License-Identifier: MIT
 
+import adafruit_wiznet5k.adafruit_wiznet5k_socket as socket
 import board
 import busio
-from digitalio import DigitalInOut
 from adafruit_wiznet5k.adafruit_wiznet5k import WIZNET5K
-import adafruit_wiznet5k.adafruit_wiznet5k_socket as socket
+from digitalio import DigitalInOut
+
 import adafruit_requests as requests
 
 cs = DigitalInOut(board.D10)

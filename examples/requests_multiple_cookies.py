@@ -7,8 +7,10 @@ for connecting to the internet depending on your device.
 """
 
 import ssl
-import wifi
+
 import socketpool
+import wifi
+
 import adafruit_requests
 
 COOKIE_TEST_URL = "https://www.adafruit.com"

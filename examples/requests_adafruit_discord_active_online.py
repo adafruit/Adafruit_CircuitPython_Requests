@@ -5,12 +5,14 @@ Coded for Circuit Python 8.2.3
 requests_adafruit_discord_active_online
 """
 import gc
-import os
-import time
-import ssl
 import json
-import wifi
+import os
+import ssl
+import time
+
 import socketpool
+import wifi
+
 import adafruit_requests
 
 # Public API. No user or token required

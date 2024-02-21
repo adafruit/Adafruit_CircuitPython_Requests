@@ -3,10 +3,12 @@
 # Coded for Circuit Python 8.0
 """DJDevon3 Adafruit Feather ESP32-S2 Mastodon_API_Example"""
 import gc
-import time
 import ssl
-import wifi
+import time
+
 import socketpool
+import wifi
+
 import adafruit_requests
 
 # Mastodon V1 API - Public access (no dev creds or app required)

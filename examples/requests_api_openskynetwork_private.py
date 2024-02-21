@@ -3,13 +3,15 @@
 # Coded for Circuit Python 8.1
 # DJDevon3 ESP32-S3 OpenSkyNetwork_Private_API_Example
 
-import os
-import time
-import ssl
 import json
-import wifi
-import socketpool
+import os
+import ssl
+import time
+
 import circuitpython_base64 as base64
+import socketpool
+import wifi
+
 import adafruit_requests
 
 # OpenSky-Network.org Login required for this API

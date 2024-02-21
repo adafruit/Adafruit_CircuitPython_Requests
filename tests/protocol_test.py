@@ -5,8 +5,10 @@
 """ Protocol Tests """
 
 from unittest import mock
+
 import mocket
 import pytest
+
 import adafruit_requests
 
 IP = "1.2.3.4"

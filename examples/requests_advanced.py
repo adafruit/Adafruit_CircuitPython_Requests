@@ -1,11 +1,12 @@
 # SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
 # SPDX-License-Identifier: MIT
 
+import adafruit_esp32spi.adafruit_esp32spi_socket as socket
 import board
 import busio
-from digitalio import DigitalInOut
-import adafruit_esp32spi.adafruit_esp32spi_socket as socket
 from adafruit_esp32spi import adafruit_esp32spi
+from digitalio import DigitalInOut
+
 import adafruit_requests as requests
 
 # Add a secrets.py to your filesystem that has a dictionary called secrets with "ssid" and

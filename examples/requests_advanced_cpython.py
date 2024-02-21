@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import socket
+
 import adafruit_requests
 
 http = adafruit_requests.Session(socket)

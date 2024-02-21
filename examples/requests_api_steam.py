@@ -2,13 +2,15 @@
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.0
 """DJDevon3 Adafruit Feather ESP32-S2 api_steam Example"""
-import os
 import gc
-import time
-import ssl
 import json
-import wifi
+import os
+import ssl
+import time
+
 import socketpool
+import wifi
+
 import adafruit_requests
 
 # Steam API Docs: https://steamcommunity.com/dev
