@@ -32,10 +32,10 @@ pool = socketpool.SocketPool(wifi.radio)
 # https://openskynetwork.github.io/opensky-api/rest.html#limitations
 sleep_time = 1800
 
-# this example uses settings.toml for credentials
+# Get WiFi details, ensure these are setup in settings.toml
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+appw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 # No token required, only website login
-ssid = os.getenv("AP_SSID")
-appw = os.getenv("AP_PASSWORD")
 osnu = os.getenv("OSN_Username")
 osnp = os.getenv("OSN_Password")
 

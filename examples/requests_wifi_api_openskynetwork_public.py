@@ -28,9 +28,9 @@ pool = socketpool.SocketPool(wifi.radio)
 # https://openskynetwork.github.io/opensky-api/rest.html#limitations
 sleep_time = 1800
 
-# Wifi credentials pulled from settings.toml
-ssid = os.getenv("AP_SSID")
-appw = os.getenv("AP_PASSWORD")
+# Get WiFi details, ensure these are setup in settings.toml
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+appw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 
 # Requests URL - icao24 is their endpoint required for a transponder
 # example https://opensky-network.org/api/states/all?icao24=a808c5

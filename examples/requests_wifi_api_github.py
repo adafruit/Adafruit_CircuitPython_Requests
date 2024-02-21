@@ -4,6 +4,7 @@
 """DJDevon3 Adafruit Feather ESP32-S2 Github_API_Example"""
 import gc
 import json
+import os
 import ssl
 import time
 
@@ -12,11 +13,6 @@ import wifi
 
 import adafruit_requests
 
-# Github developer token required.
-# Ensure these are uncommented and in secrets.py or .env
-# "Github_username": "Your Github Username",
-# "Github_token": "Your long API token",
-
 # Initialize WiFi Pool (There can be only 1 pool & top of script)
 pool = socketpool.SocketPool(wifi.radio)
 
@@ -24,11 +20,12 @@ pool = socketpool.SocketPool(wifi.radio)
 # 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
 sleep_time = 900
 
-try:
-    from secrets import secrets
-except ImportError:
-    print("Secrets File Import Error")
-    raise
+# Get WiFi details, ensure these are setup in settings.toml
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+appw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
+# Github developer token required.
+github_username = os.getenv("Github_username")
+github_token = os.getenv("Github_token")
 
 if sleep_time < 60:
     sleep_time_conversion = "seconds"
@@ -43,8 +40,8 @@ else:
     sleep_int = sleep_time / 60 / 60 / 24
     sleep_time_conversion = "days"
 
-github_header = {"Authorization": " token " + secrets["Github_token"]}
-GH_SOURCE = "https://api.github.com/users/" + secrets["Github_username"]
+github_header = {"Authorization": " token " + github_token}
+GH_SOURCE = "https://api.github.com/users/" + github_username
 
 # Connect to Wi-Fi
 print("\n===============================")
@@ -52,7 +49,7 @@ print("Connecting to WiFi...")
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
 while not wifi.radio.ipv4_address:
     try:
-        wifi.radio.connect(secrets["ssid"], secrets["password"])
+        wifi.radio.connect(ssid, appw)
     except ConnectionError as e:
         print("Connection Error:", e)
         print("Retrying in 10 seconds")

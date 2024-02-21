@@ -23,7 +23,7 @@ pool = socketpool.SocketPool(wifi.radio)
 # "Twitch_Client_Secret": "APP ID secret here",
 # "Twitch_UserID": "Your Twitch UserID here",
 
-# Use settings.toml for credentials
+# Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 appw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 twitch_client_id = os.getenv("Twitch_ClientID")

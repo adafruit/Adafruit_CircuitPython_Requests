@@ -4,6 +4,7 @@
 """DJDevon3 Adafruit Feather ESP32-S2 YouTube_API_Example"""
 import gc
 import json
+import os
 import ssl
 import time
 
@@ -23,11 +24,12 @@ pool = socketpool.SocketPool(wifi.radio)
 # 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
 sleep_time = 900
 
-try:
-    from secrets import secrets
-except ImportError:
-    print("Secrets File Import Error")
-    raise
+# Get WiFi details, ensure these are setup in settings.toml
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+appw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
+yt_username = os.getenv("YT_username")
+yt_token = os.getenv("YT_token")
+
 
 if sleep_time < 60:
     sleep_time_conversion = "seconds"
@@ -47,9 +49,9 @@ YT_SOURCE = (
     "https://youtube.googleapis.com/youtube/v3/channels?"
     + "part=statistics"
     + "&forUsername="
-    + secrets["YT_username"]
+    + yt_username
     + "&key="
-    + secrets["YT_token"]
+    + yt_token
 )
 
 # Connect to Wi-Fi
@@ -58,7 +60,7 @@ print("Connecting to WiFi...")
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
 while not wifi.radio.ipv4_address:
     try:
-        wifi.radio.connect(secrets["ssid"], secrets["password"])
+        wifi.radio.connect(ssid, appw)
     except ConnectionError as e:
         print("Connection Error:", e)
         print("Retrying in 10 seconds")

@@ -6,6 +6,7 @@ This example was written for the MagTag; changes may be needed
 for connecting to the internet depending on your device.
 """
 
+import os
 import ssl
 
 import socketpool
@@ -15,16 +16,13 @@ import adafruit_requests
 
 COOKIE_TEST_URL = "https://www.adafruit.com"
 
-# Get wifi details and more from a secrets.py file
-try:
-    from secrets import secrets
-except ImportError:
-    print("WiFi secrets are kept in secrets.py, please add them there!")
-    raise
+# Get WiFi details, ensure these are setup in settings.toml
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+appw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 
 # Connect to the Wi-Fi network
-print("Connecting to %s" % secrets["ssid"])
-wifi.radio.connect(secrets["ssid"], secrets["password"])
+print("Connecting to %s" % ssid)
+wifi.radio.connect(ssid, appw)
 
 # Set up the requests library
 pool = socketpool.SocketPool(wifi.radio)

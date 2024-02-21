@@ -26,9 +26,9 @@ pool = socketpool.SocketPool(wifi.radio)
 # 600 = 10 mins, 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
 sleep_time = 900
 
-# this example uses settings.toml for credentials
-ssid = os.getenv("WIFI_SSID")
-appw = os.getenv("WIFI_PASSWORD")
+# Get WiFi details, ensure these are setup in settings.toml
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+appw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 
 
 # Converts seconds to minutes/hours/days

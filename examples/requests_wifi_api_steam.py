@@ -18,10 +18,10 @@ import adafruit_requests
 # Steam Usernumber: Visit https://steamcommunity.com
 # click on your profile icon, your usernumber will be in the browser url.
 
-# Ensure these are setup in settings.toml
+# Get WiFi details, ensure these are setup in settings.toml
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+appw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 # Requires Steam Developer API key
-ssid = os.getenv("AP_SSID")
-appw = os.getenv("AP_PASSWORD")
 steam_usernumber = os.getenv("steam_id")
 steam_apikey = os.getenv("steam_api_key")
 

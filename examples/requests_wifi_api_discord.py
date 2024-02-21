@@ -19,7 +19,7 @@ import adafruit_requests
 # Ensure this is in settings.toml
 # "Discord_Authorization": "Request Header Auth here"
 
-# Uses settings.toml for credentials
+# Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 appw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 Discord_Auth = os.getenv("Discord_Authorization")
