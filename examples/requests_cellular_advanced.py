@@ -1,40 +1,37 @@
 # SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
 # SPDX-License-Identifier: MIT
 
-# pylint: disable=unused-import
+import os
 import time
 
+import adafruit_connection_manager
 import adafruit_fona.adafruit_fona_network as network
-import adafruit_fona.adafruit_fona_socket as cellular_socket
+import adafruit_fona.adafruit_fona_socket as pool
 import board
 import busio
 import digitalio
-from adafruit_fona.adafruit_fona import FONA
-from adafruit_fona.fona_3g import FONA3G
+from adafruit_fona.adafruit_fona import FONA  # pylint: disable=unused-import
+from adafruit_fona.fona_3g import FONA3G  # pylint: disable=unused-import
 
-import adafruit_requests as requests
+import adafruit_requests
 
-# Get GPRS details and more from a secrets.py file
-try:
-    from secrets import secrets
-except ImportError:
-    print("GPRS secrets are kept in secrets.py, please add them there!")
-    raise
+# Get GPRS details, ensure these are setup in settings.toml
+apn = os.getenv("APN")
+apn_username = os.getenv("APN_USERNAME")
+apn_password = os.getenv("APN_PASSWORD")
 
 # Create a serial connection for the FONA connection
 uart = busio.UART(board.TX, board.RX)
-rst = digitalio.DigitalInOut(board.D9)
+rst = digitalio.DigitalInOut(board.D4)
 
 # Use this for FONA800 and FONA808
-# fona = FONA(uart, rst)
+radio = FONA(uart, rst)
 
 # Use this for FONA3G
-fona = FONA3G(uart, rst)
+# radio = FONA3G(uart, rst)
 
 # Initialize cellular data network
-network = network.CELLULAR(
-    fona, (secrets["apn"], secrets["apn_username"], secrets["apn_password"])
-)
+network = network.CELLULAR(radio, (apn, apn_username, apn_password))
 
 while not network.is_attached:
     print("Attaching to network...")
@@ -47,8 +44,9 @@ while not network.is_connected:
     time.sleep(0.5)
 print("Network Connected!")
 
-# Initialize a requests object with a socket and cellular interface
-requests.set_socket(cellular_socket, fona)
+# Initialize a requests session
+ssl_context = adafruit_connection_manager.create_fake_ssl_context(pool, radio)
+requests = adafruit_requests.Session(pool, ssl_context)
 
 JSON_GET_URL = "http://httpbin.org/get"
 
@@ -67,9 +65,6 @@ print("-" * 60)
 # Read Response's HTTP status code
 print("Response HTTP Status Code: ", response.status_code)
 print("-" * 60)
-
-# Read Response, as raw bytes instead of pretty text
-print("Raw Response: ", response.content)
 
 # Close, delete and collect the response data
 response.close()

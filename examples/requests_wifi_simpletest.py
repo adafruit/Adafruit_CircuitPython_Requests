@@ -1,37 +1,33 @@
 # SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
 # SPDX-License-Identifier: MIT
 
-# adafruit_requests usage with onboard wifi
 import os
 import ssl
-import time
 
 import socketpool
 import wifi
 
 import adafruit_requests
 
+# Get WiFi details, ensure these are setup in settings.toml
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+appw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
+
 # Initialize WiFi Pool (There can be only 1 pool & top of script)
-pool = socketpool.SocketPool(wifi.radio)
+radio = wifi.radio
+pool = socketpool.SocketPool(radio)
 
-
-# Ensure these are setup in settings.toml
-ssid = os.getenv("AP_SSID")
-appw = os.getenv("AP_PASSWORD")
-
-
-# Connect to Wi-Fi
-print("\n===============================")
-print("Connecting to WiFi...")
-requests = adafruit_requests.Session(pool, ssl.create_default_context())
+print("Connecting to AP...")
 while not wifi.radio.ipv4_address:
     try:
         wifi.radio.connect(ssid, appw)
     except ConnectionError as e:
-        print("Connection Error:", e)
-        print("Retrying in 10 seconds")
-    time.sleep(10)
-print("Connected!\n")
+        print("could not connect to AP, retrying: ", e)
+print("Connected to", str(radio.ap_info.ssid, "utf-8"), "\tRSSI:", radio.ap_info.rssi)
+
+# Initialize a requests session
+ssl_context = ssl.create_default_context()
+requests = adafruit_requests.Session(pool, ssl_context)
 
 TEXT_URL = "http://wifitest.adafruit.com/testwifi/index.html"
 JSON_GET_URL = "https://httpbin.org/get"
