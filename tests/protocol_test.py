@@ -9,37 +9,16 @@ from unittest import mock
 import mocket
 import pytest
 
-import adafruit_requests
 
-IP = "1.2.3.4"
-HOST = "wifitest.adafruit.com"
-PATH = "/testwifi/index.html"
-TEXT = b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
-RESPONSE = b"HTTP/1.0 200 OK\r\nContent-Length: 70\r\n\r\n" + TEXT
-
-
-def test_get_https_no_ssl():
-    pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
-    sock = mocket.Mocket(RESPONSE)
-    pool.socket.return_value = sock
-
-    requests_session = adafruit_requests.Session(pool)
+def test_get_https_no_ssl(requests):
     with pytest.raises(AttributeError):
-        requests_session.get("https://" + HOST + PATH)
+        requests.get("https://" + mocket.MOCK_ENDPOINT_1)
 
 
-def test_get_https_text():
-    pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
-    sock = mocket.Mocket(RESPONSE)
-    pool.socket.return_value = sock
-    ssl = mocket.SSLContext()
+def test_get_https_text(sock, requests_ssl):
+    response = requests_ssl.get("https://" + mocket.MOCK_ENDPOINT_1)
 
-    requests_session = adafruit_requests.Session(pool, ssl)
-    response = requests_session.get("https://" + HOST + PATH)
-
-    sock.connect.assert_called_once_with((HOST, 443))
+    sock.connect.assert_called_once_with((mocket.MOCK_HOST_1, 443))
 
     sock.send.assert_has_calls(
         [
@@ -56,22 +35,16 @@ def test_get_https_text():
             mock.call(b"wifitest.adafruit.com"),
         ]
     )
-    assert response.text == str(TEXT, "utf-8")
+    assert response.text == str(mocket.MOCK_RESPONSE_TEXT, "utf-8")
 
     # Close isn't needed but can be called to release the socket early.
     response.close()
 
 
-def test_get_http_text():
-    pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
-    sock = mocket.Mocket(RESPONSE)
-    pool.socket.return_value = sock
+def test_get_http_text(sock, requests):
+    response = requests.get("http://" + mocket.MOCK_ENDPOINT_1)
 
-    requests_session = adafruit_requests.Session(pool)
-    response = requests_session.get("http://" + HOST + PATH)
-
-    sock.connect.assert_called_once_with((IP, 80))
+    sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
 
     sock.send.assert_has_calls(
         [
@@ -88,20 +61,14 @@ def test_get_http_text():
             mock.call(b"wifitest.adafruit.com"),
         ]
     )
-    assert response.text == str(TEXT, "utf-8")
+    assert response.text == str(mocket.MOCK_RESPONSE_TEXT, "utf-8")
 
 
-def test_get_close():
+def test_get_close(sock, requests):
     """Test that a response can be closed without the contents being accessed."""
-    pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
-    sock = mocket.Mocket(RESPONSE)
-    pool.socket.return_value = sock
+    response = requests.get("http://" + mocket.MOCK_ENDPOINT_1)
 
-    requests_session = adafruit_requests.Session(pool)
-    response = requests_session.get("http://" + HOST + PATH)
-
-    sock.connect.assert_called_once_with((IP, 80))
+    sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
 
     sock.send.assert_has_calls(
         [

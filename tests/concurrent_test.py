@@ -9,30 +9,16 @@ from unittest import mock
 
 import mocket
 
-import adafruit_requests
 
-IP = "1.2.3.4"
-HOST = "wifitest.adafruit.com"
-HOST2 = "test.adafruit.com"
-PATH = "/testwifi/index.html"
-TEXT = b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
-RESPONSE = b"HTTP/1.0 200 OK\r\nContent-Length: 70\r\n\r\n" + TEXT
-
-
-def test_second_connect_fails_memoryerror():
-    pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
-    sock = mocket.Mocket(RESPONSE)
-    sock2 = mocket.Mocket(RESPONSE)
-    sock3 = mocket.Mocket(RESPONSE)
+def test_second_connect_fails_memoryerror(pool, requests_ssl):
+    sock = mocket.Mocket()
+    sock2 = mocket.Mocket()
+    sock3 = mocket.Mocket()
     pool.socket.call_count = 0  # Reset call count
     pool.socket.side_effect = [sock, sock2, sock3]
     sock2.connect.side_effect = MemoryError()
 
-    ssl = mocket.SSLContext()
-
-    requests_session = adafruit_requests.Session(pool, ssl)
-    response = requests_session.get("https://" + HOST + PATH)
+    response = requests_ssl.get("https://" + mocket.MOCK_ENDPOINT_1)
 
     sock.send.assert_has_calls(
         [
@@ -48,13 +34,13 @@ def test_second_connect_fails_memoryerror():
             mock.call(b"\r\n"),
         ]
     )
-    assert response.text == str(TEXT, "utf-8")
+    assert response.text == str(mocket.MOCK_RESPONSE_TEXT, "utf-8")
 
-    requests_session.get("https://" + HOST2 + PATH)
+    requests_ssl.get("https://" + mocket.MOCK_ENDPOINT_2)
 
-    sock.connect.assert_called_once_with((HOST, 443))
-    sock2.connect.assert_called_once_with((HOST2, 443))
-    sock3.connect.assert_called_once_with((HOST2, 443))
+    sock.connect.assert_called_once_with((mocket.MOCK_HOST_1, 443))
+    sock2.connect.assert_called_once_with((mocket.MOCK_HOST_2, 443))
+    sock3.connect.assert_called_once_with((mocket.MOCK_HOST_2, 443))
     # Make sure that the socket is closed after send fails.
     sock.close.assert_called_once()
     sock2.close.assert_called_once()
@@ -62,20 +48,15 @@ def test_second_connect_fails_memoryerror():
     assert pool.socket.call_count == 3
 
 
-def test_second_connect_fails_oserror():
-    pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
-    sock = mocket.Mocket(RESPONSE)
-    sock2 = mocket.Mocket(RESPONSE)
-    sock3 = mocket.Mocket(RESPONSE)
+def test_second_connect_fails_oserror(pool, requests_ssl):
+    sock = mocket.Mocket()
+    sock2 = mocket.Mocket()
+    sock3 = mocket.Mocket()
     pool.socket.call_count = 0  # Reset call count
     pool.socket.side_effect = [sock, sock2, sock3]
     sock2.connect.side_effect = OSError(errno.ENOMEM)
 
-    ssl = mocket.SSLContext()
-
-    requests_session = adafruit_requests.Session(pool, ssl)
-    response = requests_session.get("https://" + HOST + PATH)
+    response = requests_ssl.get("https://" + mocket.MOCK_ENDPOINT_1)
 
     sock.send.assert_has_calls(
         [
@@ -91,13 +72,13 @@ def test_second_connect_fails_oserror():
             mock.call(b"\r\n"),
         ]
     )
-    assert response.text == str(TEXT, "utf-8")
+    assert response.text == str(mocket.MOCK_RESPONSE_TEXT, "utf-8")
 
-    requests_session.get("https://" + HOST2 + PATH)
+    requests_ssl.get("https://" + mocket.MOCK_ENDPOINT_2)
 
-    sock.connect.assert_called_once_with((HOST, 443))
-    sock2.connect.assert_called_once_with((HOST2, 443))
-    sock3.connect.assert_called_once_with((HOST2, 443))
+    sock.connect.assert_called_once_with((mocket.MOCK_HOST_1, 443))
+    sock2.connect.assert_called_once_with((mocket.MOCK_HOST_2, 443))
+    sock3.connect.assert_called_once_with((mocket.MOCK_HOST_2, 443))
     # Make sure that the socket is closed after send fails.
     sock.close.assert_called_once()
     sock2.close.assert_called_once()

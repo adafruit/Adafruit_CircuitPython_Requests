@@ -86,7 +86,7 @@ class Response:
 
     encoding = None
 
-    def __init__(self, sock: SocketType, session: Optional["Session"] = None) -> None:
+    def __init__(self, sock: SocketType, session: "Session") -> None:
         self.socket = sock
         self.encoding = "utf-8"
         self._cached = None
@@ -101,10 +101,7 @@ class Response:
 
         http = self._readto(b" ")
         if not http:
-            if session:
-                session._connection_manager.close_socket(self.socket)
-            else:
-                self.socket.close()
+            session._connection_manager.close_socket(self.socket)
             raise RuntimeError("Unable to read HTTP response.")
         self.status_code: int = int(bytes(self._readto(b" ")))
         """The status code returned by the server"""
@@ -614,67 +611,3 @@ class Session:
     def delete(self, url: str, **kw) -> Response:
         """Send HTTP DELETE request"""
         return self.request("DELETE", url, **kw)
-
-
-_default_session = None  # pylint: disable=invalid-name
-
-
-def create_default_session(
-    socket_pool: SocketpoolModuleType,
-    ssl_context: Optional[SSLContextType] = None,
-):
-    """Create a default session for using globally"""
-    global _default_session  # pylint: disable=global-statement
-    _default_session = Session(socket_pool, ssl_context)
-
-
-def request(
-    method: str,
-    url: str,
-    data: Optional[Any] = None,
-    json: Optional[Any] = None,
-    headers: Optional[Dict[str, str]] = None,
-    stream: bool = False,
-    timeout: float = 1,
-) -> None:
-    """Send HTTP request"""
-    # pylint: disable=too-many-arguments
-    _default_session.request(
-        method,
-        url,
-        data=data,
-        json=json,
-        headers=headers,
-        stream=stream,
-        timeout=timeout,
-    )
-
-
-def head(url: str, **kw):
-    """Send HTTP HEAD request"""
-    return _default_session.request("HEAD", url, **kw)
-
-
-def get(url: str, **kw):
-    """Send HTTP GET request"""
-    return _default_session.request("GET", url, **kw)
-
-
-def post(url: str, **kw):
-    """Send HTTP POST request"""
-    return _default_session.request("POST", url, **kw)
-
-
-def put(url: str, **kw):
-    """Send HTTP PUT request"""
-    return _default_session.request("PUT", url, **kw)
-
-
-def patch(url: str, **kw):
-    """Send HTTP PATCH request"""
-    return _default_session.request("PATCH", url, **kw)
-
-
-def delete(url: str, **kw):
-    """Send HTTP DELETE request"""
-    return _default_session.request("DELETE", url, **kw)

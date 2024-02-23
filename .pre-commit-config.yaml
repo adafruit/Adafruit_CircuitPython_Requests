@@ -44,4 +44,4 @@ repos:
         types: [python]
         files: "^tests/"
         args:
-          - --disable=consider-using-f-string,duplicate-code,missing-docstring,invalid-name,protected-access
+          - --disable=consider-using-f-string,duplicate-code,missing-docstring,invalid-name,protected-access,redefined-outer-name
