@@ -18,11 +18,11 @@ COOKIE_TEST_URL = "https://www.adafruit.com"
 
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
-appw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
+password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 
 # Connect to the Wi-Fi network
 print("Connecting to %s" % ssid)
-wifi.radio.connect(ssid, appw)
+wifi.radio.connect(ssid, password)
 
 # Set up the requests library
 pool = socketpool.SocketPool(wifi.radio)

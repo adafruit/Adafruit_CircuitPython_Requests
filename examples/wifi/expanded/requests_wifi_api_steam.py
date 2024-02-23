@@ -20,7 +20,7 @@ import adafruit_requests
 
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
-appw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
+password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 # Requires Steam Developer API key
 steam_usernumber = os.getenv("steam_id")
 steam_apikey = os.getenv("steam_api_key")
@@ -64,7 +64,7 @@ print("Connecting to WiFi...")
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
 while not wifi.radio.ipv4_address:
     try:
-        wifi.radio.connect(ssid, appw)
+        wifi.radio.connect(ssid, password)
     except ConnectionError as e:
         print("Connection Error:", e)
         print("Retrying in 10 seconds")

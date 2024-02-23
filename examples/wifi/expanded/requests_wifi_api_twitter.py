@@ -27,7 +27,7 @@ sleep_time = 900
 
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
-appw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
+password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 tw_userid = os.getenv("TW_userid")
 tw_bearer_token = os.getenv("TW_bearer_token")
 
@@ -60,7 +60,7 @@ print("Connecting to WiFi...")
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
 while not wifi.radio.ipv4_address:
     try:
-        wifi.radio.connect(ssid, appw)
+        wifi.radio.connect(ssid, password)
     except ConnectionError as e:
         print("Connection Error:", e)
         print("Retrying in 10 seconds")

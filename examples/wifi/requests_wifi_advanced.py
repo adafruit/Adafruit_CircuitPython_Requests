@@ -11,7 +11,7 @@ import adafruit_requests
 
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
-appw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
+password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 
 # Initialize WiFi Pool (There can be only 1 pool & top of script)
 radio = wifi.radio
@@ -20,7 +20,7 @@ pool = socketpool.SocketPool(radio)
 print("Connecting to AP...")
 while not wifi.radio.ipv4_address:
     try:
-        wifi.radio.connect(ssid, appw)
+        wifi.radio.connect(ssid, password)
     except ConnectionError as e:
         print("could not connect to AP, retrying: ", e)
 print("Connected to", str(radio.ap_info.ssid, "utf-8"), "\tRSSI:", radio.ap_info.rssi)
