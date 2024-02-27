@@ -1,23 +1,20 @@
 # SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
 # SPDX-License-Identifier: MIT
 
-# adafruit_requests usage with an esp32spi_socket
+import os
+
+import adafruit_connection_manager
+import adafruit_esp32spi.adafruit_esp32spi_socket as pool
 import board
 import busio
-from digitalio import DigitalInOut
-import adafruit_esp32spi.adafruit_esp32spi_socket as socket
 from adafruit_esp32spi import adafruit_esp32spi
-import adafruit_requests as requests
+from digitalio import DigitalInOut
 
-# Add a secrets.py to your filesystem that has a dictionary called secrets with "ssid" and
-# "password" keys with your WiFi credentials. DO NOT share that file or commit it into Git or other
-# source control.
-# pylint: disable=no-name-in-module,wrong-import-order
-try:
-    from secrets import secrets
-except ImportError:
-    print("WiFi secrets are kept in secrets.py, please add them there!")
-    raise
+import adafruit_requests
+
+# Get WiFi details, ensure these are setup in settings.toml
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 
 # If you are using a board with pre-defined ESP32 Pins:
 esp32_cs = DigitalInOut(board.ESP_CS)
@@ -35,20 +32,20 @@ esp32_reset = DigitalInOut(board.ESP_RESET)
 # esp32_reset = DigitalInOut(board.D12)
 
 spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
-esp = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs, esp32_ready, esp32_reset)
+radio = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs, esp32_ready, esp32_reset)
 
 print("Connecting to AP...")
-while not esp.is_connected:
+while not radio.is_connected:
     try:
-        esp.connect_AP(secrets["ssid"], secrets["password"])
+        radio.connect_AP(ssid, password)
     except RuntimeError as e:
         print("could not connect to AP, retrying: ", e)
         continue
-print("Connected to", str(esp.ssid, "utf-8"), "\tRSSI:", esp.rssi)
+print("Connected to", str(radio.ssid, "utf-8"), "\tRSSI:", radio.rssi)
 
-# Initialize a requests object with a socket and esp32spi interface
-socket.set_interface(esp)
-requests.set_socket(socket, esp)
+# Initialize a requests session
+ssl_context = adafruit_connection_manager.create_fake_ssl_context(pool, radio)
+requests = adafruit_requests.Session(pool, ssl_context)
 
 TEXT_URL = "http://wifitest.adafruit.com/testwifi/index.html"
 JSON_GET_URL = "https://httpbin.org/get"

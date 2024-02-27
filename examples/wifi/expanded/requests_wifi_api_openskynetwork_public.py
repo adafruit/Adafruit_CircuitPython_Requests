@@ -2,12 +2,14 @@
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.1
 # Adafruit Feather ESP32-S3 OpenSkyNetwork_Public_API_Example
-import os
-import time
-import ssl
 import json
-import wifi
+import os
+import ssl
+import time
+
 import socketpool
+import wifi
+
 import adafruit_requests
 
 # No login necessary for Public API. Drastically reduced daily limit vs Private
@@ -26,9 +28,9 @@ pool = socketpool.SocketPool(wifi.radio)
 # https://openskynetwork.github.io/opensky-api/rest.html#limitations
 sleep_time = 1800
 
-# Wifi credentials pulled from settings.toml
-ssid = os.getenv("AP_SSID")
-appw = os.getenv("AP_PASSWORD")
+# Get WiFi details, ensure these are setup in settings.toml
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 
 # Requests URL - icao24 is their endpoint required for a transponder
 # example https://opensky-network.org/api/states/all?icao24=a808c5
@@ -69,7 +71,7 @@ print("Connecting to WiFi...")
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
 while not wifi.radio.ipv4_address:
     try:
-        wifi.radio.connect(ssid, appw)
+        wifi.radio.connect(ssid, password)
     except ConnectionError as e:
         print("Connection Error:", e)
         print("Retrying in 10 seconds")

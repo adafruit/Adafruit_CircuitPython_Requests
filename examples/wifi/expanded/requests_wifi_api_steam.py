@@ -1,19 +1,29 @@
-# SPDX-FileCopyrightText: 2022 DJDevon3 for Adafruit Industries
+# SPDX-FileCopyrightText: 2022 DJDevon3 (Neradoc & Deshipu helped) for Adafruit Industries
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.0
-"""DJDevon3 Adafruit Feather ESP32-S2 Github_API_Example"""
+"""DJDevon3 Adafruit Feather ESP32-S2 api_steam Example"""
 import gc
-import time
-import ssl
 import json
-import wifi
+import os
+import ssl
+import time
+
 import socketpool
+import wifi
+
 import adafruit_requests
 
-# Github developer token required.
-# Ensure these are uncommented and in secrets.py or .env
-# "Github_username": "Your Github Username",
-# "Github_token": "Your long API token",
+# Steam API Docs: https://steamcommunity.com/dev
+# Steam API Key: https://steamcommunity.com/dev/apikey
+# Steam Usernumber: Visit https://steamcommunity.com
+# click on your profile icon, your usernumber will be in the browser url.
+
+# Get WiFi details, ensure these are setup in settings.toml
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
+# Requires Steam Developer API key
+steam_usernumber = os.getenv("steam_id")
+steam_apikey = os.getenv("steam_api_key")
 
 # Initialize WiFi Pool (There can be only 1 pool & top of script)
 pool = socketpool.SocketPool(wifi.radio)
@@ -22,11 +32,18 @@ pool = socketpool.SocketPool(wifi.radio)
 # 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
 sleep_time = 900
 
-try:
-    from secrets import secrets
-except ImportError:
-    print("Secrets File Import Error")
-    raise
+# Deconstruct URL (pylint hates long lines)
+# http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/
+# ?key=XXXXXXXXXXXXXXXXXXXXX&include_played_free_games=1&steamid=XXXXXXXXXXXXXXXX&format=json
+Steam_OwnedGames_URL = (
+    "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?"
+    + "key="
+    + steam_apikey
+    + "&include_played_free_games=1"
+    + "&steamid="
+    + steam_usernumber
+    + "&format=json"
+)
 
 if sleep_time < 60:
     sleep_time_conversion = "seconds"
@@ -41,16 +58,13 @@ else:
     sleep_int = sleep_time / 60 / 60 / 24
     sleep_time_conversion = "days"
 
-github_header = {"Authorization": " token " + secrets["Github_token"]}
-GH_SOURCE = "https://api.github.com/users/" + secrets["Github_username"]
-
 # Connect to Wi-Fi
 print("\n===============================")
 print("Connecting to WiFi...")
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
 while not wifi.radio.ipv4_address:
     try:
-        wifi.radio.connect(secrets["ssid"], secrets["password"])
+        wifi.radio.connect(ssid, password)
     except ConnectionError as e:
         print("Connection Error:", e)
         print("Retrying in 10 seconds")
@@ -60,14 +74,14 @@ print("Connected!\n")
 
 while True:
     try:
-        print("\nAttempting to GET GITHUB Stats!")  # --------------------------------
+        print("\nAttempting to GET STEAM Stats!")  # --------------------------------
         # Print Request to Serial
         debug_request = False  # Set true to see full request
         if debug_request:
-            print("Full API GET URL: ", GH_SOURCE)
+            print("Full API GET URL: ", Steam_OwnedGames_URL)
         print("===============================")
         try:
-            github_response = requests.get(url=GH_SOURCE, headers=github_header).json()
+            steam_response = requests.get(url=Steam_OwnedGames_URL).json()
         except ConnectionError as e:
             print("Connection Error:", e)
             print("Retrying in 10 seconds")
@@ -75,23 +89,24 @@ while True:
         # Print Response to Serial
         debug_response = False  # Set true to see full response
         if debug_response:
-            dump_object = json.dumps(github_response)
+            dump_object = json.dumps(steam_response)
             print("JSON Dump: ", dump_object)
 
         # Print Keys to Serial
-        gh_debug_keys = True  # Set True to print Serial data
-        if gh_debug_keys:
-            github_id = github_response["id"]
-            print("UserID: ", github_id)
+        steam_debug_keys = True  # Set True to print Serial data
+        if steam_debug_keys:
+            game_count = steam_response["response"]["game_count"]
+            print("Total Games: ", game_count)
+            total_minutes = 0
 
-            github_username = github_response["name"]
-            print("Username: ", github_username)
-
-            github_followers = github_response["followers"]
-            print("Followers: ", github_followers)
+            for game in steam_response["response"]["games"]:
+                total_minutes += game["playtime_forever"]
+            total_hours = total_minutes / 60
+            total_days = total_minutes / 60 / 24
+            print(f"Total Hours: {total_hours}")
+            print(f"Total Days: {total_days}")
 
         print("Monotonic: ", time.monotonic())
-
         print("\nFinished!")
         print("Next Update in %s %s" % (int(sleep_int), sleep_time_conversion))
         print("===============================")

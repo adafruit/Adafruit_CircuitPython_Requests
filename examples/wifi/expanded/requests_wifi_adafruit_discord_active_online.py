@@ -5,12 +5,14 @@ Coded for Circuit Python 8.2.3
 requests_adafruit_discord_active_online
 """
 import gc
-import os
-import time
-import ssl
 import json
-import wifi
+import os
+import ssl
+import time
+
 import socketpool
+import wifi
+
 import adafruit_requests
 
 # Public API. No user or token required
@@ -24,9 +26,9 @@ pool = socketpool.SocketPool(wifi.radio)
 # 600 = 10 mins, 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
 sleep_time = 900
 
-# this example uses settings.toml for credentials
-ssid = os.getenv("WIFI_SSID")
-appw = os.getenv("WIFI_PASSWORD")
+# Get WiFi details, ensure these are setup in settings.toml
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 
 
 # Converts seconds to minutes/hours/days
@@ -56,7 +58,7 @@ print("Connecting to WiFi...")
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
 while not wifi.radio.ipv4_address:
     try:
-        wifi.radio.connect(ssid, appw)
+        wifi.radio.connect(ssid, password)
     except ConnectionError as e:
         print("Connection Error:", e)
         print("Retrying in 10 seconds")

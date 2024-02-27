@@ -5,148 +5,85 @@
 """ Header Tests """
 
 import mocket
-import adafruit_requests
-
-IP = "1.2.3.4"
-HOST = "httpbin.org"
-RESPONSE_HEADERS = b"HTTP/1.0 200 OK\r\nContent-Length: 0\r\n\r\n"
+import pytest
 
 
-def test_host():
-    pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
-    sock = mocket.Mocket(RESPONSE_HEADERS)
-    pool.socket.return_value = sock
-    sent = []
+def test_check_headers_not_dict(requests):
+    with pytest.raises(AttributeError) as context:
+        requests._check_headers("")
+    assert "headers must be in dict format" in str(context)
 
-    def _send(data):
-        sent.append(data)  # pylint: disable=no-member
-        return len(data)
 
-    sock.send.side_effect = _send
+def test_check_headers_not_valid(requests):
+    with pytest.raises(AttributeError) as context:
+        requests._check_headers(
+            {"Good1": "a", "Good2": b"b", "Good3": None, "Bad1": True}
+        )
+    assert "Header part (True) from Bad1 must be of type str or bytes" in str(context)
 
-    requests_session = adafruit_requests.Session(pool)
+
+def test_check_headers_valid(requests):
+    requests._check_headers({"Good1": "a", "Good2": b"b", "Good3": None})
+    assert True
+
+
+def test_host(sock, requests):
     headers = {}
-    requests_session.get("http://" + HOST + "/get", headers=headers)
+    requests.get("http://" + mocket.MOCK_HOST_1 + "/get", headers=headers)
 
-    sock.connect.assert_called_once_with((IP, 80))
-    sent = b"".join(sent)
-    assert b"Host: httpbin.org\r\n" in sent
+    sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
+    sent = b"".join(sock.sent_data)
+    assert b"Host: wifitest.adafruit.com\r\n" in sent
 
 
-def test_host_replace():
-    pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
-    sock = mocket.Mocket(RESPONSE_HEADERS)
-    pool.socket.return_value = sock
-    sent = []
+def test_host_replace(sock, requests):
+    headers = {"host": mocket.MOCK_POOL_IP}
+    requests.get("http://" + mocket.MOCK_HOST_1 + "/get", headers=headers)
 
-    def _send(data):
-        sent.append(data)  # pylint: disable=no-member
-        return len(data)
-
-    sock.send.side_effect = _send
-
-    requests_session = adafruit_requests.Session(pool)
-    headers = {"host": IP}
-    requests_session.get("http://" + HOST + "/get", headers=headers)
-
-    sock.connect.assert_called_once_with((IP, 80))
-    sent = b"".join(sent)
-    assert b"host: 1.2.3.4\r\n" in sent
-    assert b"Host: httpbin.org\r\n" not in sent
+    sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
+    sent = b"".join(sock.sent_data)
+    assert b"host: 10.10.10.10\r\n" in sent
+    assert b"Host: wifitest.adafruit.com\r\n" not in sent
     assert sent.lower().count(b"host:") == 1
 
 
-def test_user_agent():
-    pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
-    sock = mocket.Mocket(RESPONSE_HEADERS)
-    pool.socket.return_value = sock
-    sent = []
-
-    def _send(data):
-        sent.append(data)  # pylint: disable=no-member
-        return len(data)
-
-    sock.send.side_effect = _send
-
-    requests_session = adafruit_requests.Session(pool)
+def test_user_agent(sock, requests):
     headers = {}
-    requests_session.get("http://" + HOST + "/get", headers=headers)
+    requests.get("http://" + mocket.MOCK_HOST_1 + "/get", headers=headers)
 
-    sock.connect.assert_called_once_with((IP, 80))
-    sent = b"".join(sent)
+    sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
+    sent = b"".join(sock.sent_data)
     assert b"User-Agent: Adafruit CircuitPython\r\n" in sent
 
 
-def test_user_agent_replace():
-    pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
-    sock = mocket.Mocket(RESPONSE_HEADERS)
-    pool.socket.return_value = sock
-    sent = []
-
-    def _send(data):
-        sent.append(data)  # pylint: disable=no-member
-        return len(data)
-
-    sock.send.side_effect = _send
-
-    requests_session = adafruit_requests.Session(pool)
+def test_user_agent_replace(sock, requests):
     headers = {"user-agent": "blinka/1.0.0"}
-    requests_session.get("http://" + HOST + "/get", headers=headers)
+    requests.get("http://" + mocket.MOCK_HOST_1 + "/get", headers=headers)
 
-    sock.connect.assert_called_once_with((IP, 80))
-    sent = b"".join(sent)
+    sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
+    sent = b"".join(sock.sent_data)
     assert b"user-agent: blinka/1.0.0\r\n" in sent
     assert b"User-Agent: Adafruit CircuitPython\r\n" not in sent
     assert sent.lower().count(b"user-agent:") == 1
 
 
-def test_content_type():
-    pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
-    sock = mocket.Mocket(RESPONSE_HEADERS)
-    pool.socket.return_value = sock
-    sent = []
-
-    def _send(data):
-        sent.append(data)  # pylint: disable=no-member
-        return len(data)
-
-    sock.send.side_effect = _send
-
-    requests_session = adafruit_requests.Session(pool)
+def test_content_type(sock, requests):
     headers = {}
     data = {"test": True}
-    requests_session.post("http://" + HOST + "/get", data=data, headers=headers)
+    requests.post("http://" + mocket.MOCK_HOST_1 + "/get", data=data, headers=headers)
 
-    sock.connect.assert_called_once_with((IP, 80))
-    sent = b"".join(sent)
+    sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
+    sent = b"".join(sock.sent_data)
     assert b"Content-Type: application/x-www-form-urlencoded\r\n" in sent
 
 
-def test_content_type_replace():
-    pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
-    sock = mocket.Mocket(RESPONSE_HEADERS)
-    pool.socket.return_value = sock
-    sent = []
-
-    def _send(data):
-        sent.append(data)  # pylint: disable=no-member
-        return len(data)
-
-    sock.send.side_effect = _send
-
-    requests_session = adafruit_requests.Session(pool)
+def test_content_type_replace(sock, requests):
     headers = {"content-type": "application/test"}
     data = {"test": True}
-    requests_session.post("http://" + HOST + "/get", data=data, headers=headers)
+    requests.post("http://" + mocket.MOCK_HOST_1 + "/get", data=data, headers=headers)
 
-    sock.connect.assert_called_once_with((IP, 80))
-    sent = b"".join(sent)
+    sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
+    sent = b"".join(sock.sent_data)
     assert b"content-type: application/test\r\n" in sent
     assert b"Content-Type: application/x-www-form-urlencoded\r\n" not in sent
     assert sent.lower().count(b"content-type:") == 1

@@ -2,12 +2,14 @@
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.2
 # DJDevon3 Adafruit Feather ESP32-S3 Discord API Example
-import os
-import time
-import ssl
 import json
-import wifi
+import os
+import ssl
+import time
+
 import socketpool
+import wifi
+
 import adafruit_requests
 
 # Active Logged in User Account Required, no tokens required
@@ -17,9 +19,9 @@ import adafruit_requests
 # Ensure this is in settings.toml
 # "Discord_Authorization": "Request Header Auth here"
 
-# Uses settings.toml for credentials
+# Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
-appw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
+password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 Discord_Auth = os.getenv("Discord_Authorization")
 
 # Initialize WiFi Pool (There can be only 1 pool & top of script)
@@ -60,7 +62,7 @@ print("Connecting to WiFi...")
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
 while not wifi.radio.ipv4_address:
     try:
-        wifi.radio.connect(ssid, appw)
+        wifi.radio.connect(ssid, password)
     except ConnectionError as e:
         print("Connection Error:", e)
         print("Retrying in 10 seconds")

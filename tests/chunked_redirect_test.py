@@ -5,15 +5,33 @@
 """ Redirection Tests """
 
 from unittest import mock
+
 import mocket
 from chunk_test import _chunk
+
 import adafruit_requests
 
 IP = "1.2.3.4"
 HOST = "docs.google.com"
-PATH = (
+PATH_BASE = (
     "/spreadsheets/d/e/2PACX-1vR1WjUKz35-ek6SiR5droDfvPp51MTds4wUs57vEZNh2uDfihSTPhTaiiRo"
-    "vLbNe1mkeRgurppRJ_Zy/pub?output=tsv"
+    "vLbNe1mkeRgurppRJ_Zy/"
+)
+PATH = PATH_BASE + "pub?output=tsv"
+
+FILE_REDIRECT = (
+    b"e@2PACX-1vR1WjUKz35-ek6SiR5droDfvPp51MTds4wUs57vEZNh2uDfihSTPhTai"
+    b"iRovLbNe1mkeRgurppRJ_Zy?output=tsv"
+)
+RELATIVE_RELATIVE_REDIRECT = (
+    b"370cmver1f290kjsnpar5ku2h9g/3llvt5u8njbvat22m9l19db1h4/1656191325000/109226138307867586192/*/"
+    + FILE_REDIRECT
+)
+RELATIVE_ABSOLUTE_REDIRECT = (
+    b"/pub/70cmver1f290kjsnpar5ku2h9g/" + RELATIVE_RELATIVE_REDIRECT
+)
+ABSOLUTE_ABSOLUTE_REDIRECT = (
+    b"https://doc-14-2g-sheets.googleusercontent.com" + RELATIVE_ABSOLUTE_REDIRECT
 )
 
 # response headers returned from the initial request
@@ -24,10 +42,7 @@ HEADERS_REDIRECT = (
     b"Pragma: no-cache\r\n"
     b"Expires: Mon, 01 Jan 1990 00:00:00 GMT\r\n"
     b"Date: Sat, 25 Jun 2022 21:08:48 GMT\r\n"
-    b"Location: https://doc-14-2g-sheets.googleusercontent.com/pub/70cmver1f290kjsnpar5ku2h9g/3"
-    b"llvt5u8njbvat22m9l19db1h4/1656191325000"
-    b"/109226138307867586192/*/e@2PACX-1vR1WjUKz35-ek6SiR5droDfvPp51MTds4wUs57vEZNh2uDfihSTPhTai"
-    b"iRovLbNe1mkeRgurppRJ_Zy?output=tsv\r\n"
+    b"Location: NEW_LOCATION_HERE\r\n"
     b'P3P: CP="This is not a P3P policy! See g.co/p3phelp for more info."\r\n'
     b"X-Content-Type-Options: nosniff\r\n"
     b"X-XSS-Protection: 1; mode=block\r\n"
@@ -116,13 +131,16 @@ class MocketRecvInto(mocket.Mocket):  # pylint: disable=too-few-public-methods
         return read
 
 
-def do_test_chunked_redirect():
+def test_chunked_absolute_absolute_redirect():
     pool = mocket.MocketPool()
     pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 443)),)
     chunk = _chunk(BODY_REDIRECT, len(BODY_REDIRECT))
     chunk2 = _chunk(BODY, len(BODY))
 
-    sock1 = MocketRecvInto(HEADERS_REDIRECT + chunk)
+    redirect = HEADERS_REDIRECT.replace(
+        b"NEW_LOCATION_HERE", ABSOLUTE_ABSOLUTE_REDIRECT
+    )
+    sock1 = MocketRecvInto(redirect + chunk)
     sock2 = mocket.Mocket(HEADERS + chunk2)
     pool.socket.side_effect = (sock1, sock2)
 
@@ -133,9 +151,109 @@ def do_test_chunked_redirect():
     sock2.connect.assert_called_once_with(
         ("doc-14-2g-sheets.googleusercontent.com", 443)
     )
+    sock2.send.assert_has_calls([mock.call(RELATIVE_ABSOLUTE_REDIRECT[1:])])
 
     assert response.text == str(BODY, "utf-8")
 
 
-def test_chunked_redirect():
-    do_test_chunked_redirect()
+def test_chunked_relative_absolute_redirect():
+    pool = mocket.MocketPool()
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 443)),)
+    chunk = _chunk(BODY_REDIRECT, len(BODY_REDIRECT))
+    chunk2 = _chunk(BODY, len(BODY))
+
+    redirect = HEADERS_REDIRECT.replace(
+        b"NEW_LOCATION_HERE", RELATIVE_ABSOLUTE_REDIRECT
+    )
+    sock1 = MocketRecvInto(redirect + chunk)
+    sock2 = mocket.Mocket(HEADERS + chunk2)
+    pool.socket.side_effect = (sock1, sock2)
+
+    requests_session = adafruit_requests.Session(pool, mocket.SSLContext())
+    response = requests_session.get("https://" + HOST + PATH)
+
+    sock1.connect.assert_called_once_with((HOST, 443))
+    sock2.connect.assert_called_once_with(("docs.google.com", 443))
+    sock2.send.assert_has_calls([mock.call(RELATIVE_ABSOLUTE_REDIRECT[1:])])
+
+    assert response.text == str(BODY, "utf-8")
+
+
+def test_chunked_relative_relative_redirect():
+    pool = mocket.MocketPool()
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 443)),)
+    chunk = _chunk(BODY_REDIRECT, len(BODY_REDIRECT))
+    chunk2 = _chunk(BODY, len(BODY))
+
+    redirect = HEADERS_REDIRECT.replace(
+        b"NEW_LOCATION_HERE", RELATIVE_RELATIVE_REDIRECT
+    )
+    sock1 = MocketRecvInto(redirect + chunk)
+    sock2 = mocket.Mocket(HEADERS + chunk2)
+    pool.socket.side_effect = (sock1, sock2)
+
+    requests_session = adafruit_requests.Session(pool, mocket.SSLContext())
+    response = requests_session.get("https://" + HOST + PATH)
+
+    sock1.connect.assert_called_once_with((HOST, 443))
+    sock2.connect.assert_called_once_with(("docs.google.com", 443))
+    sock2.send.assert_has_calls(
+        [mock.call(bytes(PATH_BASE[1:], "utf-8") + RELATIVE_RELATIVE_REDIRECT)]
+    )
+
+    assert response.text == str(BODY, "utf-8")
+
+
+def test_chunked_relative_relative_redirect_backstep():
+    pool = mocket.MocketPool()
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 443)),)
+    chunk = _chunk(BODY_REDIRECT, len(BODY_REDIRECT))
+    chunk2 = _chunk(BODY, len(BODY))
+
+    remove_paths = 2
+    backstep = b"../" * remove_paths
+    path_base_parts = PATH_BASE.split("/")
+    # PATH_BASE starts with "/" so skip it and also remove from the count
+    path_base = (
+        "/".join(path_base_parts[1 : len(path_base_parts) - remove_paths - 1]) + "/"
+    )
+
+    redirect = HEADERS_REDIRECT.replace(
+        b"NEW_LOCATION_HERE", backstep + RELATIVE_RELATIVE_REDIRECT
+    )
+    sock1 = MocketRecvInto(redirect + chunk)
+    sock2 = mocket.Mocket(HEADERS + chunk2)
+    pool.socket.side_effect = (sock1, sock2)
+
+    requests_session = adafruit_requests.Session(pool, mocket.SSLContext())
+    response = requests_session.get("https://" + HOST + PATH)
+
+    sock1.connect.assert_called_once_with((HOST, 443))
+    sock2.connect.assert_called_once_with(("docs.google.com", 443))
+    sock2.send.assert_has_calls(
+        [mock.call(bytes(path_base, "utf-8") + RELATIVE_RELATIVE_REDIRECT)]
+    )
+
+    assert response.text == str(BODY, "utf-8")
+
+
+def test_chunked_allow_redirects_false():
+    pool = mocket.MocketPool()
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 443)),)
+    chunk = _chunk(BODY_REDIRECT, len(BODY_REDIRECT))
+    chunk2 = _chunk(BODY, len(BODY))
+
+    redirect = HEADERS_REDIRECT.replace(
+        b"NEW_LOCATION_HERE", ABSOLUTE_ABSOLUTE_REDIRECT
+    )
+    sock1 = MocketRecvInto(redirect + chunk)
+    sock2 = mocket.Mocket(HEADERS + chunk2)
+    pool.socket.side_effect = (sock1, sock2)
+
+    requests_session = adafruit_requests.Session(pool, mocket.SSLContext())
+    response = requests_session.get("https://" + HOST + PATH, allow_redirects=False)
+
+    sock1.connect.assert_called_once_with((HOST, 443))
+    sock2.connect.assert_not_called()
+
+    assert response.text == str(BODY_REDIRECT, "utf-8")

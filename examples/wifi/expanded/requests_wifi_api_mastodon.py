@@ -3,10 +3,13 @@
 # Coded for Circuit Python 8.0
 """DJDevon3 Adafruit Feather ESP32-S2 Mastodon_API_Example"""
 import gc
-import time
+import os
 import ssl
-import wifi
+import time
+
 import socketpool
+import wifi
+
 import adafruit_requests
 
 # Mastodon V1 API - Public access (no dev creds or app required)
@@ -27,11 +30,9 @@ pool = socketpool.SocketPool(wifi.radio)
 # 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
 sleep_time = 900
 
-try:
-    from secrets import secrets
-except ImportError:
-    print("Secrets File Import Error")
-    raise
+# Get WiFi details, ensure these are setup in settings.toml
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 
 
 # Converts seconds in minutes/hours/days
@@ -69,7 +70,7 @@ print("Connecting to WiFi...")
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
 while not wifi.radio.ipv4_address:
     try:
-        wifi.radio.connect(secrets["ssid"], secrets["password"])
+        wifi.radio.connect(ssid, password)
     except ConnectionError as e:
         print("Connection Error:", e)
         print("Retrying in 10 seconds")

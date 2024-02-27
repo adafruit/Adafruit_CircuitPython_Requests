@@ -3,13 +3,15 @@
 # Coded for Circuit Python 8.1
 # DJDevon3 ESP32-S3 OpenSkyNetwork_Private_API_Example
 
-import os
-import time
-import ssl
 import json
-import wifi
-import socketpool
+import os
+import ssl
+import time
+
 import circuitpython_base64 as base64
+import socketpool
+import wifi
+
 import adafruit_requests
 
 # OpenSky-Network.org Login required for this API
@@ -28,10 +30,9 @@ pool = socketpool.SocketPool(wifi.radio)
 # https://openskynetwork.github.io/opensky-api/rest.html#limitations
 sleep_time = 1800
 
-# this example uses settings.toml for credentials
-# timezone offset is in seconds plus or minus GMT
-ssid = os.getenv("AP_SSID")
-appw = os.getenv("AP_PASSWORD")
+# Get WiFi details, ensure these are setup in settings.toml
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 osnu = os.getenv("OSN_Username")
 osnp = os.getenv("OSN_Password")
 
@@ -91,7 +92,7 @@ print("Connecting to WiFi...")
 request = adafruit_requests.Session(pool, ssl.create_default_context())
 while not wifi.radio.ipv4_address:
     try:
-        wifi.radio.connect(ssid, appw)
+        wifi.radio.connect(ssid, password)
     except ConnectionError as e:
         print("Connection Error:", e)
         print("Retrying in 10 seconds")

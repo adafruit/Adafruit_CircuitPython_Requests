@@ -5,11 +5,11 @@
 """  Parse Tests """
 
 import json
+
 import mocket
+
 import adafruit_requests
 
-IP = "1.2.3.4"
-HOST = "httpbin.org"
 RESPONSE = {"Date": "July 25, 2019"}
 ENCODED = json.dumps(RESPONSE).encode("utf-8")
 # Padding here tests the case where a header line is exactly 32 bytes buffered by
@@ -24,13 +24,11 @@ HEADERS = (
 )
 
 
-def test_json():
-    pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
+def test_json(pool):
     sock = mocket.Mocket(HEADERS + ENCODED)
     pool.socket.return_value = sock
 
     requests_session = adafruit_requests.Session(pool)
-    response = requests_session.get("http://" + HOST + "/get")
-    sock.connect.assert_called_once_with((IP, 80))
+    response = requests_session.get("http://" + mocket.MOCK_HOST_1 + "/get")
+    sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
     assert response.json() == RESPONSE

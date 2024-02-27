@@ -3,11 +3,13 @@
 # Coded for Circuit Python 8.2
 
 import os
-import time
 import ssl
-import wifi
-import socketpool
+import time
+
 import microcontroller
+import socketpool
+import wifi
+
 import adafruit_requests
 
 # Initialize WiFi Pool (There can be only 1 pool & top of script)
@@ -34,15 +36,16 @@ if debug:
 # Fitbit_First_Refresh_Token = "64 character string"
 # Fitbit_UserID = "UserID authorizing the ClientID"
 
+# Get WiFi details, ensure these are setup in settings.toml
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
+
 Fitbit_ClientID = os.getenv("Fitbit_ClientID")
 Fitbit_Token = os.getenv("Fitbit_Token")
 Fitbit_First_Refresh_Token = os.getenv(
     "Fitbit_First_Refresh_Token"
 )  # overides nvm first run only
 Fitbit_UserID = os.getenv("Fitbit_UserID")
-
-wifi_ssid = os.getenv("CIRCUITPY_WIFI_SSID")
-wifi_pw = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 
 # Time between API refreshes
 # 300 = 5 mins, 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
@@ -76,7 +79,7 @@ print("Connecting to WiFi...")
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
 while not wifi.radio.ipv4_address:
     try:
-        wifi.radio.connect(wifi_ssid, wifi_pw)
+        wifi.radio.connect(ssid, password)
     except ConnectionError as e:
         print("Connection Error:", e)
         print("Retrying in 10 seconds")
