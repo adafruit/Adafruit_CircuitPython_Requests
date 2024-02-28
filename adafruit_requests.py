@@ -226,22 +226,23 @@ class Response:
         while to_read > 0:
             to_read -= self._recv_into(buf, to_read)
 
-    def close(self) -> None:
+    def close(self, fast: bool = False) -> None:
         """Drain the remaining ESP socket buffers. We assume we already got what we wanted."""
         if not self.socket:
             return
         # Make sure we've read all of our response.
-        if self._cached is None:
+        if self._cached is None and not fast:
             if self._remaining and self._remaining > 0:
                 self._throw_away(self._remaining)
             elif self._chunked:
                 while True:
                     chunk_header = bytes(self._readto(b"\r\n")).split(b";", 1)[0]
+                    if not chunk_header:
+                        break
                     chunk_size = int(bytes(chunk_header), 16)
                     if chunk_size == 0:
                         break
                     self._throw_away(chunk_size + 2)
-                self._parse_headers()
         if self._session:
             # pylint: disable=protected-access
             self._session._connection_manager.free_socket(self.socket)
