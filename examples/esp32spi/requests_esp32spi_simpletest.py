@@ -4,7 +4,6 @@
 import os
 
 import adafruit_connection_manager
-import adafruit_esp32spi.adafruit_esp32spi_socket as pool
 import board
 import busio
 from adafruit_esp32spi import adafruit_esp32spi
@@ -44,7 +43,8 @@ while not radio.is_connected:
 print("Connected to", str(radio.ssid, "utf-8"), "\tRSSI:", radio.rssi)
 
 # Initialize a requests session
-ssl_context = adafruit_connection_manager.create_fake_ssl_context(pool, radio)
+pool = adafruit_connection_manager.get_radio_socketpool(radio)
+ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
 requests = adafruit_requests.Session(pool, ssl_context)
 
 TEXT_URL = "http://wifitest.adafruit.com/testwifi/index.html"

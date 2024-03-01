@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import adafruit_connection_manager
-import adafruit_wiznet5k.adafruit_wiznet5k_socket as pool
 import board
 import busio
 from adafruit_wiznet5k.adafruit_wiznet5k import WIZNET5K
@@ -17,7 +16,8 @@ spi_bus = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
 radio = WIZNET5K(spi_bus, cs)
 
 # Initialize a requests session
-ssl_context = adafruit_connection_manager.create_fake_ssl_context(pool, radio)
+pool = adafruit_connection_manager.get_radio_socketpool(radio)
+ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
 requests = adafruit_requests.Session(pool, ssl_context)
 
 TEXT_URL = "http://wifitest.adafruit.com/testwifi/index.html"
