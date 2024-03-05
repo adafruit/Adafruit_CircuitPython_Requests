@@ -86,11 +86,12 @@ class Response:
 
     encoding = None
 
-    def __init__(self, sock: SocketType, session: "Session") -> None:
+    def __init__(self, sock: SocketType, session: "Session", fast_close: bool = False) -> None:
         self.socket = sock
         self.encoding = "utf-8"
         self._cached = None
         self._headers = {}
+        self._fast_close = fast_close
 
         # _start_index and _receive_buffer are used when parsing headers.
         # _receive_buffer will grow by 32 bytes everytime it is too small.
@@ -226,12 +227,12 @@ class Response:
         while to_read > 0:
             to_read -= self._recv_into(buf, to_read)
 
-    def close(self, fast: bool = False) -> None:
+    def close(self) -> None:
         """Drain the remaining ESP socket buffers. We assume we already got what we wanted."""
         if not self.socket:
             return
         # Make sure we've read all of our response.
-        if self._cached is None and not fast:
+        if self._cached is None and not self._fast_close:
             if self._remaining and self._remaining > 0:
                 self._throw_away(self._remaining)
             elif self._chunked:
@@ -362,11 +363,13 @@ class Session:
         socket_pool: SocketpoolModuleType,
         ssl_context: Optional[SSLContextType] = None,
         session_id: Optional[str] = None,
+        fast_close: Optional[Bool] = False,
     ) -> None:
         self._connection_manager = get_connection_manager(socket_pool)
         self._ssl_context = ssl_context
         self._session_id = session_id
         self._last_response = None
+        self._fast_close = fast_close
 
     @staticmethod
     def _check_headers(headers: Dict[str, str]):
@@ -561,7 +564,7 @@ class Session:
         if not socket:
             raise OutOfRetries("Repeated socket failures") from last_exc
 
-        resp = Response(socket, self)  # our response
+        resp = Response(socket, self, fast_close=self._fast_close)  # our response
         if allow_redirects:
             if "location" in resp.headers and 300 <= resp.status_code <= 399:
                 # a naive handler for redirects
