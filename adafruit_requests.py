@@ -86,7 +86,9 @@ class Response:
 
     encoding = None
 
-    def __init__(self, sock: SocketType, session: "Session", fast_close: bool = False) -> None:
+    def __init__(
+        self, sock: SocketType, session: "Session", fast_close: bool = False
+    ) -> None:
         self.socket = sock
         self.encoding = "utf-8"
         self._cached = None
