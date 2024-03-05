@@ -363,7 +363,7 @@ class Session:
         socket_pool: SocketpoolModuleType,
         ssl_context: Optional[SSLContextType] = None,
         session_id: Optional[str] = None,
-        fast_close: Optional[Bool] = False,
+        fast_close: Optional[bool] = False,
     ) -> None:
         self._connection_manager = get_connection_manager(socket_pool)
         self._ssl_context = ssl_context
