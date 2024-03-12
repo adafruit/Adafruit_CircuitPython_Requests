@@ -57,7 +57,14 @@ def test_get_twice(pool, requests_ssl):
 
 
 def test_get_twice_after_second(pool, requests_ssl):
-    sock = mocket.Mocket(mocket.MOCK_RESPONSE + mocket.MOCK_RESPONSE)
+    sock = mocket.Mocket(
+        b"H"
+        b"TTP/1.0 200 OK\r\nContent-Length: "
+        b"70\r\n\r\nHTTP/1.0 2"
+        b"H"
+        b"TTP/1.0 200 OK\r\nContent-Length: "
+        b"70\r\n\r\nHTTP/1.0 2"
+    )
     pool.socket.return_value = sock
 
     response = requests_ssl.get("https://" + mocket.MOCK_ENDPOINT_1)
