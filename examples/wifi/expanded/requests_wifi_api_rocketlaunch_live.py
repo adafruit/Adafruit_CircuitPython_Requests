@@ -7,8 +7,10 @@ import gc
 import os
 import ssl
 import time
+
 import socketpool
 import wifi
+
 import adafruit_requests
 
 # Initialize WiFi Pool (There can be only 1 pool & top of script)
