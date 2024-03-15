@@ -5,7 +5,6 @@
 
 import os
 import time
-
 import adafruit_connection_manager
 import adafruit_requests
 import wifi
