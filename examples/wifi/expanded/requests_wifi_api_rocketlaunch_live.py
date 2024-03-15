@@ -3,18 +3,11 @@
 # Coded for Circuit Python 8.2.x
 """RocketLaunch.Live API Example"""
 
-import gc
 import os
-import ssl
 import time
-
-import socketpool
 import wifi
-
+import adafruit_connection_manager
 import adafruit_requests
-
-# Initialize WiFi Pool (There can be only 1 pool & top of script)
-pool = socketpool.SocketPool(wifi.radio)
 
 # Time between API refreshes
 # 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
@@ -45,72 +38,86 @@ def time_calc(input_time):
     return time_output
 
 
-# Free Public API, no token or header required
+# Publicly available data no header required
+# The number at the end is the amount of launches (max 5 free api)
 ROCKETLAUNCH_SOURCE = "https://fdo.rocketlaunch.live/json/launches/next/1"
 
-# Connect to Wi-Fi
-print("\n===============================")
-print("Connecting to WiFi...")
-requests = adafruit_requests.Session(pool, ssl.create_default_context())
-while not wifi.radio.ipv4_address:
-    try:
-        wifi.radio.connect(ssid, password)
-    except ConnectionError as e:
-        print("❌ Connection Error:", e)
-        print("Retrying in 10 seconds")
-    time.sleep(10)
-    gc.collect()
-print("✅ WiFi!")
-print("===============================")
+# Initalize Wifi, Socket Pool, Request Session
+pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
+ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
+requests = adafruit_requests.Session(pool, ssl_context)
 
 while True:
-    try:
-        # Print Request to Serial
-        print("Attempting to GET RocketLaunch.Live JSON!")
-        debug_rocketlaunch_full_response = False
-
-        rocketlaunch_response = requests.get(url=ROCKETLAUNCH_SOURCE)
+    # Connect to Wi-Fi
+    print("\n===============================")
+    print("Connecting to WiFi...")
+    while not wifi.radio.ipv4_address:
         try:
-            rocketlaunch_json = rocketlaunch_response.json()
+            wifi.radio.connect(ssid, password)
         except ConnectionError as e:
             print("❌ Connection Error:", e)
             print("Retrying in 10 seconds")
+    print("✅ Wifi!")
+    try:
+        # Print Request to Serial
+        print(" | Attempting to GET RocketLaunch.Live JSON!")
+        time.sleep(2)
+        debug_rocketlaunch_full_response = False
+
+        try:
+            rocketlaunch_response = requests.get(url=ROCKETLAUNCH_SOURCE)
+            rocketlaunch_json = rocketlaunch_response.json()
+        except ConnectionError as e:
+            print("Connection Error:", e)
+            print("Retrying in 10 seconds")
+        print(" | ✅ RocketLaunch.Live JSON!")
+
         if debug_rocketlaunch_full_response:
             print("Full API GET URL: ", ROCKETLAUNCH_SOURCE)
             print(rocketlaunch_json)
 
-        print("✅ RocketLaunch.Live JSON!")
-        rocketlaunch_flightname = str(rocketlaunch_json["result"][0]["name"])
-        print(f" | Flight Name: {rocketlaunch_flightname}")
-        rocketlaunch_provider = str(rocketlaunch_json["result"][0]["provider"]["name"])
-        print(f" | Provider: {rocketlaunch_provider}")
-        rocketlaunch_vehiclename = str(
-            rocketlaunch_json["result"][0]["vehicle"]["name"]
-        )
-        print(f" | Vehicle Name: {rocketlaunch_vehiclename}")
+        # JSON Endpoints
+        RLFN = str(rocketlaunch_json["result"][0]["name"])
+        RLWO = str(rocketlaunch_json["result"][0]["win_open"])
+        TMINUS = str(rocketlaunch_json["result"][0]["t0"])
+        RLWC = str(rocketlaunch_json["result"][0]["win_close"])
+        RLP = str(rocketlaunch_json["result"][0]["provider"]["name"])
+        RLVN = str(rocketlaunch_json["result"][0]["vehicle"]["name"])
+        RLPN = str(rocketlaunch_json["result"][0]["pad"]["name"])
+        RLLS = str(rocketlaunch_json["result"][0]["pad"]["location"]["name"])
+        RLLD = str(rocketlaunch_json["result"][0]["launch_description"])
+        RLM = str(rocketlaunch_json["result"][0]["mission_description"])
+        RLDATE = str(rocketlaunch_json["result"][0]["date_str"])
 
-        rocketlaunch_winopen = str(rocketlaunch_json["result"][0]["win_open"])
-        rocketlaunch_winclose = str(rocketlaunch_json["result"][0]["win_close"])
-        print(f" | Window: {rocketlaunch_winopen} to {rocketlaunch_winclose}")
-
-        rocketlaunch_sitename = str(
-            rocketlaunch_json["result"][0]["pad"]["location"]["name"]
-        )
-        print(f" | Launch Site: {rocketlaunch_sitename}")
-
-        rocketlaunch_mission = str(
-            rocketlaunch_json["result"][0]["mission_description"]
-        )
-        if rocketlaunch_mission != "None":
-            print(f" | Mission: {rocketlaunch_mission}")
+        # Print to serial & display label if endpoint not "None"
+        if RLDATE != "None":
+            print(f" |  | Date: {RLDATE}")
+        if RLFN != "None":
+            print(f" |  | Flight: {RLFN}")
+        if RLP != "None":
+            print(f" |  | Provider: {RLP}")
+        if RLVN != "None":
+            print(f" |  | Vehicle: {RLVN}")
+        if RLWO != "None":
+            print(f" |  | Window: {RLWO} to {RLWC}")
+        elif TMINUS != "None":
+            print(f" |  | Window: {TMINUS} to {RLWC}")
+        if RLLS != "None":
+            print(f" |  | Site: {RLLS}")
+        if RLPN != "None":
+            print(f" |  | Pad: {RLPN}")
+        if RLLD != "None":
+            print(f" |  | Description: {RLLD}")
+        if RLM != "None":
+            print(f" |  | Mission: {RLM}")
 
         print("\nFinished!")
         print("Board Uptime: ", time.monotonic())
         print("Next Update in: ", time_calc(sleep_time))
         print("===============================")
-        gc.collect()
+
     except (ValueError, RuntimeError) as e:
         print("Failed to get data, retrying\n", e)
         time.sleep(60)
-        continue
+        break
     time.sleep(sleep_time)
