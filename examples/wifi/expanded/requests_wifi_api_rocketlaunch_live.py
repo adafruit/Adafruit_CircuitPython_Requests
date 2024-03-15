@@ -5,9 +5,10 @@
 
 import os
 import time
-import wifi
+
 import adafruit_connection_manager
 import adafruit_requests
+import wifi
 
 # Time between API refreshes
 # 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
