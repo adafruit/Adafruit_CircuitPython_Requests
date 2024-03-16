@@ -6,8 +6,10 @@
 
 import os
 import time
+
 import adafruit_connection_manager
 import wifi
+
 import adafruit_requests
 
 # Active Logged in User Account Required
