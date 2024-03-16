@@ -1,110 +1,103 @@
-# SPDX-FileCopyrightText: 2023 DJDevon3
+# SPDX-FileCopyrightText: 2024 DJDevon3
 # SPDX-License-Identifier: MIT
-# Coded for Circuit Python 8.2
-# DJDevon3 Adafruit Feather ESP32-S3 Discord API Example
-import json
+# Coded for Circuit Python 8.2.x
+"""Discord Web Scrape Example"""
+# pylint: disable=import-error
+
 import os
-import ssl
 import time
-
-import socketpool
+import adafruit_connection_manager
 import wifi
-
 import adafruit_requests
 
-# Active Logged in User Account Required, no tokens required
+# Active Logged in User Account Required
 # WEB SCRAPE authorization key required. Visit URL below.
 # Learn how: https://github.com/lorenz234/Discord-Data-Scraping
 
 # Ensure this is in settings.toml
-# "Discord_Authorization": "Request Header Auth here"
+# DISCORD_AUTHORIZATION = "Approximately 70 Character Hash Here"
 
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
-Discord_Auth = os.getenv("Discord_Authorization")
-
-# Initialize WiFi Pool (There can be only 1 pool & top of script)
-pool = socketpool.SocketPool(wifi.radio)
+discord_auth = os.getenv("DISCORD_AUTHORIZATION")
 
 # API Polling Rate
 # 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
-sleep_time = 900
+SLEEP_TIME = 900
+
+# Initalize Wifi, Socket Pool, Request Session
+pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
+ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
+requests = adafruit_requests.Session(pool, ssl_context)
 
 
-# Converts seconds to human readable minutes/hours/days
-def time_calc(input_time):  # input_time in seconds
+def time_calc(input_time):
+    """Converts seconds to minutes/hours/days"""
     if input_time < 60:
-        sleep_int = input_time
-        time_output = f"{sleep_int:.0f} seconds"
-    elif 60 <= input_time < 3600:
-        sleep_int = input_time / 60
-        time_output = f"{sleep_int:.0f} minutes"
-    elif 3600 <= input_time < 86400:
-        sleep_int = input_time / 60 / 60
-        time_output = f"{sleep_int:.1f} hours"
-    else:
-        sleep_int = input_time / 60 / 60 / 24
-        time_output = f"{sleep_int:.1f} days"
-    return time_output
+        return f"{input_time:.0f} seconds"
+    if input_time < 3600:
+        return f"{input_time / 60:.0f} minutes"
+    if input_time < 86400:
+        return f"{input_time / 60 / 60:.0f} hours"
+    return f"{input_time / 60 / 60 / 24:.1f} days"
 
 
-discord_header = {"Authorization": "" + Discord_Auth}
-ADA_SOURCE = (
+DISCORD_HEADER = {"Authorization": "" + discord_auth}
+DISCORD_SOURCE = (
     "https://discord.com/api/v10/guilds/"
     + "327254708534116352"  # Adafruit Discord ID
     + "/preview"
 )
 
-# Connect to Wi-Fi
-print("\n===============================")
-print("Connecting to WiFi...")
-requests = adafruit_requests.Session(pool, ssl.create_default_context())
-while not wifi.radio.ipv4_address:
-    try:
-        wifi.radio.connect(ssid, password)
-    except ConnectionError as e:
-        print("Connection Error:", e)
-        print("Retrying in 10 seconds")
-    time.sleep(10)
-print("Connected!✅")
-
 while True:
-    try:
-        print("\nAttempting to GET Discord Data!")  # --------------------------------
-        # STREAMER WARNING this will show your credentials!
-        debug_request = False  # Set True to see full request
-        if debug_request:
-            print("Full API GET URL: ", ADA_SOURCE)
-        print("===============================")
+    # Connect to Wi-Fi
+    print("\nConnecting to WiFi...")
+    while not wifi.radio.ipv4_address:
         try:
-            ada_res = requests.get(url=ADA_SOURCE, headers=discord_header).json()
+            wifi.radio.connect(ssid, password)
         except ConnectionError as e:
-            print("Connection Error:", e)
+            print("❌ Connection Error:", e)
             print("Retrying in 10 seconds")
+    print("✅ Wifi!")
+    try:
+        print(" | Attempting to GET Discord JSON!")
+        # Set debug to True for full JSON response.
+        # WARNING: may include visible credentials
+        # MICROCONTROLLER WARNING: might crash by returning too much data
+        DEBUG_RESPONSE = False
 
-        # Print Full JSON to Serial
-        discord_debug_response = False  # Set True to see full response
-        if discord_debug_response:
-            ada_discord_dump_object = json.dumps(ada_res)
-            print("JSON Dump: ", ada_discord_dump_object)
+        try:
+            discord_response = requests.get(url=DISCORD_SOURCE, headers=DISCORD_HEADER)
+            discord_json = discord_response.json()
+        except ConnectionError as e:
+            print(f"Connection Error: {e}")
+            print("Retrying in 10 seconds")
+        print(" | ✅ Discord JSON!")
 
-        # Print keys to Serial
-        discord_debug_keys = True  # Set True to print Serial data
-        if discord_debug_keys:
-            ada_discord_all_members = ada_res["approximate_member_count"]
-            print("Members: ", ada_discord_all_members)
+        if DEBUG_RESPONSE:
+            print(f" |  | Full API GET URL: {DISCORD_SOURCE}")
+            print(f" |  | JSON Dump: {discord_json}")
 
-            ada_discord_all_members_online = ada_res["approximate_presence_count"]
-            print("Online: ", ada_discord_all_members_online)
+        discord_name = discord_json["name"]
+        print(f" |  | Name: {discord_name}")
 
-        print("Finished ✅")
-        print("Board Uptime: ", time_calc(time.monotonic()))
-        print("Next Update: ", time_calc(sleep_time))
+        discord_description = discord_json["description"]
+        print(f" |  | Description: {discord_description}")
+
+        discord_all_members = discord_json["approximate_member_count"]
+        print(f" |  | Members: {discord_all_members}")
+
+        discord_all_members_online = discord_json["approximate_presence_count"]
+        print(f" |  | Online: {discord_all_members_online}")
+
+        print("\nFinished!")
+        print(f"Board Uptime: {time.monotonic()}")
+        print(f"Next Update: {time_calc(SLEEP_TIME)}")
         print("===============================")
 
-    except (ConnectionError, ValueError, NameError) as e:
-        print("Failed to get data, retrying\n", e)
+    except (ValueError, RuntimeError) as e:
+        print(f"Failed to get data, retrying\n {e}")
         time.sleep(60)
-        continue
-    time.sleep(sleep_time)
+        break
+    time.sleep(SLEEP_TIME)
