@@ -7,11 +7,10 @@
 import os
 import time
 
-import microcontroller
 import adafruit_connection_manager
-import wifi
-
 import adafruit_requests
+import microcontroller
+import wifi
 
 # --- Fitbit Developer Account & oAuth App Required: ---
 # Required: Google Login (Fitbit owned by Google) & Fitbit Device
