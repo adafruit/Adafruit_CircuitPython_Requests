@@ -1,16 +1,13 @@
-# SPDX-FileCopyrightText: 2023 DJDevon3
+# SPDX-FileCopyrightText: 2024 DJDevon3
 # SPDX-License-Identifier: MIT
-"""
-Coded for Circuit Python 8.2.3
-requests_adafruit_discord_active_online
-"""
-import gc
-import json
+# Coded for Circuit Python 8.2.x
+"""Discord Active Online Shields.IO Example"""
+# pylint: disable=import-error
+
 import os
-import ssl
 import time
 
-import socketpool
+import adafruit_connection_manager
 import wifi
 
 import adafruit_requests
@@ -19,95 +16,75 @@ import adafruit_requests
 # JSON web scrape from SHIELDS.IO
 # Adafruit uses Shields.IO to see online users
 
-# Initialize WiFi Pool (There can be only 1 pool & top of script)
-pool = socketpool.SocketPool(wifi.radio)
-
-# Time in seconds between updates (polling)
-# 600 = 10 mins, 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
-sleep_time = 900
-
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 
+# API Polling Rate
+# 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
+SLEEP_TIME = 900
 
-# Converts seconds to minutes/hours/days
+# Initalize Wifi, Socket Pool, Request Session
+pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
+ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
+requests = adafruit_requests.Session(pool, ssl_context)
+
+
 def time_calc(input_time):
+    """Converts seconds to minutes/hours/days"""
     if input_time < 60:
-        sleep_int = input_time
-        time_output = f"{sleep_int:.0f} seconds"
-    elif 60 <= input_time < 3600:
-        sleep_int = input_time / 60
-        time_output = f"{sleep_int:.0f} minutes"
-    elif 3600 <= input_time < 86400:
-        sleep_int = input_time / 60 / 60
-        time_output = f"{sleep_int:.0f} hours"
-    else:
-        sleep_int = input_time / 60 / 60 / 24
-        time_output = f"{sleep_int:.1f} days"
-    return time_output
+        return f"{input_time:.0f} seconds"
+    if input_time < 3600:
+        return f"{input_time / 60:.0f} minutes"
+    if input_time < 86400:
+        return f"{input_time / 60 / 60:.0f} hours"
+    return f"{input_time / 60 / 60 / 24:.1f} days"
 
 
 # Originally attempted to use SVG. Found JSON exists with same filename.
 # https://img.shields.io/discord/327254708534116352.svg
 ADA_DISCORD_JSON = "https://img.shields.io/discord/327254708534116352.json"
 
-# Connect to Wi-Fi
-print("\n===============================")
-print("Connecting to WiFi...")
-requests = adafruit_requests.Session(pool, ssl.create_default_context())
-while not wifi.radio.ipv4_address:
-    try:
-        wifi.radio.connect(ssid, password)
-    except ConnectionError as e:
-        print("Connection Error:", e)
-        print("Retrying in 10 seconds")
-    time.sleep(10)
-    gc.collect()
-print("Connected!\n")
-
 while True:
-    try:
-        print(
-            "\nAttempting to GET DISCORD SHIELD JSON!"
-        )  # --------------------------------
-        # Print Request to Serial
-        debug_request = True  # Set true to see full request
-        if debug_request:
-            print("Full API GET URL: ", ADA_DISCORD_JSON)
-        print("===============================")
+    # Connect to Wi-Fi
+    print("\nConnecting to WiFi...")
+    while not wifi.radio.ipv4_address:
         try:
-            ada_response = requests.get(ADA_DISCORD_JSON).json()
+            wifi.radio.connect(ssid, password)
         except ConnectionError as e:
-            print("Connection Error:", e)
+            print("❌ Connection Error:", e)
             print("Retrying in 10 seconds")
+    print("✅ Wifi!")
+    try:
+        print(" | Attempting to GET Adafruit Discord JSON!")
+        # Set debug to True for full JSON response.
+        DEBUG_RESPONSE = True
 
-        # Print Full JSON to Serial
-        full_ada_json_response = True  # Change to true to see full response
-        if full_ada_json_response:
-            ada_dump_object = json.dumps(ada_response)
-            print("JSON Dump: ", ada_dump_object)
+        try:
+            shieldsio_response = requests.get(url=ADA_DISCORD_JSON)
+            shieldsio_json = shieldsio_response.json()
+        except ConnectionError as e:
+            print(f"Connection Error: {e}")
+            print("Retrying in 10 seconds")
+        print(" | ✅ Adafruit Discord JSON!")
 
-        # Print Debugging to Serial
-        ada_debug = True  # Set to True to print Serial data
-        if ada_debug:
-            ada_users = ada_response["value"]
-            print("JSON Value: ", ada_users)
-            online_string = " online"
-            replace_with_nothing = ""
-            string_replace_users = ada_users.replace(
-                online_string, replace_with_nothing
-            )
-            print("Replaced Value: ", string_replace_users)
-        print("Monotonic: ", time.monotonic())
+        if DEBUG_RESPONSE:
+            print(" |  | Full API GET URL: ", ADA_DISCORD_JSON)
+            print(" |  | JSON Dump: ", shieldsio_json)
+
+        ada_users = shieldsio_json["value"]
+        ONLINE_STRING = " online"
+        REPLACE_WITH_NOTHING = ""
+        active_users = ada_users.replace(ONLINE_STRING, REPLACE_WITH_NOTHING)
+        print(f" |  | Active Online Users: {active_users}")
 
         print("\nFinished!")
-        print("Next Update: ", time_calc(sleep_time))
+        print(f"Board Uptime: {time.monotonic()}")
+        print(f"Next Update: {time_calc(SLEEP_TIME)}")
         print("===============================")
-        gc.collect()
 
     except (ValueError, RuntimeError) as e:
-        print("Failed to get data, retrying\n", e)
+        print(f"Failed to get data, retrying\n {e}")
         time.sleep(60)
-        continue
-    time.sleep(sleep_time)
+        break
+    time.sleep(SLEEP_TIME)
