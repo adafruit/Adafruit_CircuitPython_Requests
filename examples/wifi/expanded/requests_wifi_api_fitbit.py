@@ -86,9 +86,10 @@ Refresh_Token = Fitbit_First_Refresh_Token
 top_nvm = microcontroller.nvm[0:64].decode()
 nvm_bytes = microcontroller.nvm[0:64]
 top_nvm_3bytes = nvm_bytes[0:3]
-print(f"Top NVM Length: {len(top_nvm)}")
-print(f"Top NVM: {top_nvm}")
-print(f"Top NVM bytes: {top_nvm_3bytes}")
+if DEBUG:
+    print(f"Top NVM Length: {len(top_nvm)}")
+    print(f"Top NVM: {top_nvm}")
+    print(f"Top NVM bytes: {top_nvm_3bytes}")
 if RESET_NVM:
     microcontroller.nvm[0:64] = bytearray(b"\x00" * 64)
     if top_nvm_3bytes == b"\x00\x00\x00":
