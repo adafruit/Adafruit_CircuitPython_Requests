@@ -7,8 +7,8 @@
 import os
 import time
 
-import microcontroller
 import adafruit_connection_manager
+import microcontroller
 import wifi
 
 import adafruit_requests
@@ -210,7 +210,7 @@ while True:
                     # You can manually set this token into settings.toml
                     print(f" | Next Token: {nvmtoken.decode()}")
                     print(" | 🔑 Next token written to NVM Successfully!")
-                except (OSError) as e:
+                except OSError as e:
                     print("OS Error:", e)
                     continue
                 if DEBUG:
@@ -218,7 +218,7 @@ while True:
                     print("Scope: ", fitbit_scope)
                     print("Token Type: ", fitbit_token_type)
                     print("UserID: ", fitbit_user_id)
-            except (KeyError) as e:
+            except KeyError as e:
                 print("Key Error:", e)
                 print("Expired token, invalid permission, or (key:value) pair error.")
                 time.sleep(SLEEP_TIME)
@@ -303,7 +303,7 @@ while True:
                 else:
                     print(" | Waiting for latest sync...")
                     print(" | ❌ Not enough values for today to display yet.")
-            except (KeyError) as keyerror:
+            except KeyError as keyerror:
                 print(f"Key Error: {keyerror}")
                 print(
                     "Too Many Requests, "
