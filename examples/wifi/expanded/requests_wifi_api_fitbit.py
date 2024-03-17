@@ -1,31 +1,21 @@
-# SPDX-FileCopyrightText: 2023 DJDevon3
+# SPDX-FileCopyrightText: 2024 DJDevon3
 # SPDX-License-Identifier: MIT
-# Coded for Circuit Python 8.2
+# Coded for Circuit Python 8.2.x
+"""Fitbit API Example"""
+# pylint: disable=import-error, disable=no-member
 
 import os
-import ssl
 import time
 
 import microcontroller
-import socketpool
+import adafruit_connection_manager
 import wifi
 
 import adafruit_requests
 
-# Initialize WiFi Pool (There can be only 1 pool & top of script)
-pool = socketpool.SocketPool(wifi.radio)
-
-# STREAMER WARNING: private data will be viewable while debug True
-debug = False  # Set True for full debug view
-
-# Can use to confirm first instance of NVM is correct refresh token
-top_nvm = microcontroller.nvm[0:64].decode()
-if debug:
-    print(f"Top NVM: {top_nvm}")  # NVM before settings.toml loaded
-
 # --- Fitbit Developer Account & oAuth App Required: ---
 # Required: Google Login (Fitbit owned by Google) & Fitbit Device
-# Step 1: Create a personal app here: https://dev.fitbit.com
+# Step 1: Register a personal app here: https://dev.fitbit.com
 # Step 2: Use their Tutorial to get the Token and first Refresh Token
 # Fitbit's Tutorial Step 4 is as far as you need to go.
 # https://dev.fitbit.com/build/reference/web-api/troubleshooting-guide/oauth2-tutorial/
@@ -39,277 +29,327 @@ if debug:
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
-
-Fitbit_ClientID = os.getenv("Fitbit_ClientID")
-Fitbit_Token = os.getenv("Fitbit_Token")
+Fitbit_ClientID = os.getenv("FITBIT_CLIENTID")
+Fitbit_Token = os.getenv("FITBIT_ACCESS_TOKEN")
 Fitbit_First_Refresh_Token = os.getenv(
-    "Fitbit_First_Refresh_Token"
+    "FITBIT_FIRST_REFRESH_TOKEN"
 )  # overides nvm first run only
-Fitbit_UserID = os.getenv("Fitbit_UserID")
+Fitbit_UserID = os.getenv("FITBIT_USERID")
 
-# Time between API refreshes
-# 300 = 5 mins, 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
-sleep_time = 900
+# Set debug to True for full INTRADAY JSON response.
+# WARNING: may include visible credentials
+# MICROCONTROLLER WARNING: might crash by returning too much data
+DEBUG = False
+
+# Set debug to True for full DEVICE (Watch) JSON response.
+# WARNING: may include visible credentials
+# This will not return enough data to crash your device.
+DEBUG_DEVICE = False
+
+# No data from midnight to 00:15 due to lack of 15 values.
+# Debug midnight to display something else in this time frame.
+MIDNIGHT_DEBUG = False
+
+# WARNING: Optional: Resets board nvm to factory default. Clean slate.
+# Instructions will be printed to console while reset is True.
+RESET_NVM = False  # Set True once, then back to False
+if RESET_NVM:
+    microcontroller.nvm[0:64] = bytearray(b"\x00" * 64)
+# API Polling Rate
+# 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
+SLEEP_TIME = 900
+
+# Initalize Wifi, Socket Pool, Request Session
+pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
+ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
+requests = adafruit_requests.Session(pool, ssl_context)
 
 
-# Converts seconds in minutes/hours/days
 def time_calc(input_time):
+    """Converts seconds to minutes/hours/days"""
     if input_time < 60:
-        sleep_int = input_time
-        time_output = f"{sleep_int:.0f} seconds"
-    elif 60 <= input_time < 3600:
-        sleep_int = input_time / 60
-        time_output = f"{sleep_int:.0f} minutes"
-    elif 3600 <= input_time < 86400:
-        sleep_int = input_time / 60 / 60
-        time_output = f"{sleep_int:.1f} hours"
-    else:
-        sleep_int = input_time / 60 / 60 / 24
-        time_output = f"{sleep_int:.1f} days"
-    return time_output
+        return f"{input_time:.0f} seconds"
+    if input_time < 3600:
+        return f"{input_time / 60:.0f} minutes"
+    if input_time < 86400:
+        return f"{input_time / 60 / 60:.0f} hours"
+    return f"{input_time / 60 / 60 / 24:.1f} days"
 
 
 # Authenticates Client ID & SHA-256 Token to POST
-fitbit_oauth_header = {"Content-Type": "application/x-www-form-urlencoded"}
-fitbit_oauth_token = "https://api.fitbit.com/oauth2/token"
+FITBIT_OAUTH_HEADER = {"Content-Type": "application/x-www-form-urlencoded"}
+FITBIT_OAUTH_TOKEN = "https://api.fitbit.com/oauth2/token"
 
-# Connect to Wi-Fi
-print("\n===============================")
-print("Connecting to WiFi...")
-requests = adafruit_requests.Session(pool, ssl.create_default_context())
-while not wifi.radio.ipv4_address:
-    try:
-        wifi.radio.connect(ssid, password)
-    except ConnectionError as e:
-        print("Connection Error:", e)
-        print("Retrying in 10 seconds")
-    time.sleep(10)
-print("Connected!\n")
-
-# First run uses settings.toml token
+# Use to confirm first instance of NVM is the correct refresh token
+FIRST_RUN = True
 Refresh_Token = Fitbit_First_Refresh_Token
-
-if debug:
-    print(f"Top NVM Again (just to make sure): {top_nvm}")
-    print(f"Settings.toml Initial Refresh Token: {Fitbit_First_Refresh_Token}")
-
-latest_15_avg = "Latest 15 Minute Averages"
-while True:
-    # Use Settings.toml refresh token on first run
-    if top_nvm != Fitbit_First_Refresh_Token:
+top_nvm = microcontroller.nvm[0:64].decode()
+nvm_bytes = microcontroller.nvm[0:64]
+top_nvm_3bytes = nvm_bytes[0:3]
+print(f"Top NVM Length: {len(top_nvm)}")
+print(f"Top NVM: {top_nvm}")
+print(f"Top NVM bytes: {top_nvm_3bytes}")
+if RESET_NVM:
+    microcontroller.nvm[0:64] = bytearray(b"\x00" * 64)
+    if top_nvm_3bytes == b"\x00\x00\x00":
+        print("TOP NVM IS BRAND NEW! WAITING FOR A FIRST TOKEN")
+        Fitbit_First_Refresh_Token = top_nvm
+        print(f"Top NVM RESET: {top_nvm}")  # No token should appear
         Refresh_Token = microcontroller.nvm[0:64].decode()
-        if debug:
-            # NVM 64 should match Current Refresh Token
-            print(f"NVM 64: {microcontroller.nvm[0:64].decode()}")
-            print(f"Current Refresh_Token: {Refresh_Token}")
-    else:
-        if debug:
-            # First run use settings.toml refresh token instead
-            print(f"Initial_Refresh_Token: {Refresh_Token}")
-
-    try:
-        if debug:
-            print("\n-----Token Refresh POST Attempt -------")
-        fitbit_oauth_refresh_token = (
-            "&grant_type=refresh_token"
-            + "&client_id="
-            + str(Fitbit_ClientID)
-            + "&refresh_token="
-            + str(Refresh_Token)
-        )
-
-        # ----------------------------- POST FOR REFRESH TOKEN -----------------------
-        if debug:
-            print(
-                f"FULL REFRESH TOKEN POST:{fitbit_oauth_token}"
-                + f"{fitbit_oauth_refresh_token}"
-            )
-            print(f"Current Refresh Token: {Refresh_Token}")
-        # TOKEN REFRESH POST
-        fitbit_oauth_refresh_POST = requests.post(
-            url=fitbit_oauth_token,
-            data=fitbit_oauth_refresh_token,
-            headers=fitbit_oauth_header,
-        )
-        try:
-            fitbit_refresh_oauth_json = fitbit_oauth_refresh_POST.json()
-
-            fitbit_new_token = fitbit_refresh_oauth_json["access_token"]
-            if debug:
-                print("Your Private SHA-256 Token: ", fitbit_new_token)
-            fitbit_access_token = fitbit_new_token  # NEW FULL TOKEN
-
-            # If current token valid will respond
-            fitbit_new_refesh_token = fitbit_refresh_oauth_json["refresh_token"]
-            Refresh_Token = fitbit_new_refesh_token
-            fitbit_token_expiration = fitbit_refresh_oauth_json["expires_in"]
-            fitbit_scope = fitbit_refresh_oauth_json["scope"]
-            fitbit_token_type = fitbit_refresh_oauth_json["token_type"]
-            fitbit_user_id = fitbit_refresh_oauth_json["user_id"]
-            if debug:
-                print("Next Refresh Token: ", Refresh_Token)
-
-            # Store Next Token into NVM
+        print(f"Refresh_Token Reset: {Refresh_Token}")  # No token should appear
+while True:
+    if not RESET_NVM:
+        # Connect to Wi-Fi
+        print("\n📡 Connecting to WiFi...")
+        while not wifi.radio.ipv4_address:
             try:
-                nvmtoken = b"" + fitbit_new_refesh_token
+                wifi.radio.connect(ssid, password)
+            except ConnectionError as e:
+                print("❌ Connection Error:", e)
+                print("Retrying in 10 seconds")
+        print("✅ WiFi!")
+
+        if top_nvm is not Refresh_Token and FIRST_RUN is False:
+            FIRST_RUN = False
+            Refresh_Token = microcontroller.nvm[0:64].decode()
+            print(" | INDEFINITE RUN -------")
+            if DEBUG:
+                print("Top NVM is Fitbit First Refresh Token")
+                # NVM 64 should match Current Refresh Token
+                print(f"NVM 64: {microcontroller.nvm[0:64].decode()}")
+                print(f"Current Refresh_Token: {Refresh_Token}")
+        if top_nvm != Fitbit_First_Refresh_Token and FIRST_RUN is True:
+            if top_nvm_3bytes == b"\x00\x00\x00":
+                print(" | TOP NVM IS BRAND NEW! WAITING FOR A FIRST TOKEN")
+                Refresh_Token = Fitbit_First_Refresh_Token
+                nvmtoken = b"" + Refresh_Token
                 microcontroller.nvm[0:64] = nvmtoken
-                if debug:
-                    print(f"Next Token for NVM: {nvmtoken.decode()}")
-                print("Next token written to NVM Successfully!")
-            except OSError as e:
-                print("OS Error:", e)
-                continue
-
-            if debug:
-                # Extraneous token data for debugging
-                print("Token Expires in: ", time_calc(fitbit_token_expiration))
-                print("Scope: ", fitbit_scope)
-                print("Token Type: ", fitbit_token_type)
-                print("UserID: ", fitbit_user_id)
-
-        except KeyError as e:
-            print("Key Error:", e)
-            print("Expired token, invalid permission, or (key:value) pair error.")
-            time.sleep(300)
-            continue
-
-        # ----------------------------- GET DATA -------------------------------------
-        # POST should respond with current & next refresh token we can GET for data
-        # 64-bit Refresh tokens will "keep alive" SHA-256 token indefinitely
-        # Fitbit main SHA-256 token expires in 8 hours unless refreshed!
-        # ----------------------------------------------------------------------------
-        detail_level = "1min"  # Supported: 1sec | 1min | 5min | 15min
-        requested_date = "today"  # Date format yyyy-MM-dd or today
-        fitbit_header = {
-            "Authorization": "Bearer " + fitbit_access_token + "",
-            "Client-Id": "" + Fitbit_ClientID + "",
-        }
-        # Heart Intraday Scope
-        FITBIT_SOURCE = (
-            "https://api.fitbit.com/1/user/"
-            + Fitbit_UserID
-            + "/activities/heart/date/today"
-            + "/1d/"
-            + detail_level
-            + ".json"
-        )
-
-        print("\nAttempting to GET FITBIT Stats!")
-        print("===============================")
-        fitbit_get_response = requests.get(url=FITBIT_SOURCE, headers=fitbit_header)
-        try:
-            fitbit_json = fitbit_get_response.json()
-            intraday_response = fitbit_json["activities-heart-intraday"]["dataset"]
-        except ConnectionError as e:
-            print("Connection Error:", e)
-            print("Retrying in 10 seconds")
-
-        if debug:
-            print(f"Full API GET URL: {FITBIT_SOURCE}")
-            print(f"Header: {fitbit_header}")
-            # print(f"JSON Full Response: {fitbit_json}")
-            # print(f"Intraday Full Response: {intraday_response}")
-
-        try:
-            # Fitbit's sync to your mobile device & server every 15 minutes in chunks.
-            # Pointless to poll their API faster than 15 minute intervals.
-            activities_heart_value = fitbit_json["activities-heart-intraday"]["dataset"]
-            response_length = len(activities_heart_value)
-            if response_length >= 15:
-                activities_timestamp = fitbit_json["activities-heart"][0]["dateTime"]
-                print(f"Fitbit Date: {activities_timestamp}")
-                activities_latest_heart_time = fitbit_json["activities-heart-intraday"][
-                    "dataset"
-                ][response_length - 1]["time"]
-                print(f"Fitbit Time: {activities_latest_heart_time[0:-3]}")
-                print(f"Today's Logged Pulses : {response_length}")
-
-                # Each 1min heart rate is a 60 second average
-                activities_latest_heart_value0 = fitbit_json[
-                    "activities-heart-intraday"
-                ]["dataset"][response_length - 1]["value"]
-                activities_latest_heart_value1 = fitbit_json[
-                    "activities-heart-intraday"
-                ]["dataset"][response_length - 2]["value"]
-                activities_latest_heart_value2 = fitbit_json[
-                    "activities-heart-intraday"
-                ]["dataset"][response_length - 3]["value"]
-                activities_latest_heart_value3 = fitbit_json[
-                    "activities-heart-intraday"
-                ]["dataset"][response_length - 4]["value"]
-                activities_latest_heart_value4 = fitbit_json[
-                    "activities-heart-intraday"
-                ]["dataset"][response_length - 5]["value"]
-                activities_latest_heart_value5 = fitbit_json[
-                    "activities-heart-intraday"
-                ]["dataset"][response_length - 6]["value"]
-                activities_latest_heart_value6 = fitbit_json[
-                    "activities-heart-intraday"
-                ]["dataset"][response_length - 7]["value"]
-                activities_latest_heart_value7 = fitbit_json[
-                    "activities-heart-intraday"
-                ]["dataset"][response_length - 8]["value"]
-                activities_latest_heart_value8 = fitbit_json[
-                    "activities-heart-intraday"
-                ]["dataset"][response_length - 9]["value"]
-                activities_latest_heart_value9 = fitbit_json[
-                    "activities-heart-intraday"
-                ]["dataset"][response_length - 10]["value"]
-                activities_latest_heart_value10 = fitbit_json[
-                    "activities-heart-intraday"
-                ]["dataset"][response_length - 11]["value"]
-                activities_latest_heart_value11 = fitbit_json[
-                    "activities-heart-intraday"
-                ]["dataset"][response_length - 12]["value"]
-                activities_latest_heart_value12 = fitbit_json[
-                    "activities-heart-intraday"
-                ]["dataset"][response_length - 13]["value"]
-                activities_latest_heart_value13 = fitbit_json[
-                    "activities-heart-intraday"
-                ]["dataset"][response_length - 14]["value"]
-                activities_latest_heart_value14 = fitbit_json[
-                    "activities-heart-intraday"
-                ]["dataset"][response_length - 15]["value"]
-                latest_15_avg = "Latest 15 Minute Averages"
-                print(
-                    f"{latest_15_avg}"
-                    + f"{activities_latest_heart_value14},"
-                    + f"{activities_latest_heart_value13},"
-                    + f"{activities_latest_heart_value12},"
-                    + f"{activities_latest_heart_value11},"
-                    + f"{activities_latest_heart_value10},"
-                    + f"{activities_latest_heart_value9},"
-                    + f"{activities_latest_heart_value8},"
-                    + f"{activities_latest_heart_value7},"
-                    + f"{activities_latest_heart_value6},"
-                    + f"{activities_latest_heart_value5},"
-                    + f"{activities_latest_heart_value4},"
-                    + f"{activities_latest_heart_value3},"
-                    + f"{activities_latest_heart_value2},"
-                    + f"{activities_latest_heart_value1},"
-                    + f"{activities_latest_heart_value0}"
-                )
             else:
-                print("Waiting for latest 15 values sync...")
-                print("Not enough values for today to display yet.")
-                print("No display from midnight to 00:15")
-
-        except KeyError as keyerror:
-            print(f"Key Error: {keyerror}")
-            print(
-                "Too Many Requests, Expired token,"
-                + "invalid permission,"
-                + "or (key:value) pair error."
+                if DEBUG:
+                    print(f"Top NVM: {top_nvm}")
+                    print(f"First Refresh: {Refresh_Token}")
+                    print(f"First Run: {FIRST_RUN}")
+                Refresh_Token = top_nvm
+                FIRST_RUN = False
+                print(" | MANUAL REBOOT TOKEN DIFFERENCE -------")
+                if DEBUG:
+                    # NVM 64 should not match Current Refresh Token
+                    print("Top NVM is NOT Fitbit First Refresh Token")
+                    print(f"NVM 64: {microcontroller.nvm[0:64].decode()}")
+                    print(f"Current Refresh_Token: {Refresh_Token}")
+        if top_nvm == Refresh_Token and FIRST_RUN is True:
+            if DEBUG:
+                print(f"Top NVM: {top_nvm}")
+                print(f"First Refresh: {Refresh_Token}")
+                print(f"First Run: {FIRST_RUN}")
+            Refresh_Token = Fitbit_First_Refresh_Token
+            nvmtoken = b"" + Refresh_Token
+            microcontroller.nvm[0:64] = nvmtoken
+            FIRST_RUN = False
+            print(" | FIRST RUN SETTINGS.TOML TOKEN-------")
+            if DEBUG:
+                # NVM 64 should match Current Refresh Token
+                print("Top NVM IS Fitbit First Refresh Token")
+                print(f"NVM 64: {microcontroller.nvm[0:64].decode()}")
+                print(f"Current Refresh_Token: {Refresh_Token}")
+        try:
+            if DEBUG:
+                print("\n-----Token Refresh POST Attempt -------")
+            FITBIT_OAUTH_REFRESH_TOKEN = (
+                "&grant_type=refresh_token"
+                + "&client_id="
+                + str(Fitbit_ClientID)
+                + "&refresh_token="
+                + str(Refresh_Token)
             )
+
+            # ------------------------- POST FOR REFRESH TOKEN --------------------
+            print(" | Requesting authorization for next token")
+            if DEBUG:
+                print(
+                    "FULL REFRESH TOKEN POST:"
+                    + f"{FITBIT_OAUTH_TOKEN}{FITBIT_OAUTH_REFRESH_TOKEN}"
+                )
+                print(f"Current Refresh Token: {Refresh_Token}")
+            # TOKEN REFRESH POST
+            try:
+                fitbit_oauth_refresh_POST = requests.post(
+                    url=FITBIT_OAUTH_TOKEN,
+                    data=FITBIT_OAUTH_REFRESH_TOKEN,
+                    headers=FITBIT_OAUTH_HEADER,
+                )
+            except adafruit_requests.OutOfRetries as ex:
+                print(f"OutOfRetries: {ex}")
+                break
+            try:
+                fitbit_refresh_oauth_json = fitbit_oauth_refresh_POST.json()
+
+                fitbit_new_token = fitbit_refresh_oauth_json["access_token"]
+                if DEBUG:
+                    print("Your Private SHA-256 Token: ", fitbit_new_token)
+                fitbit_access_token = fitbit_new_token  # NEW FULL TOKEN
+
+                # Overwrites Initial/Old Refresh Token with Next/New Refresh Token
+                fitbit_new_refesh_token = fitbit_refresh_oauth_json["refresh_token"]
+                Refresh_Token = fitbit_new_refesh_token
+
+                fitbit_token_expiration = fitbit_refresh_oauth_json["expires_in"]
+                fitbit_scope = fitbit_refresh_oauth_json["scope"]
+                fitbit_token_type = fitbit_refresh_oauth_json["token_type"]
+                fitbit_user_id = fitbit_refresh_oauth_json["user_id"]
+                if DEBUG:
+                    print("Next Refresh Token: ", Refresh_Token)
+                try:
+                    # Stores Next token in NVM
+                    nvmtoken = b"" + Refresh_Token
+                    microcontroller.nvm[0:64] = nvmtoken
+                    if DEBUG:
+                        print(f"nvmtoken: {nvmtoken}")
+                    # It's better to always have next token visible.
+                    # You can manually set this token into settings.toml
+                    print(f" | Next Token: {nvmtoken.decode()}")
+                    print(" | 🔑 Next token written to NVM Successfully!")
+                except (OSError) as e:
+                    print("OS Error:", e)
+                    continue
+                if DEBUG:
+                    print("Token Expires in: ", time_calc(fitbit_token_expiration))
+                    print("Scope: ", fitbit_scope)
+                    print("Token Type: ", fitbit_token_type)
+                    print("UserID: ", fitbit_user_id)
+            except (KeyError) as e:
+                print("Key Error:", e)
+                print("Expired token, invalid permission, or (key:value) pair error.")
+                time.sleep(SLEEP_TIME)
+                continue
+            # ----------------------------- GET DATA ---------------------------------
+            # Now that we have POST response with next refresh token we can GET for data
+            # 64-bit Refresh tokens will "keep alive" SHA-256 token indefinitely
+            # Fitbit main SHA-256 token expires in 8 hours unless refreshed!
+            # ------------------------------------------------------------------------
+            DETAIL_LEVEL = "1min"  # Supported: 1sec | 1min | 5min | 15min
+            REQUESTED_DATE = "today"  # Date format yyyy-MM-dd or "today"
+            fitbit_header = {
+                "Authorization": "Bearer " + fitbit_access_token + "",
+                "Client-Id": "" + Fitbit_ClientID + "",
+            }
+            # Heart Intraday Scope
+            FITBIT_INTRADAY_SOURCE = (
+                "https://api.fitbit.com/1/user/"
+                + Fitbit_UserID
+                + "/activities/heart/date/"
+                + REQUESTED_DATE
+                + "/1d/"
+                + DETAIL_LEVEL
+                + ".json"
+            )
+            # Device Details
+            FITBIT_DEVICE_SOURCE = (
+                "https://api.fitbit.com/1/user/" + Fitbit_UserID + "/devices.json"
+            )
+
+            print(" | Attempting to GET Fitbit JSON!")
+            FBIS = FITBIT_INTRADAY_SOURCE
+            FBH = fitbit_header
+            fitbit_get_response = requests.get(url=FBIS, headers=FBH)
+            try:
+                fitbit_json = fitbit_get_response.json()
+            except ConnectionError as e:
+                print("Connection Error:", e)
+                print("Retrying in 10 seconds")
+            print(" | ✅ Fitbit Intraday JSON!")
+
+            if DEBUG:
+                print(f"Full API GET URL: {FBIS}")
+                print(f"Header: {fitbit_header}")
+                # This might crash your microcontroller.
+                # Commented out even in debug. Use only if absolutely necessary.
+
+                # print(f"JSON Full Response: {fitbit_json}")
+                Intraday_Response = fitbit_json["activities-heart-intraday"]["dataset"]
+                # print(f"Intraday Full Response: {Intraday_Response}")
+            try:
+                # Fitbit's sync to mobile device & server every 15 minutes in chunks.
+                # Pointless to poll their API faster than 15 minute intervals.
+                activities_heart_value = fitbit_json["activities-heart-intraday"][
+                    "dataset"
+                ]
+                if MIDNIGHT_DEBUG:
+                    RESPONSE_LENGTH = 0
+                else:
+                    RESPONSE_LENGTH = len(activities_heart_value)
+                if RESPONSE_LENGTH >= 15:
+                    activities_timestamp = fitbit_json["activities-heart"][0][
+                        "dateTime"
+                    ]
+                    print(f" |  | Fitbit Date: {activities_timestamp}")
+                    if MIDNIGHT_DEBUG:
+                        ACTIVITIES_LATEST_HEART_TIME = str("00:05:00")
+                    else:
+                        ACTIVITIES_LATEST_HEART_TIME = fitbit_json[
+                            "activities-heart-intraday"
+                        ]["dataset"][RESPONSE_LENGTH - 1]["time"]
+                    print(f" |  | Fitbit Time: {ACTIVITIES_LATEST_HEART_TIME[0:-3]}")
+                    print(f" |  | Today's Logged Pulses: {RESPONSE_LENGTH}")
+
+                    # Each 1min heart rate is a 60 second average
+                    LATEST_15_AVG = " |  | Latest 15 Minute Averages: "
+                    LATEST_15_VALUES = ", ".join(
+                        str(activities_heart_value[i]["value"])
+                        for i in range(RESPONSE_LENGTH - 1, RESPONSE_LENGTH - 16, -1)
+                    )
+                    print(f"{LATEST_15_AVG}{LATEST_15_VALUES}")
+                else:
+                    print(" | Waiting for latest sync...")
+                    print(" | ❌ Not enough values for today to display yet.")
+            except (KeyError) as keyerror:
+                print(f"Key Error: {keyerror}")
+                print(
+                    "Too Many Requests, "
+                    + "Expired token, "
+                    + "invalid permission, "
+                    + "or (key:value) pair error."
+                )
+                time.sleep(60)
+                continue
+            # Getting Fitbit Device JSON (separate from intraday)
+            # Separate call for Watch Battery Percentage.
+            print(" | Attempting to GET Device JSON!")
+            FBDS = FITBIT_DEVICE_SOURCE
+            FBH = fitbit_header
+            fitbit_get_device_response = requests.get(url=FBDS, headers=FBH)
+            try:
+                fitbit_device_json = fitbit_get_device_response.json()
+            except ConnectionError as e:
+                print("Connection Error:", e)
+                print("Retrying in 10 seconds")
+            print(" | ✅ Fitbit Device JSON!")
+
+            if DEBUG_DEVICE:
+                print(f"Full API GET URL: {FITBIT_DEVICE_SOURCE}")
+                print(f"Header: {fitbit_header}")
+                print(f"JSON Full Response: {fitbit_device_json}")
+            Device_Response = fitbit_device_json[1]["batteryLevel"]
+            print(f" |  | Watch Battery %: {Device_Response}")
+
+            print("\nFinished!")
+            print(f"Board Uptime: {time_calc(time.monotonic())}")
+            print(f"Next Update: {time_calc(SLEEP_TIME)}")
+            print("===============================")
+        except (ValueError, RuntimeError) as e:
+            print("Failed to get data, retrying\n", e)
+            time.sleep(60)
             continue
-
-        print("Board Uptime: ", time_calc(time.monotonic()))  # Board Up-Time seconds
-        print("\nFinished!")
-        print("Next Update in: ", time_calc(sleep_time))
-        print("===============================")
-
-    except (ValueError, RuntimeError) as e:
-        print("Failed to get data, retrying\n", e)
-        time.sleep(60)
-        continue
-    time.sleep(sleep_time)
+        time.sleep(SLEEP_TIME)
+    else:
+        print("🚮 NVM Cleared!")
+        print(
+            "⚠️ Save your new access token & refresh token from"
+            "Fitbits Tutorial (Step 4) to settings.toml now."
+        )
+        print(
+            "⚠️ If the script runs again"
+            "(due to settings.toml file save) while reset=True that's ok!"
+        )
+        print("⚠️ Then set RESET_NVM back to False.")
+        break
