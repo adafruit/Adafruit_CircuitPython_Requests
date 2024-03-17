@@ -7,8 +7,8 @@
 import os
 import time
 
-import adafruit_connection_manager
 import microcontroller
+import adafruit_connection_manager
 import wifi
 
 import adafruit_requests
@@ -345,7 +345,7 @@ while True:
     else:
         print("🚮 NVM Cleared!")
         print(
-            "⚠️ Save your new access token & refresh token from"
+            "⚠️ Save your new access token & refresh token from "
             "Fitbits Tutorial (Step 4) to settings.toml now."
         )
         print(
