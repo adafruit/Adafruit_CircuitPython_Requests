@@ -158,7 +158,7 @@ while True:
             # print(f" |  | Last Contact Unix Time: {osn_time}")
             osn_struct_time = time.localtime(osn_time)
             osn_readable_time = f"{_format_datetime(osn_struct_time)}"
-            print(f" |  | Last Contact: {osn_readable_time}")
+            print(f" |  | Timestamp: {osn_readable_time}")
 
             if osn_all_flights is not None:
                 # print("Flight Data: ", osn_all_flights)
