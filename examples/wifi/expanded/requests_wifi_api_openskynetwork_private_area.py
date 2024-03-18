@@ -14,16 +14,13 @@ from adafruit_binascii import b2a_base64
 import adafruit_requests
 
 # OpenSky-Network.org Website Login required for this API
+# Increased call limit vs Public.
 # REST API: https://openskynetwork.github.io/opensky-api/rest.html
 # Retrieves all traffic within a geographic area (Orlando example)
 LATMIN = "27.22"  # east bounding box
 LATMAX = "28.8"  # west bounding box
 LONMIN = "-81.46"  # north bounding box
 LONMAX = "-80.40"  # south bounding box
-
-# Github developer token required.
-username = os.getenv("GITHUB_USERNAME")
-token = os.getenv("GITHUB_TOKEN")
 
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
