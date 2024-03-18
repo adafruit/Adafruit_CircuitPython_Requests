@@ -9,9 +9,9 @@ import time
 
 import adafruit_connection_manager
 import wifi
+from adafruit_binascii import b2a_base64
 
 import adafruit_requests
-from adafruit_binascii import b2a_base64
 
 # OpenSky-Network.org Website Login required for this API
 # REST API: https://openskynetwork.github.io/opensky-api/rest.html
