@@ -20,10 +20,6 @@ import adafruit_requests
 # ACTIVE transpondes only, for multiple "c822af&icao24=cb3993&icao24=c63923"
 TRANSPONDER = "471efd"
 
-# Github developer token required.
-username = os.getenv("GITHUB_USERNAME")
-token = os.getenv("GITHUB_TOKEN")
-
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
