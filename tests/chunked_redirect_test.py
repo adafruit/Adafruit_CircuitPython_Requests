@@ -113,7 +113,7 @@ BODY = (
 )
 
 
-class MocketRecvInto(mocket.Mocket):  # pylint: disable=too-few-public-methods
+class MocketRecvInto(mocket.Mocket):
     """A special Mocket to cap the number of bytes returned from recv_into()"""
 
     def __init__(self, response):

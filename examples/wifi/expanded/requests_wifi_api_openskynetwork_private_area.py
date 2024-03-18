@@ -166,7 +166,7 @@ while True:
                     osn_pr = f"Task:{flights[15]} "
                     osn_ps = f"PosSys:{flights[16]} "
                     osn_ca = f"Cat:{flights[16]} "
-                    # This is just because pylint complains about long lines
+                    # This is just because ruff complains about long lines
                     string1 = f"{osn_t}{osn_c}{osn_o}{osn_tm}{osn_l}{osn_lo}"
                     string2 = f"{osn_la}{osn_ba}{osn_g}{osn_v}{osn_h}{osn_vr}"
                     string3 = f"{osn_s}{osn_ga}{osn_sq}{osn_pr}{osn_ps}{osn_ca}"

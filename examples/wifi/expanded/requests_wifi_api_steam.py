@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.2.x
 """Steam API Get Owned Games Example"""
-# pylint: disable=import-error
 
 import os
 import time
@@ -39,7 +38,7 @@ pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
 ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
 requests = adafruit_requests.Session(pool, ssl_context)
 
-# Deconstruct URL (pylint hates long lines)
+# Deconstruct URL (ruff hates long lines)
 # http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/
 # ?key=XXXXXXXXXXXXXXXXXXXXX&include_played_free_games=1&steamid=XXXXXXXXXXXXXXXX&format=json
 STEAM_SOURCE = (
