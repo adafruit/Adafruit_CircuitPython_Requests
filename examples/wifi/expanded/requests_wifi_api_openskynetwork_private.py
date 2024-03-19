@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2024 DJDevon3
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.2.x
-"""OpenSky-Network.org Private API Example"""
+"""OpenSky-Network.org Single Flight Private API Example"""
 # pylint: disable=import-error
 
 import os
@@ -18,7 +18,7 @@ import adafruit_requests
 # All active flights JSON: https://opensky-network.org/api/states/all  # PICK ONE! :)
 # JSON order: transponder, callsign, country
 # ACTIVE transpondes only, for multiple "c822af&icao24=cb3993&icao24=c63923"
-TRANSPONDER = "471efd"
+TRANSPONDER = "4b1806"
 
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
@@ -46,7 +46,7 @@ OSN_CREDENTIALS = str(osnusername) + ":" + str(osnpassword)
 OSN_CREDENTIALS_B = b"" + str(OSN_CREDENTIALS) + ""
 BASE64_ASCII = b2a_base64(OSN_CREDENTIALS_B)
 BASE64_STRING = str(BASE64_ASCII)  # bytearray
-TRUNCATED_BASE64_STRING = BASE64_STRING[2:-1]  # truncate bytearray head/tail
+TRUNCATED_BASE64_STRING = BASE64_STRING[2:-3]  # truncate bytearray head/tail
 
 if DEBUG:
     print("Original Binary Data: ", OSN_CREDENTIALS_B)
@@ -56,7 +56,7 @@ if DEBUG:
 # Requests URL - icao24 is their endpoint required for a transponder
 # example https://opensky-network.org/api/states/all?icao24=a808c5
 # OSN private: requires your website username:password to be base64 encoded
-OSN_HEADER = {"Authorization": "Basic " + str(TRUNCATED_BASE64_STRING)}
+OPENSKY_HEADER = {"Authorization": "Basic " + str(TRUNCATED_BASE64_STRING)}
 OPENSKY_SOURCE = "https://opensky-network.org/api/states/all?" + "icao24=" + TRANSPONDER
 
 
@@ -94,9 +94,10 @@ while True:
     print("✅ Wifi!")
 
     try:
-        print(" | Attempting to GET OpenSky-Network Single Flight JSON!")
+        print(" | Attempting to GET OpenSky-Network Single Private Flight JSON!")
+        print(" | Website Credentials Required! Allows more daily calls than Public.")
         try:
-            opensky_response = requests.get(url=OPENSKY_SOURCE, headers=OSN_HEADER)
+            opensky_response = requests.get(url=OPENSKY_SOURCE, headers=OPENSKY_HEADER)
             opensky_json = opensky_response.json()
         except ConnectionError as e:
             print("Connection Error:", e)
@@ -106,6 +107,7 @@ while True:
 
         if DEBUG:
             print("Full API GET URL: ", OPENSKY_SOURCE)
+            print("Full API GET Header: ", OPENSKY_HEADER)
             print(opensky_json)
 
         # ERROR MESSAGE RESPONSES
@@ -134,7 +136,7 @@ while True:
 
         if osn_single_flight_data is not None:
             if DEBUG:
-                print(f" |  | Single Flight Data: {osn_single_flight_data}")
+                print(f" |  | Single Private Flight Data: {osn_single_flight_data}")
 
             last_contact = opensky_json["states"][0][4]
             # print(f" |  | Last Contact Unix Time: {last_contact}")
