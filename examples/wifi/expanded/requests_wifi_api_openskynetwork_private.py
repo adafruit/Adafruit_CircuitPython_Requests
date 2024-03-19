@@ -4,12 +4,12 @@
 """OpenSky-Network.org Single Flight Private API Example"""
 # pylint: disable=import-error
 
+import binascii
 import os
 import time
 
 import adafruit_connection_manager
 import wifi
-from adafruit_binascii import b2a_base64
 
 import adafruit_requests
 
@@ -43,14 +43,14 @@ requests = adafruit_requests.Session(pool, ssl_context)
 
 # -- Base64 Conversion --
 OSN_CREDENTIALS = str(osnusername) + ":" + str(osnpassword)
-OSN_CREDENTIALS_B = b"" + str(OSN_CREDENTIALS) + ""
-BASE64_ASCII = b2a_base64(OSN_CREDENTIALS_B)
-BASE64_STRING = str(BASE64_ASCII)  # bytearray
-TRUNCATED_BASE64_STRING = BASE64_STRING[2:-3]  # truncate bytearray head/tail
+# base64 encode and strip appended \n from bytearray
+OSN_CREDENTIALS_B = binascii.b2a_base64(b"" + str(OSN_CREDENTIALS)).strip()
+BASE64_STRING = str(OSN_CREDENTIALS_B)  # bytearray
+TRUNCATED_BASE64_STRING = BASE64_STRING[2:-1]  # truncate bytearray head/tail
 
 if DEBUG:
     print("Original Binary Data: ", OSN_CREDENTIALS_B)
-    print("Base64 ByteArray: ", BASE64_ASCII)
+    print("Base64 ByteArray: ", BASE64_STRING)
     print(f"Base64 String: {TRUNCATED_BASE64_STRING}")
 
 # Requests URL - icao24 is their endpoint required for a transponder
