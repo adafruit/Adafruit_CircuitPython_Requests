@@ -4,10 +4,10 @@
 """OpenSky-Network.org Single Flight Private API Example"""
 # pylint: disable=import-error
 
+import binascii
 import os
 import time
 
-import binascii
 import adafruit_connection_manager
 import wifi
 
