@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Mock Socket """
+"""Mock Socket"""
 
 from unittest import mock
 

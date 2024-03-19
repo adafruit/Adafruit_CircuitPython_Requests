@@ -284,7 +284,7 @@ while True:
                     ]
                     print(f" |  | Fitbit Date: {activities_timestamp}")
                     if MIDNIGHT_DEBUG:
-                        ACTIVITIES_LATEST_HEART_TIME = str("00:05:00")
+                        ACTIVITIES_LATEST_HEART_TIME = "00:05:00"
                     else:
                         ACTIVITIES_LATEST_HEART_TIME = fitbit_json[
                             "activities-heart-intraday"

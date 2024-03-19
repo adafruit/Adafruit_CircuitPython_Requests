@@ -20,7 +20,7 @@ print("-" * 60)
 
 json_data = response.json()
 headers = json_data["headers"]
-print("Response's Custom User-Agent Header: {0}".format(headers["User-Agent"]))
+print(f"Response's Custom User-Agent Header: {headers['User-Agent']}")
 print("-" * 60)
 
 # Read Response's HTTP status code
