@@ -1,15 +1,15 @@
 # SPDX-FileCopyrightText: 2024 DJDevon3
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.2.x
-"""OpenSky-Network.org Private API Example"""
+"""OpenSky-Network.org Private Area API Example"""
 # pylint: disable=import-error
 
+import binascii
 import os
 import time
 
 import adafruit_connection_manager
 import wifi
-from adafruit_binascii import b2a_base64
 
 import adafruit_requests
 
@@ -35,7 +35,8 @@ osnpassword = os.getenv("OSN_PASSWORD")  # Website Credentials
 SLEEP_TIME = 1800
 
 # Set debug to True for full JSON response.
-# WARNING: makes credentials visible
+# WARNING: makes credentials visible. based on how many flights
+# in your area, full response could crash microcontroller
 DEBUG = False
 
 # Initalize Wifi, Socket Pool, Request Session
@@ -45,18 +46,17 @@ requests = adafruit_requests.Session(pool, ssl_context)
 
 # -- Base64 Conversion --
 OSN_CREDENTIALS = str(osnusername) + ":" + str(osnpassword)
-OSN_CREDENTIALS_B = b"" + str(OSN_CREDENTIALS) + ""
-BASE64_ASCII = b2a_base64(OSN_CREDENTIALS_B)
-BASE64_STRING = str(BASE64_ASCII)  # bytearray
-TRUNCATED_BASE64_STRING = BASE64_STRING[2:-1]  # truncate bytearray head/tail
+# base64 encode and strip appended \n from bytearray
+OSN_CREDENTIALS_B = binascii.b2a_base64(b"" + str(OSN_CREDENTIALS)).strip()
+BASE64_STRING = str(OSN_CREDENTIALS_B)  # bytearray
+SLICED_BASE64_STRING = BASE64_STRING[2:-1]  # slice bytearray head/tail
 
 if DEBUG:
-    print("Original Binary Data: ", OSN_CREDENTIALS_B)
-    print("Base64 ByteArray: ", BASE64_ASCII)
-    print(f"Base64 String: {TRUNCATED_BASE64_STRING}")
+    print("Base64 ByteArray: ", BASE64_STRING)
+    print(f"Base64 Sliced String: {SLICED_BASE64_STRING}")
 
 # Area requires OpenSky-Network.org username:password to be base64 encoded
-OSN_HEADER = {"Authorization": "Basic " + str(TRUNCATED_BASE64_STRING)}
+OSN_HEADER = {"Authorization": "Basic " + str(SLICED_BASE64_STRING)}
 
 # Example request of all traffic over Florida.
 # Geographic areas calls cost less against the limit.
