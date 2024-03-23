@@ -429,7 +429,7 @@ class Session:
             content_type_header = "application/x-www-form-urlencoded"
             _post_data = ""
             for k in data:
-                _post_data = "{}&{}={}".format(_post_data, k, data[k])
+                _post_data = f"{_post_data}&{k}={data[k]}"
             # remove first "&" from concatenation
             data = _post_data[1:]
 

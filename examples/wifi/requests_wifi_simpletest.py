@@ -50,7 +50,7 @@ print("-" * 40)
 response.close()
 
 data = "31F"
-print("POSTing data to {0}: {1}".format(JSON_POST_URL, data))
+print(f"POSTing data to {JSON_POST_URL}: {data}")
 response = requests.post(JSON_POST_URL, data=data)
 print("-" * 40)
 
@@ -61,7 +61,7 @@ print("-" * 40)
 response.close()
 
 json_data = {"Date": "July 25, 2019"}
-print("POSTing data to {0}: {1}".format(JSON_POST_URL, json_data))
+print(f"POSTing data to {JSON_POST_URL}: {json_data}")
 response = requests.post(JSON_POST_URL, json=json_data)
 print("-" * 40)
 
