@@ -3,8 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""
-`adafruit_requests`
+"""`adafruit_requests`
 ================================================================================
 
 A requests-like library for web interfacing
@@ -72,7 +71,7 @@ class _RawResponse:
     def readinto(self, buf: bytearray) -> int:
         """Read as much as available into buf or until it is full. Returns the number of bytes read
         into buf."""
-        return self._response._readinto(buf)  # pylint: disable=protected-access
+        return self._response._readinto(buf)
 
 
 class OutOfRetries(Exception):
@@ -81,8 +80,6 @@ class OutOfRetries(Exception):
 
 class Response:
     """The response from a request, contains all the headers/content"""
-
-    # pylint: disable=too-many-instance-attributes
 
     encoding = None
 
@@ -116,9 +113,9 @@ class Response:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[type]],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        exc_type: type[type] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         self.close()
 
@@ -155,7 +152,7 @@ class Response:
             end += read
 
     def _read_from_buffer(
-        self, buf: Optional[bytearray] = None, nbytes: Optional[int] = None
+        self, buf: bytearray | None = None, nbytes: int | None = None
     ) -> int:
         if self._received_length == 0:
             return 0
@@ -232,7 +229,6 @@ class Response:
             return
 
         if self._session:
-            # pylint: disable=protected-access
             self._session._connection_manager.free_socket(self.socket)
         else:
             self.socket.close()
@@ -240,8 +236,7 @@ class Response:
         self.socket = None
 
     def _parse_headers(self) -> None:
-        """
-        Parses the header portion of an HTTP request/response from the socket.
+        """Parses the header portion of an HTTP request/response from the socket.
         Expects first line of HTTP request/response to have been read already.
         """
         while True:
@@ -263,7 +258,7 @@ class Response:
                     self._headers[title] = content
 
     def _validate_not_gzip(self) -> None:
-        """gzip encoding is not supported. Raise an exception if found."""
+        """Gzip encoding is not supported. Raise an exception if found."""
         if (
             "content-encoding" in self.headers
             and self.headers["content-encoding"] == "gzip"
@@ -274,9 +269,8 @@ class Response:
             )
 
     @property
-    def headers(self) -> Dict[str, str]:
-        """
-        The response headers. Does not include headers from the trailer until
+    def headers(self) -> dict[str, str]:
+        """The response headers. Does not include headers from the trailer until
         the content has been read.
         """
         return self._headers
@@ -295,7 +289,8 @@ class Response:
     @property
     def text(self) -> str:
         """The HTTP content, encoded into a string according to the HTTP
-        header encoding"""
+        header encoding
+        """
         if self._cached is not None:
             if isinstance(self._cached, str):
                 return self._cached
@@ -326,7 +321,8 @@ class Response:
 
     def iter_content(self, chunk_size: int = 1, decode_unicode: bool = False) -> bytes:
         """An iterator that will stream data by only reading 'chunk_size'
-        bytes and yielding them, when we can't buffer the whole datastream"""
+        bytes and yielding them, when we can't buffer the whole datastream
+        """
         if decode_unicode:
             raise NotImplementedError("Unicode not supported")
 
@@ -349,8 +345,8 @@ class Session:
     def __init__(
         self,
         socket_pool: SocketpoolModuleType,
-        ssl_context: Optional[SSLContextType] = None,
-        session_id: Optional[str] = None,
+        ssl_context: SSLContextType | None = None,
+        session_id: str | None = None,
     ) -> None:
         self._connection_manager = get_connection_manager(socket_pool)
         self._ssl_context = ssl_context
@@ -358,7 +354,7 @@ class Session:
         self._last_response = None
 
     @staticmethod
-    def _check_headers(headers: Dict[str, str]):
+    def _check_headers(headers: dict[str, str]):
         if not isinstance(headers, dict):
             raise AttributeError("headers must be in dict format")
 
@@ -405,14 +401,13 @@ class Session:
             self._send_as_bytes(socket, value)
         self._send(socket, b"\r\n")
 
-    # pylint: disable=too-many-arguments
-    def _send_request(
+    def _send_request(  # noqa: PLR0913 Too many arguments in function definition
         self,
         socket: SocketType,
         host: str,
         method: str,
         path: str,
-        headers: Dict[str, str],
+        headers: dict[str, str],
         data: Any,
         json: Any,
     ):
@@ -433,7 +428,7 @@ class Session:
             content_type_header = "application/x-www-form-urlencoded"
             _post_data = ""
             for k in data:
-                _post_data = "{}&{}={}".format(_post_data, k, data[k])
+                _post_data = f"{_post_data}&{k}={data[k]}"
             # remove first "&" from concatenation
             data = _post_data[1:]
 
@@ -467,14 +462,13 @@ class Session:
         if data:
             self._send(socket, bytes(data))
 
-    # pylint: disable=too-many-branches, too-many-statements, unused-argument, too-many-arguments, too-many-locals
-    def request(
+    def request(  # noqa: PLR0912,PLR0913,PLR0915 Too many branches,Too many arguments in function definition,Too many statements
         self,
         method: str,
         url: str,
-        data: Optional[Any] = None,
-        json: Optional[Any] = None,
-        headers: Optional[Dict[str, str]] = None,
+        data: Any | None = None,
+        json: Any | None = None,
+        headers: dict[str, str] | None = None,
         stream: bool = False,
         timeout: float = 60,
         allow_redirects: bool = True,

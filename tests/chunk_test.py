@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Chunk Tests """
+"""Chunk Tests"""
 
 from unittest import mock
 
@@ -85,7 +85,8 @@ def do_test_close_flush(
     extra=b"",
 ):
     """Test that a chunked response can be closed even when the
-    request contents were not accessed."""
+    request contents were not accessed.
+    """
     pool = mocket.MocketPool()
     pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 80)),)
     chunk = _chunk(TEXT, 33, extra)

@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Header Tests """
+"""Header Tests"""
 
 import mocket
 import pytest

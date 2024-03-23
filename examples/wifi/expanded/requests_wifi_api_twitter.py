@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.0
 """DJDevon3 Adafruit Feather ESP32-S2 Twitter_API_Example"""
+
 import gc
 import json
 import os
@@ -109,7 +110,7 @@ while True:
             print("Monotonic: ", time.monotonic())
 
         print("\nFinished!")
-        print("Next Update in %s %s" % (int(sleep_int), sleep_time_conversion))
+        print(f"Next Update in {int(sleep_int)} {sleep_time_conversion}")
         print("===============================")
         gc.collect()
 

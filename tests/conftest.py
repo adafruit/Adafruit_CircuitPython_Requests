@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" PyTest Setup """
+"""PyTest Setup"""
 
 import adafruit_connection_manager
 import mocket

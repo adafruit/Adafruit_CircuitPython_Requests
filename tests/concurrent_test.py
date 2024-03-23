@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Concurrent Tests """
+"""Concurrent Tests"""
 
 import errno
 from unittest import mock
