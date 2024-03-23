@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Mock Socket """
+"""Mock Socket"""
 
 from unittest import mock
 
@@ -84,9 +84,7 @@ class SSLContext:  # pylint: disable=too-few-public-methods
     def __init__(self):
         self.wrap_socket = mock.Mock(side_effect=self._wrap_socket)
 
-    def _wrap_socket(
-        self, sock, server_hostname=None
-    ):  # pylint: disable=no-self-use,unused-argument
+    def _wrap_socket(self, sock, server_hostname=None):  # pylint: disable=no-self-use,unused-argument
         return sock
 
 

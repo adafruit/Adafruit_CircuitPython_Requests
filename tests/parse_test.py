@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-"""  Parse Tests """
+"""Parse Tests"""
 
 import json
 

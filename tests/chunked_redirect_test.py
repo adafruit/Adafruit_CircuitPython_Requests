@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Redirection Tests """
+"""Redirection Tests"""
 
 from unittest import mock
 
