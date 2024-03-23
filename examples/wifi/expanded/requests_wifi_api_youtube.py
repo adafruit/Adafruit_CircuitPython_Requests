@@ -113,7 +113,7 @@ while True:
             print("Monotonic: ", time.monotonic())
 
         print("\nFinished!")
-        print("Next Update in %s %s" % (int(sleep_int), sleep_time_conversion))
+        print("Next Update in {} {}".format(int(sleep_int), sleep_time_conversion))
         print("===============================")
         gc.collect()
 
