@@ -106,7 +106,7 @@ def test_get_twice_after_second(pool, requests_ssl):
     pool.socket.assert_called_once()
 
     with pytest.raises(RuntimeError) as context:
-        result = response.text  # pylint: disable=unused-variable
+        result = response.text
     assert "Newer Response closed this one. Use Responses immediately." in str(context)
 
 

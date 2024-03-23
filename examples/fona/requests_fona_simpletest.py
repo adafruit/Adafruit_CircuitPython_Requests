@@ -10,8 +10,8 @@ import adafruit_fona.adafruit_fona_socket as pool
 import board
 import busio
 import digitalio
-from adafruit_fona.adafruit_fona import FONA  # pylint: disable=unused-import
-from adafruit_fona.fona_3g import FONA3G  # pylint: disable=unused-import
+from adafruit_fona.adafruit_fona import FONA
+from adafruit_fona.fona_3g import FONA3G
 
 import adafruit_requests
 

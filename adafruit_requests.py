@@ -72,7 +72,7 @@ class _RawResponse:
     def readinto(self, buf: bytearray) -> int:
         """Read as much as available into buf or until it is full. Returns the number of bytes read
         into buf."""
-        return self._response._readinto(buf)  # pylint: disable=protected-access
+        return self._response._readinto(buf)
 
 
 class OutOfRetries(Exception):
@@ -81,8 +81,6 @@ class OutOfRetries(Exception):
 
 class Response:
     """The response from a request, contains all the headers/content"""
-
-    # pylint: disable=too-many-instance-attributes
 
     encoding = None
 
@@ -232,7 +230,6 @@ class Response:
             return
 
         if self._session:
-            # pylint: disable=protected-access
             self._session._connection_manager.free_socket(self.socket)
         else:
             self.socket.close()
@@ -405,8 +402,7 @@ class Session:
             self._send_as_bytes(socket, value)
         self._send(socket, b"\r\n")
 
-    # pylint: disable=too-many-arguments
-    def _send_request(
+    def _send_request(  # noqa: PLR0913 Too many arguments in function definition
         self,
         socket: SocketType,
         host: str,
@@ -467,8 +463,7 @@ class Session:
         if data:
             self._send(socket, bytes(data))
 
-    # pylint: disable=too-many-branches, too-many-statements, unused-argument, too-many-arguments, too-many-locals
-    def request(
+    def request(  # noqa: PLR0912,PLR0913,PLR0915 Too many branches,Too many arguments in function definition,Too many statements
         self,
         method: str,
         url: str,
