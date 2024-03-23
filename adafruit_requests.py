@@ -70,8 +70,7 @@ class _RawResponse:
 
     def readinto(self, buf: bytearray) -> int:
         """Read as much as available into buf or until it is full. Returns the number of bytes read
-        into buf.
-        """
+        into buf."""
         return self._response._readinto(buf)
 
 
@@ -402,8 +401,7 @@ class Session:
             self._send_as_bytes(socket, value)
         self._send(socket, b"\r\n")
 
-    # ruff: noqa: PLR0913 Too many arguments in function definition
-    def _send_request(
+    def _send_request(  # noqa: PLR0913 Too many arguments in function definition
         self,
         socket: SocketType,
         host: str,
@@ -464,9 +462,7 @@ class Session:
         if data:
             self._send(socket, bytes(data))
 
-    # ruff: noqa: PLR0912 Too many branches
-    # ruff: noqa: PLR0915 Too many statements
-    def request(
+    def request(  # noqa: PLR0912,PLR0913,PLR0915 Too many branches,Too many arguments in function definition,Too many statements
         self,
         method: str,
         url: str,
