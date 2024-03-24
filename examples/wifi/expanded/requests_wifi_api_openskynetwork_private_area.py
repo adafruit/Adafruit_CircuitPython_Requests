@@ -91,14 +91,7 @@ def time_calc(input_time):  # input_time in seconds
 
 
 def _format_datetime(datetime):
-    return "{:02}/{:02}/{} {:02}:{:02}:{:02}".format(
-        datetime.tm_mon,
-        datetime.tm_mday,
-        datetime.tm_year,
-        datetime.tm_hour,
-        datetime.tm_min,
-        datetime.tm_sec,
-    )
+    return f"{datetime.tm_mon:02}/{datetime.tm_mday:02}/{datetime.tm_year} {datetime.tm_hour:02}:{datetime.tm_min:02}:{datetime.tm_sec:02}"
 
 
 # Connect to Wi-Fi
@@ -139,7 +132,7 @@ while True:
             print("Current Unix Time: ", osn_flight)
 
             current_struct_time = time.localtime(osn_flight)
-            current_date = "{}".format(_format_datetime(current_struct_time))
+            current_date = f"{_format_datetime(current_struct_time)}"
             print(f"Unix to Readable Time: {current_date}")
 
             # Current flight data for single callsign (right now)

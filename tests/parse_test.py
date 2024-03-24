@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-"""  Parse Tests """
+"""Parse Tests"""
 
 import json
 
@@ -15,13 +15,9 @@ ENCODED = json.dumps(RESPONSE).encode("utf-8")
 # Padding here tests the case where a header line is exactly 32 bytes buffered by
 # aligning the Content-Type header after it.
 HEADERS = (
-    (
-        "HTTP/1.0 200 OK\r\npadding: 000\r\n"
-        "Content-Type: application/json\r\nContent-Length: {}\r\n\r\n"
-    )
-    .format(len(ENCODED))
-    .encode("utf-8")
-)
+    "HTTP/1.0 200 OK\r\npadding: 000\r\n"
+    f"Content-Type: application/json\r\nContent-Length: {len(ENCODED)}\r\n\r\n"
+).encode()
 
 
 def test_json(pool):

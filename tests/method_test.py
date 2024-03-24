@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Post Tests """
+"""Post Tests"""
 
 from unittest import mock
 

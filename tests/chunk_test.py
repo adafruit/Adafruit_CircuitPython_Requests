@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Chunk Tests """
+"""Chunk Tests"""
 
 from unittest import mock
 
