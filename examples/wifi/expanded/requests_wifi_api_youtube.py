@@ -32,7 +32,8 @@ DEBUG = False
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
-# Requires Steam Developer API key
+# Requires YouTube/Google API key
+# https://console.cloud.google.com/apis/dashboard
 YT_USERNAME = os.getenv("YOUTUBE_USERNAME")
 YT_TOKEN = os.getenv("YOUTUBE_TOKEN")
 
