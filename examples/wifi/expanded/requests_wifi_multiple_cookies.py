@@ -1,36 +1,38 @@
 # SPDX-FileCopyrightText: 2022 Alec Delaney
 # SPDX-License-Identifier: MIT
-
-"""
-This example was written for the MagTag; changes may be needed
-for connecting to the internet depending on your device.
-"""
+# Coded for Circuit Python 9.0
+""" Multiple Cookies Example written for MagTag """
+# pylint: disable=import-error
 
 import os
-import ssl
 
-import socketpool
+import adafruit_connection_manager
 import wifi
 
 import adafruit_requests
-
-COOKIE_TEST_URL = "https://www.adafruit.com"
 
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 
-# Connect to the Wi-Fi network
-print("Connecting to %s" % ssid)
-wifi.radio.connect(ssid, password)
+COOKIE_TEST_URL = "https://www.adafruit.com"
 
-# Set up the requests library
-pool = socketpool.SocketPool(wifi.radio)
-requests = adafruit_requests.Session(pool, ssl.create_default_context())
+# Initalize Wifi, Socket Pool, Request Session
+pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
+ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
+requests = adafruit_requests.Session(pool, ssl_context)
 
-# GET from the URL
-print("Fetching multiple cookies from", COOKIE_TEST_URL)
-response = requests.get(COOKIE_TEST_URL)
+print(f"\nConnecting to {ssid}...")
+try:
+    # Connect to the Wi-Fi network
+    wifi.radio.connect(ssid, password)
+    # URL GET Request
+    response = requests.get(COOKIE_TEST_URL)
+except OSError as e:
+    print(f"❌ OSError: {e}")
+print("✅ Wifi!")
+
+print(f" | Fetching Cookies: {COOKIE_TEST_URL}")
 
 # Spilt up the cookies by ", "
 elements = response.headers["set-cookie"].split(", ")
@@ -49,10 +51,13 @@ for element in elements_iter:
         cookie_list.append(element)
 
 # Pring the information about the cookies
-print("Number of cookies:", len(cookie_list))
-print("")
-print("Cookies received:")
-print("-" * 40)
+print(f" | Total Cookies: {len(cookie_list)}")
+print("-" * 80)
+
 for cookie in cookie_list:
-    print(cookie)
-    print("-" * 40)
+    print(f" | 🍪 {cookie}")
+    print("-" * 80)
+
+response.close()
+print(f"✂️ Disconnected from {COOKIE_TEST_URL}")
+print("Finished!")
