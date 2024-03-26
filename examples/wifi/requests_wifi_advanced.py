@@ -15,9 +15,6 @@ import adafruit_requests
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 
-JSON_GET_URL = "https://httpbin.org/get"
-STATUS_TEST = "https://httpbin.org/status/"
-
 # Initalize Wifi, Socket Pool, Request Session
 pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
 ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
@@ -104,6 +101,8 @@ http_status_codes = {
     "511": "Network Authentication Required",
 }
 
+JSON_GET_URL = "https://httpbin.org/get"
+STATUS_TEST = "https://httpbin.org/status/"
 
 print(f"\nConnecting to {ssid}...")
 print(f"Signal Strength: {rssi}")
@@ -113,8 +112,6 @@ try:
 except OSError as e:
     print(f"❌ OSError: {e}")
 print("✅ Wifi!")
-
-JSON_GET_URL = "https://httpbin.org/get"
 
 # Define a custom header as a dict.
 HEADERS = {"user-agent": "blinka/1.0.0"}
@@ -134,8 +131,8 @@ print_http_status(STATUS_CODE, STATUS_DESCRIPTION)
 response.close()
 print(f" | ✂️ Disconnected from {JSON_GET_URL}")
 print(" | ")
-print(f" | Status Code Test: {JSON_GET_URL}")
 
+print(f" | Status Code Test: {STATUS_TEST}")
 # Some return errors then confirm the error (that's a good thing)
 # Demonstrates not all errors have the same behavior
 # 300, 304, and 306 in particular
