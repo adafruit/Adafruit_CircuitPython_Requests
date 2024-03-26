@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
 # SPDX-License-Identifier: MIT
 # Updated for Circuit Python 9.0
+# https://help.openai.com/en/articles/6825453-chatgpt-release-notes
+# https://chat.openai.com/share/32ef0c5f-ac92-4d36-9d1e-0f91e0c4c574
 """ WiFi Advanced (User-Agent & Status Codes) Example """
 # pylint: disable=import-error
 
