@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.2.x
 """Fitbit API Example"""
-# pylint: disable=import-error, disable=no-member
+# pylint: disable=no-member
 
 import os
 import time
