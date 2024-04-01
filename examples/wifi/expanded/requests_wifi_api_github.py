@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.2.x
 """Github API Example"""
-# pylint: disable=import-error
 
 import os
 import time
