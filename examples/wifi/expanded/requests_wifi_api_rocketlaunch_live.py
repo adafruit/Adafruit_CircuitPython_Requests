@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2024 DJDevon3
 # SPDX-License-Identifier: MIT
-# Coded for Circuit Python 8.2.x
+# Coded for Circuit Python 9.0
 """RocketLaunch.Live API Example"""
 
 import os
@@ -13,31 +13,22 @@ import adafruit_requests
 
 # Time between API refreshes
 # 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
-sleep_time = 43200
+SLEEP_TIME = 43200
 
 # Get WiFi details, ensure these are setup in settings.toml
-ssid = os.getenv("WIFI_SSID")
-password = os.getenv("WIFI_PASSWORD")
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 
 
-# Converts seconds in minutes/hours/days
 def time_calc(input_time):
+    """Converts seconds to minutes/hours/days"""
     if input_time < 60:
-        sleep_int = input_time
-        time_output = f"{sleep_int:.0f} seconds"
-    elif 60 <= input_time < 3600:
-        sleep_int = input_time / 60
-        time_output = f"{sleep_int:.0f} minutes"
-    elif 3600 <= input_time < 86400:
-        sleep_int = input_time / 60 / 60
-        time_output = f"{sleep_int:.0f} hours"
-    elif 86400 <= input_time < 432000:
-        sleep_int = input_time / 60 / 60 / 24
-        time_output = f"{sleep_int:.1f} days"
-    else:  # if > 5 days convert float to int & display whole days
-        sleep_int = input_time / 60 / 60 / 24
-        time_output = f"{sleep_int:.0f} days"
-    return time_output
+        return f"{input_time:.0f} seconds"
+    if input_time < 3600:
+        return f"{input_time / 60:.0f} minutes"
+    if input_time < 86400:
+        return f"{input_time / 60 / 60:.0f} hours"
+    return f"{input_time / 60 / 60 / 24:.1f} days"
 
 
 # Publicly available data no header required
@@ -81,7 +72,7 @@ while True:
         # JSON Endpoints
         RLFN = str(rocketlaunch_json["result"][0]["name"])
         RLWO = str(rocketlaunch_json["result"][0]["win_open"])
-        TMINUS = str(rocketlaunch_json["result"][0]["t0"])
+        TZERO = str(rocketlaunch_json["result"][0]["t0"])
         RLWC = str(rocketlaunch_json["result"][0]["win_close"])
         RLP = str(rocketlaunch_json["result"][0]["provider"]["name"])
         RLVN = str(rocketlaunch_json["result"][0]["vehicle"]["name"])
@@ -100,10 +91,26 @@ while True:
             print(f" |  | Provider: {RLP}")
         if RLVN != "None":
             print(f" |  | Vehicle: {RLVN}")
-        if RLWO != "None":
-            print(f" |  | Window: {RLWO} to {RLWC}")
-        elif TMINUS != "None":
-            print(f" |  | Window: {TMINUS} to {RLWC}")
+
+        # Launch time can sometimes be Window Open to Close, T-Zero, or weird combination.
+        # Should obviously be standardized but they're not input that way.
+        # Have to account for every combination of 3 conditions.
+        # T-Zero Launch Time Conditionals
+        if RLWO == "None" and TZERO != "None" and RLWC != "None":
+            print(f" |  | Window: {TZERO} | {RLWC}")
+        elif RLWO != "None" and TZERO != "None" and RLWC == "None":
+            print(f" |  | Window: {RLWO} | {TZERO}")
+        elif RLWO != "None" and TZERO == "None" and RLWC != "None":
+            print(f" |  | Window: {RLWO} | {RLWC}")
+        elif RLWO != "None" and TZERO != "None" and RLWC != "None":
+            print(f" |  | Window: {RLWO} | {TZERO} | {RLWC}")
+        elif RLWO == "None" and TZERO != "None" and RLWC == "None":
+            print(f" |  | Window: {TZERO}")
+        elif RLWO != "None" and TZERO == "None" and RLWC == "None":
+            print(f" |  | Window: {RLWO}")
+        elif RLWO == "None" and TZERO == "None" and RLWC != "None":
+            print(f" |  | Window: {RLWC}")
+
         if RLLS != "None":
             print(f" |  | Site: {RLLS}")
         if RLPN != "None":
@@ -113,13 +120,16 @@ while True:
         if RLM != "None":
             print(f" |  | Mission: {RLM}")
 
+        rocketlaunch_response.close()
+        print("✂️ Disconnected from RocketLaunch.Live API")
+
         print("\nFinished!")
-        print("Board Uptime: ", time.monotonic())
-        print("Next Update in: ", time_calc(sleep_time))
+        print(f"Board Uptime: {time_calc(time.monotonic())}")
+        print(f"Next Update: {time_calc(SLEEP_TIME)}")
         print("===============================")
 
     except (ValueError, RuntimeError) as e:
         print("Failed to get data, retrying\n", e)
         time.sleep(60)
         break
-    time.sleep(sleep_time)
+    time.sleep(SLEEP_TIME)
