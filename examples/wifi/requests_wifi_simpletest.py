@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 # Updated for Circuit Python 9.0
 """ WiFi Simpletest """
-# pylint: disable=import-error
 
 import os
 
