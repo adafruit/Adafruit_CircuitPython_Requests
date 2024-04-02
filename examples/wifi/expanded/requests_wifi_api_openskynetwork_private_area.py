@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.2.x
 """OpenSky-Network.org Private Area API Example"""
-# pylint: disable=import-error
 
 import binascii
 import os
@@ -47,16 +46,14 @@ requests = adafruit_requests.Session(pool, ssl_context)
 # -- Base64 Conversion --
 OSN_CREDENTIALS = str(osnusername) + ":" + str(osnpassword)
 # base64 encode and strip appended \n from bytearray
-OSN_CREDENTIALS_B = binascii.b2a_base64(b"" + str(OSN_CREDENTIALS)).strip()
-BASE64_STRING = str(OSN_CREDENTIALS_B)  # bytearray
-SLICED_BASE64_STRING = BASE64_STRING[2:-1]  # slice bytearray head/tail
+OSN_CREDENTIALS_B = binascii.b2a_base64(OSN_CREDENTIALS.encode()).strip()
+BASE64_STRING = OSN_CREDENTIALS_B.decode()  # bytearray
 
 if DEBUG:
     print("Base64 ByteArray: ", BASE64_STRING)
-    print(f"Base64 Sliced String: {SLICED_BASE64_STRING}")
 
 # Area requires OpenSky-Network.org username:password to be base64 encoded
-OSN_HEADER = {"Authorization": "Basic " + str(SLICED_BASE64_STRING)}
+OSN_HEADER = {"Authorization": "Basic " + BASE64_STRING}
 
 # Example request of all traffic over Florida.
 # Geographic areas calls cost less against the limit.
