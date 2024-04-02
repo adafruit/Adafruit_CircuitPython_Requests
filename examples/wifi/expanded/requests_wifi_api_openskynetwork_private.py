@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.2.x
 """OpenSky-Network.org Single Flight Private API Example"""
-# pylint: disable=import-error
 
 import binascii
 import os
@@ -18,7 +17,7 @@ import adafruit_requests
 # All active flights JSON: https://opensky-network.org/api/states/all  # PICK ONE! :)
 # JSON order: transponder, callsign, country
 # ACTIVE transpondes only, for multiple "c822af&icao24=cb3993&icao24=c63923"
-TRANSPONDER = "ad4f1c"
+TRANSPONDER = "4b1812"
 
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
@@ -44,18 +43,17 @@ requests = adafruit_requests.Session(pool, ssl_context)
 # -- Base64 Conversion --
 OSN_CREDENTIALS = str(osnusername) + ":" + str(osnpassword)
 # base64 encode and strip appended \n from bytearray
-OSN_CREDENTIALS_B = binascii.b2a_base64(b"" + str(OSN_CREDENTIALS)).strip()
-BASE64_STRING = str(OSN_CREDENTIALS_B)  # bytearray
-SLICED_BASE64_STRING = BASE64_STRING[2:-1]  # slice bytearray head/tail
+OSN_CREDENTIALS_B = binascii.b2a_base64(OSN_CREDENTIALS.encode()).strip()
+BASE64_STRING = OSN_CREDENTIALS_B.decode()  # bytearray
+
 
 if DEBUG:
     print("Base64 ByteArray: ", BASE64_STRING)
-    print(f"Base64 Sliced String: {SLICED_BASE64_STRING}")
 
 # Requests URL - icao24 is their endpoint required for a transponder
 # example https://opensky-network.org/api/states/all?icao24=a808c5
 # OSN private: requires your website username:password to be base64 encoded
-OPENSKY_HEADER = {"Authorization": "Basic " + str(SLICED_BASE64_STRING)}
+OPENSKY_HEADER = {"Authorization": "Basic " + BASE64_STRING}
 OPENSKY_SOURCE = "https://opensky-network.org/api/states/all?" + "icao24=" + TRANSPONDER
 
 
