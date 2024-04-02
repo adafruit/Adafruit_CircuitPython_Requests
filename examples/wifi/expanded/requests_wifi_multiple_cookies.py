@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 9.0
 """ Multiple Cookies Example written for MagTag """
-# pylint: disable=import-error
 
 import os
 
