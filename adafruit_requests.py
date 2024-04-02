@@ -2,7 +2,6 @@
 # SPDX-FileCopyrightText: 2020 Scott Shawcroft for Adafruit Industries
 #
 # SPDX-License-Identifier: MIT
-
 """
 `adafruit_requests`
 ================================================================================
