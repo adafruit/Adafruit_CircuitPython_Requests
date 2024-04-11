@@ -49,9 +49,9 @@ if response.status_code == 200:
     print(f" | 🆗 Status Code: {response.status_code}")
 else:
     print(f" |  | Status Code: {response.status_code}")
-print(f" | ✅ Custom User-Agent Header: {headers['User-Agent']}")
-print(f" | ✅ Content-Type: {content_type}")
-print(f" | ✅ Response Timestamp: {date}")
+print(f" |  | Custom User-Agent Header: {headers['User-Agent']}")
+print(f" |  | Content-Type: {content_type}")
+print(f" |  | Response Timestamp: {date}")
 
 # Close, delete and collect the response data
 response.close()
