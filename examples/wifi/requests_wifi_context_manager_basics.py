@@ -48,7 +48,7 @@ print(f" |  | Response Timestamp: {date}")
 response.close()
 print(f" | ✂️ Disconnected from {JSON_GET_URL}")
 
-# Buffer data is still available from json_data after response close
+# This example shows json_data still available after response close
 content_type = response.headers.get("content-type", "")
 print(f" |  Content-Type: {content_type}")
 
@@ -74,7 +74,7 @@ with requests.get(JSON_GET_URL) as response:
 # This is the better way.
 print(f" | ✂️ Disconnected from {JSON_GET_URL}")
 
-# JSON data still available outside of with.
+# This example shows json_data still available outside of with.
 content_type = response.headers.get("content-type", "")
 print(f" |  Content-Type: {content_type}")
 
