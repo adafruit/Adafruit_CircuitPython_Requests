@@ -32,9 +32,12 @@ except OSError as e:
 print("✅ Wifi!\n")
 
 print("-" * 40)
+
 # This method requires an explicit close
-print("Explicit Close Example")
+print("Explicit Close() Example")
 response = requests.get(JSON_GET_URL)
+print(" | ✅ Connected to JSON")
+
 json_data = response.json()
 if response.status_code == 200:
     print(f" | 🆗 Status Code: {response.status_code}")
@@ -50,14 +53,18 @@ print(f" | ✂️ Disconnected from {JSON_GET_URL}")
 
 # This example shows json_data still available after response close
 content_type = response.headers.get("content-type", "")
-print(f" |  Content-Type: {content_type}")
+print(f" | Content-Type: {content_type}")
+print("-" * 40)
 
 print("\nversus\n")
 
 print("-" * 40)
+
 # Closing response is included automatically using "with"
 print("Context Manager WITH Example")
 response = requests.get(JSON_GET_URL)
+print(" | ✅ Connected to JSON")
+
 # Wrap a request using a with statement
 with requests.get(JSON_GET_URL) as response:
     date = response.headers.get("date", "")
@@ -76,8 +83,8 @@ print(f" | ✂️ Disconnected from {JSON_GET_URL}")
 
 # This example shows json_data still available outside of with.
 content_type = response.headers.get("content-type", "")
-print(f" |  Content-Type: {content_type}")
-
+print(f" | Content-Type: {content_type}")
+print("-" * 40)
 
 print("\nBoth examples are functionally identical")
 print(
