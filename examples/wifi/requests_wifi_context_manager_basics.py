@@ -44,18 +44,18 @@ headers = json_data["headers"]
 date = response.headers.get("date", "")
 print(f" |  | Response Timestamp: {date}")
 
-# Close socket manually (prone to mid-disconnect socket errors, out of retries)
+# Close response manually (prone to mid-disconnect socket errors, out of retries)
 response.close()
 print(f" | ✂️ Disconnected from {JSON_GET_URL}")
 
-# Buffer data is still available from json_data after socket close
+# Buffer data is still available from json_data after response close
 content_type = response.headers.get("content-type", "")
 print(f" |  Content-Type: {content_type}")
 
 print("\nversus\n")
 
 print("-" * 40)
-# Closing socket is included automatically using "with"
+# Closing response is included automatically using "with"
 print("Context Manager WITH Example")
 response = requests.get(JSON_GET_URL)
 # Wrap a request using a with statement
@@ -69,7 +69,7 @@ with requests.get(JSON_GET_URL) as response:
     headers = json_data["headers"]
     print(f" |  | Response Timestamp: {date}")
 
-# Notice there is no response.close()
+# Notice there is no response.close() here
 # It's handled automatically in a with statement
 # This is the better way.
 print(f" | ✂️ Disconnected from {JSON_GET_URL}")
@@ -82,6 +82,6 @@ print(f" |  Content-Type: {content_type}")
 print("\nBoth examples are functionally identical")
 print(
     "However, a with statement is more robust against disconnections mid-request "
-    + "and automatically closes the socket."
+    + "and automatically closes the response."
 )
 print("Using with statements for requests is recommended\n\n")
