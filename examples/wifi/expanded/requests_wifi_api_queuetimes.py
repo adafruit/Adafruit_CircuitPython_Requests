@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2024 DJDevon3
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 9.x
-"""Queue-Times.com API w/Display Example"""
+"""Queue-Times.com API Example"""
 
 import os
 import time
@@ -92,7 +92,7 @@ while True:
                 qtimes_queuetime = str(ride["wait_time"])
                 qtimes_isopen = str(ride["is_open"])
 
-                print(f" |  | Rides: {qtimes_rides}")
+                print(f" |  | Ride: {qtimes_rides}")
                 print(f" |  | Queue Time: {qtimes_queuetime} Minutes")
                 if qtimes_isopen == "False":
                     print(" |  | Status: Closed")
