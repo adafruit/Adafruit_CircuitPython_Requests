@@ -1,8 +1,7 @@
 # SPDX-FileCopyrightText: 2024 DJDevon3
 # SPDX-License-Identifier: MIT
-# Coded for Circuit Python 8.2.x
-"""OpenSky-Network.org Public API Example"""
-# pylint: disable=import-error
+# Coded for Circuit Python 9.x
+"""OpenSky-Network.org Single Flight Public API Example"""
 
 import os
 import time
@@ -17,13 +16,11 @@ import adafruit_requests
 # All active flights JSON: https://opensky-network.org/api/states/all PICK ONE!
 # JSON order: transponder, callsign, country
 # ACTIVE transpondes only, for multiple "c822af&icao24=cb3993&icao24=c63923"
-TRANSPONDER = "3c5ef8"
+TRANSPONDER = "88044d"
 
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
-osnusername = os.getenv("OSN_USERNAME")  # Website Credentials
-osnpassword = os.getenv("OSN_PASSWORD")  # Website Credentials
 
 # API Polling Rate
 # 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
@@ -80,7 +77,8 @@ while True:
     print("✅ Wifi!")
 
     try:
-        print(" | Attempting to GET OpenSky-Network Single Flight JSON!")
+        print(" | Attempting to GET OpenSky-Network Single Public Flight JSON!")
+        print(" | Website Credentials NOT Required! Less daily calls than Private.")
         try:
             opensky_response = requests.get(url=OPENSKY_SOURCE)
             opensky_json = opensky_response.json()
@@ -88,7 +86,7 @@ while True:
             print("Connection Error:", e)
             print("Retrying in 10 seconds")
 
-        print(" | ✅ OpenSky-Network JSON!")
+        print(" | ✅ OpenSky-Network Public JSON!")
 
         if DEBUG:
             print("Full API GET URL: ", OPENSKY_SOURCE)

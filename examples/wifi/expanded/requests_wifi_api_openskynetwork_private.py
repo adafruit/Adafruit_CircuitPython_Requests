@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2024 DJDevon3
 # SPDX-License-Identifier: MIT
-# Coded for Circuit Python 8.2.x
+# Coded for Circuit Python 9.x
 """OpenSky-Network.org Single Flight Private API Example"""
 
 import binascii
