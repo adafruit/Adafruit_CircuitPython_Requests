@@ -1,27 +1,22 @@
 # SPDX-FileCopyrightText: 2024 DJDevon3
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.2.x
-"""Discord Web Scrape Example"""
+"""Premiere League Total Players API Example"""
 
 import os
 import time
 
 import adafruit_connection_manager
+import adafruit_json_stream as json_stream
 import wifi
 
 import adafruit_requests
 
-# Active Logged in User Account Required
-# WEB SCRAPE authorization key required. Visit URL below.
-# Learn how: https://github.com/lorenz234/Discord-Data-Scraping
-
-# Ensure this is in settings.toml
-# DISCORD_AUTHORIZATION = "Approximately 70 Character Hash Here"
+# Public API. No user or token required
 
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
-discord_auth = os.getenv("DISCORD_AUTHORIZATION")
 
 # API Polling Rate
 # 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
@@ -31,6 +26,9 @@ SLEEP_TIME = 900
 pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
 ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
 requests = adafruit_requests.Session(pool, ssl_context)
+
+# Publicly available data no header required
+PREMIERE_LEAGUE_SOURCE = "https://fantasy.premierleague.com/api/bootstrap-static/"
 
 
 def time_calc(input_time):
@@ -44,13 +42,6 @@ def time_calc(input_time):
     return f"{input_time / 60 / 60 / 24:.1f} days"
 
 
-DISCORD_HEADER = {"Authorization": "" + discord_auth}
-DISCORD_SOURCE = (
-    "https://discord.com/api/v10/guilds/"
-    + "327254708534116352"  # Adafruit Discord ID
-    + "/preview"
-)
-
 while True:
     # Connect to Wi-Fi
     print("\nConnecting to WiFi...")
@@ -61,36 +52,26 @@ while True:
             print("❌ Connection Error:", e)
             print("Retrying in 10 seconds")
     print("✅ Wifi!")
+
     try:
-        print(" | Attempting to GET Discord JSON!")
+        print(" | Attempting to GET Premiere League JSON!")
+
         # Set debug to True for full JSON response.
         # WARNING: may include visible credentials
         # MICROCONTROLLER WARNING: might crash by returning too much data
         DEBUG_RESPONSE = False
 
         try:
-            discord_response = requests.get(url=DISCORD_SOURCE, headers=DISCORD_HEADER)
-            discord_json = discord_response.json()
+            PREMIERE_LEAGUE_RESPONSE = requests.get(url=PREMIERE_LEAGUE_SOURCE)
+            pl_json = json_stream.load(PREMIERE_LEAGUE_RESPONSE.iter_content(32))
         except ConnectionError as e:
             print(f"Connection Error: {e}")
             print("Retrying in 10 seconds")
-        print(" | ✅ Discord JSON!")
+        print(" | ✅ Premiere League JSON!")
 
-        if DEBUG_RESPONSE:
-            print(f" |  | Full API GET URL: {DISCORD_SOURCE}")
-            print(f" |  | JSON Dump: {discord_json}")
-
-        discord_name = discord_json["name"]
-        print(f" |  | Name: {discord_name}")
-
-        discord_description = discord_json["description"]
-        print(f" |  | Description: {discord_description}")
-
-        discord_all_members = discord_json["approximate_member_count"]
-        print(f" |  | Members: {discord_all_members}")
-
-        discord_all_members_online = discord_json["approximate_presence_count"]
-        print(f" |  | Online: {discord_all_members_online}")
+        print(f" | Total Premiere League Players: {pl_json['total_players']}")
+        PREMIERE_LEAGUE_RESPONSE.close()
+        print("✂️ Disconnected from Premiere League")
 
         print("\nFinished!")
         print(f"Board Uptime: {time.monotonic()}")

@@ -1,103 +1,107 @@
-# SPDX-FileCopyrightText: 2022 DJDevon3 for Adafruit Industries
+# SPDX-FileCopyrightText: 2024 DJDevon3
 # SPDX-License-Identifier: MIT
-# Coded for Circuit Python 8.0
-"""DJDevon3 Adafruit Feather ESP32-S2 Github_API_Example"""
-import gc
-import json
+# Coded for Circuit Python 9.x
+"""Github API Example"""
+
 import os
-import ssl
 import time
 
-import socketpool
+import adafruit_connection_manager
 import wifi
 
 import adafruit_requests
 
-# Initialize WiFi Pool (There can be only 1 pool & top of script)
-pool = socketpool.SocketPool(wifi.radio)
-
-# Time between API refreshes
-# 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
-sleep_time = 900
+# Github developer token required.
+username = os.getenv("GITHUB_USERNAME")
+token = os.getenv("GITHUB_TOKEN")
 
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
-# Github developer token required.
-github_username = os.getenv("Github_username")
-github_token = os.getenv("Github_token")
 
-if sleep_time < 60:
-    sleep_time_conversion = "seconds"
-    sleep_int = sleep_time
-elif 60 <= sleep_time < 3600:
-    sleep_int = sleep_time / 60
-    sleep_time_conversion = "minutes"
-elif 3600 <= sleep_time < 86400:
-    sleep_int = sleep_time / 60 / 60
-    sleep_time_conversion = "hours"
-else:
-    sleep_int = sleep_time / 60 / 60 / 24
-    sleep_time_conversion = "days"
+# API Polling Rate
+# 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
+SLEEP_TIME = 900
 
-github_header = {"Authorization": " token " + github_token}
-GH_SOURCE = "https://api.github.com/users/" + github_username
+# Set debug to True for full JSON response.
+# WARNING: may include visible credentials
+DEBUG = False
 
-# Connect to Wi-Fi
-print("\n===============================")
-print("Connecting to WiFi...")
-requests = adafruit_requests.Session(pool, ssl.create_default_context())
-while not wifi.radio.ipv4_address:
-    try:
-        wifi.radio.connect(ssid, password)
-    except ConnectionError as e:
-        print("Connection Error:", e)
-        print("Retrying in 10 seconds")
-    time.sleep(10)
-    gc.collect()
-print("Connected!\n")
+# Initalize Wifi, Socket Pool, Request Session
+pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
+ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
+requests = adafruit_requests.Session(pool, ssl_context)
+
+GITHUB_HEADER = {"Authorization": " token " + token}
+GITHUB_SOURCE = "https://api.github.com/users/" + username
+
+
+def time_calc(input_time):
+    """Converts seconds to minutes/hours/days"""
+    if input_time < 60:
+        return f"{input_time:.0f} seconds"
+    if input_time < 3600:
+        return f"{input_time / 60:.0f} minutes"
+    if input_time < 86400:
+        return f"{input_time / 60 / 60:.0f} hours"
+    return f"{input_time / 60 / 60 / 24:.1f} days"
+
 
 while True:
-    try:
-        print("\nAttempting to GET GITHUB Stats!")  # --------------------------------
-        # Print Request to Serial
-        debug_request = False  # Set true to see full request
-        if debug_request:
-            print("Full API GET URL: ", GH_SOURCE)
-        print("===============================")
+    # Connect to Wi-Fi
+    print("\nConnecting to WiFi...")
+    while not wifi.radio.ipv4_address:
         try:
-            github_response = requests.get(url=GH_SOURCE, headers=github_header).json()
+            wifi.radio.connect(ssid, password)
+        except ConnectionError as e:
+            print("❌ Connection Error:", e)
+            print("Retrying in 10 seconds")
+    print("✅ Wifi!")
+
+    try:
+        print(" | Attempting to GET Github JSON!")
+        try:
+            github_response = requests.get(url=GITHUB_SOURCE, headers=GITHUB_HEADER)
+            github_json = github_response.json()
         except ConnectionError as e:
             print("Connection Error:", e)
             print("Retrying in 10 seconds")
+        print(" | ✅ Github JSON!")
 
-        # Print Response to Serial
-        debug_response = False  # Set true to see full response
-        if debug_response:
-            dump_object = json.dumps(github_response)
-            print("JSON Dump: ", dump_object)
+        github_joined = github_json["created_at"]
+        print(" |  | Join Date: ", github_joined)
 
-        # Print Keys to Serial
-        gh_debug_keys = True  # Set True to print Serial data
-        if gh_debug_keys:
-            github_id = github_response["id"]
-            print("UserID: ", github_id)
+        github_id = github_json["id"]
+        print(" |  | UserID: ", github_id)
 
-            github_username = github_response["name"]
-            print("Username: ", github_username)
+        github_location = github_json["location"]
+        print(" |  | Location: ", github_location)
 
-            github_followers = github_response["followers"]
-            print("Followers: ", github_followers)
+        github_name = github_json["name"]
+        print(" |  | Username: ", github_name)
 
-        print("Monotonic: ", time.monotonic())
+        github_repos = github_json["public_repos"]
+        print(" |  | Respositores: ", github_repos)
+
+        github_followers = github_json["followers"]
+        print(" |  | Followers: ", github_followers)
+        github_bio = github_json["bio"]
+        print(" |  | Bio: ", github_bio)
+
+        if DEBUG:
+            print("Full API GET URL: ", GITHUB_SOURCE)
+            print(github_json)
+
+        github_response.close()
+        print("✂️ Disconnected from Github API")
 
         print("\nFinished!")
-        print("Next Update in %s %s" % (int(sleep_int), sleep_time_conversion))
+        print(f"Board Uptime: {time_calc(time.monotonic())}")
+        print(f"Next Update: {time_calc(SLEEP_TIME)}")
         print("===============================")
-        gc.collect()
 
     except (ValueError, RuntimeError) as e:
-        print("Failed to get data, retrying\n", e)
+        print(f"Failed to get data, retrying\n {e}")
         time.sleep(60)
-        continue
-    time.sleep(sleep_time)
+        break
+    time.sleep(SLEEP_TIME)

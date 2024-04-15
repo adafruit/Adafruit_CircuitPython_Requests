@@ -1,44 +1,48 @@
-# SPDX-FileCopyrightText: 2023 DJDevon3
+# SPDX-FileCopyrightText: 2024 DJDevon3
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.2.x
-# Twitch_API_Example
+"""Twitch API Example"""
 
 import os
-import ssl
 import time
 
-import socketpool
+import adafruit_connection_manager
 import wifi
 
 import adafruit_requests
 
-# Initialize WiFi Pool (There can be only 1 pool & top of script)
-pool = socketpool.SocketPool(wifi.radio)
-
 # Twitch Developer Account & oauth App Required:
 # Visit https://dev.twitch.tv/console to create an app
-
-# Ensure these are in secrets.py or settings.toml
-# "Twitch_ClientID": "Your Developer APP ID Here",
-# "Twitch_Client_Secret": "APP ID secret here",
-# "Twitch_UserID": "Your Twitch UserID here",
+# Ensure these are in settings.toml
+# TWITCH_CLIENT_ID = "Your Developer APP ID Here"
+# TWITCH_CLIENT_SECRET = "APP ID secret here"
+# TWITCH_USER_ID = "Your Twitch UserID here"
 
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
-twitch_client_id = os.getenv("Twitch_ClientID")
-twitch_client_secret = os.getenv("Twitch_Client_Secret")
+TWITCH_CID = os.getenv("TWITCH_CLIENT_ID")
+TWITCH_CS = os.getenv("TWITCH_CLIENT_SECRET")
 # For finding your Twitch User ID
 # https://www.streamweasels.com/tools/convert-twitch-username-to-user-id/
-twitch_user_id = os.getenv("Twitch_UserID")  # User ID you want endpoints from
+TWITCH_UID = os.getenv("TWITCH_USER_ID")
 
-# Time between API refreshes
+# API Polling Rate
 # 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
-sleep_time = 900
+SLEEP_TIME = 900
+
+# Set DEBUG to True for full JSON response.
+# STREAMER WARNING: Credentials will be viewable
+DEBUG = False
+
+# Initalize Wifi, Socket Pool, Request Session
+pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
+ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
+requests = adafruit_requests.Session(pool, ssl_context)
 
 
-# Converts seconds to minutes/hours/days
 def time_calc(input_time):
+    """Converts seconds to minutes/hours/days"""
     if input_time < 60:
         return f"{input_time:.0f} seconds"
     if input_time < 3600:
@@ -48,42 +52,44 @@ def time_calc(input_time):
     return f"{input_time / 60 / 60 / 24:.1f} days"
 
 
+def _format_datetime(datetime):
+    """F-String formatted struct time conversion"""
+    return (
+        f"{datetime.tm_mon:02}/"
+        + f"{datetime.tm_mday:02}/"
+        + f"{datetime.tm_year:02} "
+        + f"{datetime.tm_hour:02}:"
+        + f"{datetime.tm_min:02}:"
+        + f"{datetime.tm_sec:02}"
+    )
+
+
 # First we use Client ID & Client Secret to create a token with POST
 # No user interaction is required for this type of scope (implicit grant flow)
 twitch_0auth_header = {"Content-Type": "application/x-www-form-urlencoded"}
 TWITCH_0AUTH_TOKEN = "https://id.twitch.tv/oauth2/token"
 
-# Connect to Wi-Fi
-print("\n===============================")
-print("Connecting to WiFi...")
-requests = adafruit_requests.Session(pool, ssl.create_default_context())
-while not wifi.radio.connected:
-    try:
-        wifi.radio.connect(ssid, password)
-    except ConnectionError as e:
-        print("Connection Error:", e)
-        print("Retrying in 10 seconds")
-    time.sleep(10)
-print("Connected!\n")
-
 while True:
+    # Connect to Wi-Fi
+    print("\nConnecting to WiFi...")
+    while not wifi.radio.ipv4_address:
+        try:
+            wifi.radio.connect(ssid, password)
+        except ConnectionError as e:
+            print("❌ Connection Error:", e)
+            print("Retrying in 10 seconds")
+    print("✅ Wifi!")
+
     try:
-        # ----------------------------- POST FOR BEARER TOKEN -----------------------
-        print(
-            "Attempting Bearer Token Request!"
-        )  # ---------------------------------------
-        # Print Request to Serial
-        debug_bearer_request = (
-            False  # STREAMER WARNING: your client secret will be viewable
-        )
-        if debug_bearer_request:
-            print("Full API GET URL: ", TWITCH_0AUTH_TOKEN)
-        print("===============================")
+        # ------------- POST FOR BEARER TOKEN -----------------
+        print(" | Attempting Bearer Token Request!")
+        if DEBUG:
+            print(f"Full API GET URL: {TWITCH_0AUTH_TOKEN}")
         twitch_0auth_data = (
             "&client_id="
-            + twitch_client_id
+            + TWITCH_CID
             + "&client_secret="
-            + twitch_client_secret
+            + TWITCH_CS
             + "&grant_type=client_credentials"
         )
 
@@ -95,70 +101,79 @@ while True:
             twitch_0auth_json = twitch_0auth_response.json()
             twitch_access_token = twitch_0auth_json["access_token"]
         except ConnectionError as e:
-            print("Connection Error:", e)
+            print(f"Connection Error: {e}")
             print("Retrying in 10 seconds")
+        print(" | 🔑 Token Authorized!")
 
-        # Print Response to Serial
-        debug_bearer_response = (
-            False  # STREAMER WARNING: your client secret will be viewable
-        )
-        if debug_bearer_response:
-            print("JSON Dump: ", twitch_0auth_json)
-            print("Header: ", twitch_0auth_header)
-            print("Access Token: ", twitch_access_token)
+        # STREAMER WARNING: your client secret will be viewable
+        if DEBUG:
+            print(f"JSON Dump: {twitch_0auth_json}")
+            print(f"Header: {twitch_0auth_header}")
+            print(f"Access Token: {twitch_access_token}")
             twitch_token_type = twitch_0auth_json["token_type"]
-            print("Token Type: ", twitch_token_type)
+            print(f"Token Type: {twitch_token_type}")
 
-        print("Board Uptime: ", time_calc(time.monotonic()))
         twitch_token_expiration = twitch_0auth_json["expires_in"]
-        print("Token Expires in: ", time_calc(twitch_token_expiration))
+        print(f" | Token Expires in: {time_calc(twitch_token_expiration)}")
 
-        # ----------------------------- GET DATA -------------------------------------
+        # ----------------------------- GET DATA --------------------
         # Bearer token is refreshed every time script runs :)
         # Twitch sets token expiration to about 64 days
         # Helix is the name of the current Twitch API
         # Now that we have POST bearer token we can do a GET for data
-        # ----------------------------------------------------------------------------
+        # -----------------------------------------------------------
         twitch_header = {
             "Authorization": "Bearer " + twitch_access_token + "",
-            "Client-Id": "" + twitch_client_id + "",
+            "Client-Id": "" + TWITCH_CID + "",
         }
         TWITCH_FOLLOWERS_SOURCE = (
             "https://api.twitch.tv/helix/channels"
             + "/followers?"
             + "broadcaster_id="
-            + twitch_user_id
+            + TWITCH_UID
         )
-        print(
-            "\nAttempting to GET TWITCH Stats!"
-        )  # ------------------------------------------------
-        print("===============================")
-        twitch_followers_response = requests.get(
+        print(" | Attempting to GET Twitch JSON!")
+        twitch_response = requests.get(
             url=TWITCH_FOLLOWERS_SOURCE, headers=twitch_header
         )
         try:
-            twitch_followers_json = twitch_followers_response.json()
+            twitch_json = twitch_response.json()
         except ConnectionError as e:
-            print("Connection Error:", e)
+            print(f"Connection Error: {e}")
             print("Retrying in 10 seconds")
 
-        # Print Response to Serial
-        debug_bearer_response = (
-            False  # STREAMER WARNING: your bearer token will be viewable
-        )
-        if debug_bearer_response:
-            print("Full API GET URL: ", TWITCH_FOLLOWERS_SOURCE)
-            print("Header: ", twitch_header)
-            print("JSON Full Response: ", twitch_followers_json)
+        if DEBUG:
+            print(f" | Full API GET URL: {TWITCH_FOLLOWERS_SOURCE}")
+            print(f" | Header: {twitch_header}")
+            print(f" | JSON Full Response: {twitch_json}")
 
-        twitch_followers = twitch_followers_json["total"]
-        print("Followers: ", twitch_followers)
-        print("Finished!")
-        print("Next Update in: ", time_calc(sleep_time))
+        if "status" in twitch_json:
+            twitch_error_status = twitch_json["status"]
+            print(f"❌ Status: {twitch_error_status}")
+
+        if "error" in twitch_json:
+            twitch_error = twitch_json["error"]
+            print(f"❌ Error: {twitch_error}")
+
+        if "message" in twitch_json:
+            twitch_error_msg = twitch_json["message"]
+            print(f"❌ Message: {twitch_error_msg}")
+
+        if "total" in twitch_json:
+            print(" | ✅ Twitch JSON!")
+            twitch_followers = twitch_json["total"]
+            print(f" |  | Followers: {twitch_followers}")
+
+        twitch_response.close()
+        print("✂️ Disconnected from Twitch API")
+
+        print("\nFinished!")
+        print(f"Board Uptime: {time_calc(time.monotonic())}")
+        print(f"Next Update: {time_calc(SLEEP_TIME)}")
         print("===============================")
 
     except (ValueError, RuntimeError) as e:
-        print("Failed to get data, retrying\n", e)
+        print(f"Failed to get data, retrying\n {e}")
         time.sleep(60)
-        continue
-    time.sleep(sleep_time)
+        break
+    time.sleep(SLEEP_TIME)
