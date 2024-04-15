@@ -21,7 +21,10 @@ ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
 requests = adafruit_requests.Session(pool, ssl_context)
 rssi = wifi.radio.ap_info.rssi
 
+# URL for GET request
 JSON_GET_URL = "https://httpbin.org/get"
+# Define a custom header as a dict.
+headers = {"user-agent": "blinka/1.0.0"}
 
 print(f"\nConnecting to {ssid}...")
 print(f"Signal Strength: {rssi}")
@@ -34,26 +37,18 @@ print("✅ Wifi!")
 
 # Define a custom header as a dict.
 headers = {"user-agent": "blinka/1.0.0"}
-print(f" | Fetching JSON: {JSON_GET_URL}")
+print(" | Fetching JSON data from %s..." % JSON_GET_URL)
 
-# GET JSON
-response = requests.get(JSON_GET_URL, headers=headers)
-content_type = response.headers.get("content-type", "")
-date = response.headers.get("date", "")
-
-json_data = response.json()
-headers = json_data["headers"]
-
-# JSON Response
-if response.status_code == 200:
-    print(f" | 🆗 Status Code: {response.status_code}")
-else:
-    print(f" |  | Status Code: {response.status_code}")
-print(f" |  | Custom User-Agent Header: {headers['User-Agent']}")
-print(f" |  | Content-Type: {content_type}")
-print(f" |  | Response Timestamp: {date}")
-
-# Close, delete and collect the response data
-response.close()
-
-print(f" | ✂️ Disconnected from {JSON_GET_URL}")
+# Use with statement for retreiving GET request data
+with requests.get(JSON_GET_URL, headers=headers) as response:
+    json_data = response.json()
+    headers = json_data["headers"]
+    content_type = response.headers.get("content-type", "")
+    date = response.headers.get("date", "")
+    if response.status_code == 200:
+        print(f" | 🆗 Status Code: {response.status_code}")
+    else:
+        print(f" |  | Status Code: {response.status_code}")
+    print(f" |  | Custom User-Agent Header: {headers['User-Agent']}")
+    print(f" |  | Content-Type: {content_type}")
+    print(f" |  | Response Timestamp: {date}")
