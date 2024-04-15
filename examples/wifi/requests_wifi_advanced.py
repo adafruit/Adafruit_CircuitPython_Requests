@@ -48,7 +48,7 @@ with requests.get(JSON_GET_URL, headers=headers) as response:
     if response.status_code == 200:
         print(f" | 🆗 Status Code: {response.status_code}")
     else:
-        print(f" |  | Status Code: {response.status_code}")
+        print(f" | ❌ Status Code: {response.status_code}")
     print(f" |  | Custom User-Agent Header: {headers['User-Agent']}")
     print(f" |  | Content-Type: {content_type}")
     print(f" |  | Response Timestamp: {date}")
