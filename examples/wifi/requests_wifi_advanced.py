@@ -37,7 +37,7 @@ print("✅ Wifi!")
 
 # Define a custom header as a dict.
 headers = {"user-agent": "blinka/1.0.0"}
-print(" | Fetching JSON data from %s..." % JSON_GET_URL)
+print(f" | Fetching URL {JSON_GET_URL}")
 
 # Use with statement for retreiving GET request data
 with requests.get(JSON_GET_URL, headers=headers) as response:
