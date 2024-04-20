@@ -69,8 +69,8 @@ while True:
     try:
         print(" | Attempting to GET YouTube JSON...")
         try:
-            youtube_response = requests.get(url=YOUTUBE_SOURCE)
-            youtube_json = youtube_response.json()
+            with requests.get(url=YOUTUBE_SOURCE) as youtube_response:
+                youtube_json = youtube_response.json()
         except ConnectionError as e:
             print("Connection Error:", e)
             print("Retrying in 10 seconds")
@@ -104,9 +104,6 @@ while True:
         if "kind" in youtube_json:
             YT_response_kind = youtube_json["kind"]
             print(f" |  | Response Kind: {YT_response_kind}")
-
-        youtube_response.close()
-        print("✂️ Disconnected from YouTube API")
 
         print("\nFinished!")
         print(f"Board Uptime: {time_calc(time.monotonic())}")

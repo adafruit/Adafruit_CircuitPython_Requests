@@ -321,7 +321,7 @@ class Response:
         obj = json_module.load(self._raw)
         if not self._cached:
             self._cached = obj
-        self.close()
+
         return obj
 
     def iter_content(self, chunk_size: int = 1, decode_unicode: bool = False) -> bytes:
