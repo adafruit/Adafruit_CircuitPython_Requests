@@ -41,11 +41,13 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 
 import errno
 import json as json_module
+import random
 import sys
 
 from adafruit_connection_manager import get_connection_manager
 
 if not sys.implementation.name == "circuitpython":
+    from io import FileIO
     from types import TracebackType
     from typing import Any, Dict, Optional, Type
 
@@ -394,6 +396,13 @@ class Session:
     def _send_as_bytes(self, socket: SocketType, data: str):
         return self._send(socket, bytes(data, "utf-8"))
 
+    def _generate_boundary_str(self):
+        hex_characters = "0123456789abcdef"
+        _boundary = ""
+        for i in range(32):
+            _boundary += random.choice(hex_characters)
+        return _boundary
+
     def _send_header(self, socket, header, value):
         if value is None:
             return
@@ -415,6 +424,7 @@ class Session:
         headers: Dict[str, str],
         data: Any,
         json: Any,
+        files: Optional[Dict[str, tuple]],
     ):
         # Check headers
         self._check_headers(headers)
@@ -425,6 +435,7 @@ class Session:
         # If json is sent, set content type header and convert to string
         if json is not None:
             assert data is None
+            assert files is None
             content_type_header = "application/json"
             data = json_module.dumps(json)
 
@@ -441,6 +452,9 @@ class Session:
         if data and isinstance(data, str):
             data = bytes(data, "utf-8")
 
+        if data is None:
+            data = b""
+
         self._send_as_bytes(socket, method)
         self._send(socket, b" /")
         self._send_as_bytes(socket, path)
@@ -448,6 +462,59 @@ class Session:
 
         # create lower-case supplied header list
         supplied_headers = {header.lower() for header in headers}
+        boundary_str = None
+
+        if files is not None and isinstance(files, dict):
+            boundary_str = self._generate_boundary_str()
+            content_type_header = f"multipart/form-data; boundary={boundary_str}"
+
+            for fieldname in files.keys():
+                if not fieldname.endswith("-name"):
+                    if files[fieldname][0] is not None:
+                        file_content = files[fieldname][1].read()
+
+                        data += b"--" + boundary_str.encode() + b"\r\n"
+                        data += (
+                            b'Content-Disposition: form-data; name="'
+                            + fieldname.encode()
+                            + b'"; filename="'
+                            + files[fieldname][0].encode()
+                            + b'"\r\n'
+                        )
+                        if len(files[fieldname]) >= 3:
+                            data += (
+                                b"Content-Type: "
+                                + files[fieldname][2].encode()
+                                + b"\r\n"
+                            )
+                        if len(files[fieldname]) >= 4:
+                            for custom_header_key in files[fieldname][3].keys():
+                                data += (
+                                    custom_header_key.encode()
+                                    + b": "
+                                    + files[fieldname][3][custom_header_key].encode()
+                                    + b"\r\n"
+                                )
+                        data += b"\r\n"
+                        data += file_content + b"\r\n"
+                    else:
+                        # filename is None
+                        data += b"--" + boundary_str.encode() + b"\r\n"
+                        data += (
+                            b'Content-Disposition: form-data; name="'
+                            + fieldname.encode()
+                            + b'"; \r\n'
+                        )
+                        if len(files[fieldname]) >= 3:
+                            data += (
+                                b"Content-Type: "
+                                + files[fieldname][2].encode()
+                                + b"\r\n"
+                            )
+                        data += b"\r\n"
+                        data += files[fieldname][1].encode() + b"\r\n"
+
+            data += b"--" + boundary_str.encode() + b"--"
 
         # Send headers
         if not "host" in supplied_headers:
@@ -478,6 +545,7 @@ class Session:
         stream: bool = False,
         timeout: float = 60,
         allow_redirects: bool = True,
+        files: Optional[Dict[str, tuple]] = None,
     ) -> Response:
         """Perform an HTTP request to the given url which we will parse to determine
         whether to use SSL ('https://') or not. We can also send some provided 'data'
@@ -526,7 +594,9 @@ class Session:
             )
             ok = True
             try:
-                self._send_request(socket, host, method, path, headers, data, json)
+                self._send_request(
+                    socket, host, method, path, headers, data, json, files
+                )
             except OSError as exc:
                 last_exc = exc
                 ok = False
