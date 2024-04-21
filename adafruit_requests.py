@@ -47,7 +47,6 @@ import sys
 from adafruit_connection_manager import get_connection_manager
 
 if not sys.implementation.name == "circuitpython":
-    from io import FileIO
     from types import TracebackType
     from typing import Any, Dict, Optional, Type
 
@@ -345,6 +344,14 @@ class Response:
         self.close()
 
 
+def _generate_boundary_str():
+    hex_characters = "0123456789abcdef"
+    _boundary = ""
+    for _ in range(32):
+        _boundary += random.choice(hex_characters)
+    return _boundary
+
+
 class Session:
     """HTTP session that shares sockets and ssl context."""
 
@@ -396,13 +403,6 @@ class Session:
     def _send_as_bytes(self, socket: SocketType, data: str):
         return self._send(socket, bytes(data, "utf-8"))
 
-    def _generate_boundary_str(self):
-        hex_characters = "0123456789abcdef"
-        _boundary = ""
-        for i in range(32):
-            _boundary += random.choice(hex_characters)
-        return _boundary
-
     def _send_header(self, socket, header, value):
         if value is None:
             return
@@ -414,8 +414,7 @@ class Session:
             self._send_as_bytes(socket, value)
         self._send(socket, b"\r\n")
 
-    # pylint: disable=too-many-arguments
-    def _send_request(
+    def _send_request(  # pylint: disable=too-many-arguments
         self,
         socket: SocketType,
         host: str,
@@ -425,7 +424,7 @@ class Session:
         data: Any,
         json: Any,
         files: Optional[Dict[str, tuple]],
-    ):
+    ):  # pylint: disable=too-many-branches,too-many-locals,too-many-statements
         # Check headers
         self._check_headers(headers)
 
@@ -464,8 +463,9 @@ class Session:
         supplied_headers = {header.lower() for header in headers}
         boundary_str = None
 
+        # pylint: disable=too-many-nested-blocks
         if files is not None and isinstance(files, dict):
-            boundary_str = self._generate_boundary_str()
+            boundary_str = _generate_boundary_str()
             content_type_header = f"multipart/form-data; boundary={boundary_str}"
 
             for fieldname in files.keys():
