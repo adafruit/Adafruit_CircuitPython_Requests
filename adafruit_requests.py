@@ -46,6 +46,8 @@ import sys
 
 from adafruit_connection_manager import get_connection_manager
 
+SEEK_END = 2
+
 if not sys.implementation.name == "circuitpython":
     from types import TracebackType
     from typing import Any, Dict, Optional, Type
@@ -344,14 +346,6 @@ class Response:
         self.close()
 
 
-def _generate_boundary_str():
-    hex_characters = "0123456789abcdef"
-    _boundary = ""
-    for _ in range(32):
-        _boundary += random.choice(hex_characters)
-    return _boundary
-
-
 class Session:
     """HTTP session that shares sockets and ssl context."""
 
@@ -365,6 +359,60 @@ class Session:
         self._ssl_context = ssl_context
         self._session_id = session_id
         self._last_response = None
+
+    def _build_boundary_data(self, files: dict):
+        boundary_string = self._build_boundary_string()
+        content_length = 0
+        boundary_objects = []
+
+        for field_name, field_values in files.items():
+            file_name = field_values[0]
+            file_data = field_values[1]
+
+            boundary_data = f"--{boundary_string}\r\n"
+            boundary_data += f'Content-Disposition: form-data; name="{field_name}"; '
+            if file_name is not None:
+                boundary_data += f'filename="{file_name}"'
+            boundary_data += "\r\n"
+            if len(field_values) >= 3:
+                file_content_type = field_values[2]
+                boundary_data += f"Content-Type: {file_content_type}\r\n"
+            if len(field_values) >= 4:
+                file_headers = field_values[3]
+                for file_header_key, file_header_value in file_headers.items():
+                    boundary_data += f"{file_header_key}: {file_header_value}\r\n"
+            boundary_data += "\r\n"
+
+            content_length += len(boundary_data)
+            boundary_objects.append(boundary_data)
+
+            if file_name is not None:
+                file_data.seek(0, SEEK_END)
+                content_length += file_data.tell()
+                file_data.seek(0)
+                boundary_objects.append(file_data)
+                boundary_data = ""
+            else:
+                boundary_data = file_data
+
+            boundary_data += "\r\n"
+            content_length += len(boundary_data)
+            boundary_objects.append(boundary_data)
+
+        boundary_data = f"--{boundary_string}--"
+
+        content_length += len(boundary_data)
+        boundary_objects.append(boundary_data)
+
+        return boundary_string, content_length, boundary_objects
+
+    @staticmethod
+    def _build_boundary_string():
+        hex_characters = "0123456789abcdef"
+        _boundary = ""
+        for _ in range(32):
+            _boundary += random.choice(hex_characters)
+        return _boundary
 
     @staticmethod
     def _check_headers(headers: Dict[str, str]):
@@ -399,9 +447,30 @@ class Session:
                 # Not EAGAIN; that was already handled.
                 raise OSError(errno.EIO)
             total_sent += sent
+        return total_sent
 
     def _send_as_bytes(self, socket: SocketType, data: str):
         return self._send(socket, bytes(data, "utf-8"))
+
+    def _send_boundary_objects(self, socket: SocketType, boundary_objects: Any):
+        for boundary_object in boundary_objects:
+            if isinstance(boundary_object, str):
+                self._send_as_bytes(socket, boundary_object)
+            else:
+                chunk_size = 32
+                if hasattr(boundary_object, "readinto"):
+                    b = bytearray(chunk_size)
+                    while True:
+                        size = boundary_object.readinto(b)
+                        if size == 0:
+                            break
+                        self._send(socket, b[:size])
+                else:
+                    while True:
+                        b = boundary_object.read(chunk_size)
+                        if len(b) == 0:
+                            break
+                        self._send(socket, b)
 
     def _send_header(self, socket, header, value):
         if value is None:
@@ -440,6 +509,7 @@ class Session:
 
         # If data is sent and it's a dict, set content type header and convert to string
         if data and isinstance(data, dict):
+            assert files is None
             content_type_header = "application/x-www-form-urlencoded"
             _post_data = ""
             for k in data:
@@ -451,8 +521,18 @@ class Session:
         if data and isinstance(data, str):
             data = bytes(data, "utf-8")
 
-        if data is None:
-            data = b""
+        # If files are send, build data to send and calculate length
+        content_length = 0
+        boundary_objects = None
+        if files and isinstance(files, dict):
+            boundary_string, content_length, boundary_objects = (
+                self._build_boundary_data(files)
+            )
+            content_type_header = f"multipart/form-data; boundary={boundary_string}"
+        else:
+            if data is None:
+                data = b""
+            content_length = len(data)
 
         self._send_as_bytes(socket, method)
         self._send(socket, b" /")
@@ -461,60 +541,6 @@ class Session:
 
         # create lower-case supplied header list
         supplied_headers = {header.lower() for header in headers}
-        boundary_str = None
-
-        # pylint: disable=too-many-nested-blocks
-        if files is not None and isinstance(files, dict):
-            boundary_str = _generate_boundary_str()
-            content_type_header = f"multipart/form-data; boundary={boundary_str}"
-
-            for fieldname in files.keys():
-                if not fieldname.endswith("-name"):
-                    if files[fieldname][0] is not None:
-                        file_content = files[fieldname][1].read()
-
-                        data += b"--" + boundary_str.encode() + b"\r\n"
-                        data += (
-                            b'Content-Disposition: form-data; name="'
-                            + fieldname.encode()
-                            + b'"; filename="'
-                            + files[fieldname][0].encode()
-                            + b'"\r\n'
-                        )
-                        if len(files[fieldname]) >= 3:
-                            data += (
-                                b"Content-Type: "
-                                + files[fieldname][2].encode()
-                                + b"\r\n"
-                            )
-                        if len(files[fieldname]) >= 4:
-                            for custom_header_key in files[fieldname][3].keys():
-                                data += (
-                                    custom_header_key.encode()
-                                    + b": "
-                                    + files[fieldname][3][custom_header_key].encode()
-                                    + b"\r\n"
-                                )
-                        data += b"\r\n"
-                        data += file_content + b"\r\n"
-                    else:
-                        # filename is None
-                        data += b"--" + boundary_str.encode() + b"\r\n"
-                        data += (
-                            b'Content-Disposition: form-data; name="'
-                            + fieldname.encode()
-                            + b'"; \r\n'
-                        )
-                        if len(files[fieldname]) >= 3:
-                            data += (
-                                b"Content-Type: "
-                                + files[fieldname][2].encode()
-                                + b"\r\n"
-                            )
-                        data += b"\r\n"
-                        data += files[fieldname][1].encode() + b"\r\n"
-
-            data += b"--" + boundary_str.encode() + b"--"
 
         # Send headers
         if not "host" in supplied_headers:
@@ -523,8 +549,8 @@ class Session:
             self._send_header(socket, "User-Agent", "Adafruit CircuitPython")
         if content_type_header and not "content-type" in supplied_headers:
             self._send_header(socket, "Content-Type", content_type_header)
-        if data and not "content-length" in supplied_headers:
-            self._send_header(socket, "Content-Length", str(len(data)))
+        if (data or files) and not "content-length" in supplied_headers:
+            self._send_header(socket, "Content-Length", str(content_length))
         # Iterate over keys to avoid tuple alloc
         for header in headers:
             self._send_header(socket, header, headers[header])
@@ -533,6 +559,8 @@ class Session:
         # Send data
         if data:
             self._send(socket, bytes(data))
+        elif boundary_objects:
+            self._send_boundary_objects(socket, boundary_objects)
 
     # pylint: disable=too-many-branches, too-many-statements, unused-argument, too-many-arguments, too-many-locals
     def request(
