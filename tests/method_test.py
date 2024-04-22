@@ -52,7 +52,10 @@ def test_post_string(sock, requests):
 
 
 def test_post_form(sock, requests):
-    data = {"Date": "July 25, 2019", "Time": "12:00"}
+    data = {
+        "Date": "July 25, 2019",
+        "Time": "12:00",
+    }
     requests.post("http://" + mocket.MOCK_HOST_1 + "/post", data=data)
     sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
     sock.send.assert_has_calls(
@@ -67,7 +70,10 @@ def test_post_form(sock, requests):
 
 
 def test_post_json(sock, requests):
-    json_data = {"Date": "July 25, 2019", "Time": "12:00"}
+    json_data = {
+        "Date": "July 25, 2019",
+        "Time": "12:00",
+    }
     requests.post("http://" + mocket.MOCK_HOST_1 + "/post", json=json_data)
     sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
     sock.send.assert_has_calls(

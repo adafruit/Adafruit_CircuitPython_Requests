@@ -360,19 +360,19 @@ class Session:
         self._session_id = session_id
         self._last_response = None
 
-    def _build_boundary_data(self, files: dict):
+    def _build_boundary_data(self, files: dict):  # pylint: disable=too-many-locals
         boundary_string = self._build_boundary_string()
         content_length = 0
         boundary_objects = []
 
         for field_name, field_values in files.items():
             file_name = field_values[0]
-            file_data = field_values[1]
+            file_handle = field_values[1]
 
             boundary_data = f"--{boundary_string}\r\n"
-            boundary_data += f'Content-Disposition: form-data; name="{field_name}"; '
+            boundary_data += f'Content-Disposition: form-data; name="{field_name}"'
             if file_name is not None:
-                boundary_data += f'filename="{file_name}"'
+                boundary_data += f'; filename="{file_name}"'
             boundary_data += "\r\n"
             if len(field_values) >= 3:
                 file_content_type = field_values[2]
@@ -386,20 +386,30 @@ class Session:
             content_length += len(boundary_data)
             boundary_objects.append(boundary_data)
 
-            if file_name is not None:
-                file_data.seek(0, SEEK_END)
-                content_length += file_data.tell()
-                file_data.seek(0)
-                boundary_objects.append(file_data)
+            if hasattr(file_handle, "read"):
+                is_binary = False
+                try:
+                    content = file_handle.read(1)
+                    is_binary = isinstance(content, bytes)
+                except UnicodeError:
+                    is_binary = False
+
+                if not is_binary:
+                    raise AttributeError("Files must be opened in binary mode")
+
+                file_handle.seek(0, SEEK_END)
+                content_length += file_handle.tell()
+                file_handle.seek(0)
+                boundary_objects.append(file_handle)
                 boundary_data = ""
             else:
-                boundary_data = file_data
+                boundary_data = file_handle
 
             boundary_data += "\r\n"
             content_length += len(boundary_data)
             boundary_objects.append(boundary_data)
 
-        boundary_data = f"--{boundary_string}--"
+        boundary_data = f"--{boundary_string}--\r\n"
 
         content_length += len(boundary_data)
         boundary_objects.append(boundary_data)
@@ -417,7 +427,7 @@ class Session:
     @staticmethod
     def _check_headers(headers: Dict[str, str]):
         if not isinstance(headers, dict):
-            raise AttributeError("headers must be in dict format")
+            raise AttributeError("Headers must be in dict format")
 
         for key, value in headers.items():
             if isinstance(value, (str, bytes)) or value is None:
@@ -447,7 +457,6 @@ class Session:
                 # Not EAGAIN; that was already handled.
                 raise OSError(errno.EIO)
             total_sent += sent
-        return total_sent
 
     def _send_as_bytes(self, socket: SocketType, data: str):
         return self._send(socket, bytes(data, "utf-8"))
@@ -458,19 +467,12 @@ class Session:
                 self._send_as_bytes(socket, boundary_object)
             else:
                 chunk_size = 32
-                if hasattr(boundary_object, "readinto"):
-                    b = bytearray(chunk_size)
-                    while True:
-                        size = boundary_object.readinto(b)
-                        if size == 0:
-                            break
-                        self._send(socket, b[:size])
-                else:
-                    while True:
-                        b = boundary_object.read(chunk_size)
-                        if len(b) == 0:
-                            break
-                        self._send(socket, b)
+                b = bytearray(chunk_size)
+                while True:
+                    size = boundary_object.readinto(b)
+                    if size == 0:
+                        break
+                    self._send(socket, b[:size])
 
     def _send_header(self, socket, header, value):
         if value is None:
