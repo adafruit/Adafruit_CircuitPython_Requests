@@ -73,6 +73,14 @@ def test_post_files_text(sock, requests):
     )
     sock.send.assert_has_calls(
         [
+            mock.call(b"Content-Length"),
+            mock.call(b": "),
+            mock.call(b"131"),
+            mock.call(b"\r\n"),
+        ]
+    )
+    sock.send.assert_has_calls(
+        [
             mock.call(
                 b'--8cd45159712eeb914c049c717d3f4d75\r\nContent-Disposition: form-data; name="key_4"\r\n\r\n'
             ),
@@ -110,6 +118,14 @@ def test_post_files_file(sock, requests):
             mock.call(
                 b"multipart/form-data; boundary=e663061c5bfcc53139c8f68d016cbef3"
             ),
+            mock.call(b"\r\n"),
+        ]
+    )
+    sock.send.assert_has_calls(
+        [
+            mock.call(b"Content-Length"),
+            mock.call(b": "),
+            mock.call(b"347"),
             mock.call(b"\r\n"),
         ]
     )
@@ -173,6 +189,14 @@ def test_post_files_complex(sock, requests):
             mock.call(
                 b"multipart/form-data; boundary=e663061c5bfcc53139c8f68d016cbef3"
             ),
+            mock.call(b"\r\n"),
+        ]
+    )
+    sock.send.assert_has_calls(
+        [
+            mock.call(b"Content-Length"),
+            mock.call(b": "),
+            mock.call(b"796"),
             mock.call(b"\r\n"),
         ]
     )
