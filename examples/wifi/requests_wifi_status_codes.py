@@ -27,7 +27,9 @@ def print_http_status(code, description):
     """Returns HTTP status code and description"""
     if "100" <= code <= "103":
         print(f" | ✅ Status Test: {code} - {description}")
-    elif "200" <= code <= "299":
+    elif "200" == code:
+        print(f" | 🆗 Status Test: {code} - {description}")
+    elif "201" <= code <= "299":
         print(f" | ✅ Status Test: {code} - {description}")
     elif "300" <= code <= "600":
         print(f" | ❌ Status Test: {code} - {description}")
@@ -103,7 +105,7 @@ http_status_codes = {
 }
 
 JSON_GET_URL = "https://httpbin.org/get"
-STATUS_TEST = "https://httpbin.org/status/"
+STATUS_TEST_URL = "https://httpbin.org/status/"
 
 print(f"\nConnecting to {ssid}...")
 print(f"Signal Strength: {rssi}")
@@ -118,33 +120,33 @@ print("✅ Wifi!")
 HEADERS = {"user-agent": "blinka/1.0.0"}
 
 print(f" | GET JSON: {JSON_GET_URL}")
-response = requests.get(JSON_GET_URL, headers=HEADERS)
+with requests.get(JSON_GET_URL, headers=HEADERS) as response:
+    json_data = response.json()
+    HEADERS = json_data["headers"]
+    print(f" | User-Agent: {HEADERS['User-Agent']}")
 
-json_data = response.json()
-HEADERS = json_data["headers"]
-print(f" | User-Agent: {HEADERS['User-Agent']}")
-
-# HTTP STATUS CODE TESTING
-# https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-STATUS_CODE = str(response.status_code)
-STATUS_DESCRIPTION = http_status_codes.get(STATUS_CODE, "Unknown Status Code")
-print_http_status(STATUS_CODE, STATUS_DESCRIPTION)
-response.close()
-print(f" | ✂️ Disconnected from {JSON_GET_URL}")
-print(" | ")
-
-print(f" | Status Code Test: {STATUS_TEST}")
-# Some return errors then confirm the error (that's a good thing)
-# Demonstrates not all errors have the same behavior
-# 300, 304, and 306 in particular
-for codes in sorted(http_status_codes.keys(), key=int):
-    status_test_url = STATUS_TEST + codes
-    response = requests.get(status_test_url, headers=HEADERS)
-    SORT_STATUS_CODE = str(response.status_code)
-    SORT_STATUS_DESC = http_status_codes.get(SORT_STATUS_CODE, "Unknown Status Code")
-    print_http_status(SORT_STATUS_CODE, SORT_STATUS_DESC)
+    # HTTP STATUS CODE TESTING
+    # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+    STATUS_CODE = str(response.status_code)
+    STATUS_DESCRIPTION = http_status_codes.get(STATUS_CODE, "Unknown Status Code")
+    print_http_status(STATUS_CODE, STATUS_DESCRIPTION)
     response.close()
+    print(f" | ✂️ Disconnected from {JSON_GET_URL}")
+    print(" | ")
 
-print(f" | ✂️ Disconnected from {JSON_GET_URL}")
+    print(f" | Status Code Test: {STATUS_TEST_URL}")
+    # Some return errors then confirm the error (that's a good thing)
+    # Demonstrates not all errors have the same behavior
+    # 300, 304, and 306 in particular
+    for codes in sorted(http_status_codes.keys(), key=int):
+        header_status_test_url = STATUS_TEST_URL + codes
+        response = requests.get(header_status_test_url, headers=HEADERS)
+        SORT_STATUS_CODE = str(response.status_code)
+        SORT_STATUS_DESC = http_status_codes.get(
+            SORT_STATUS_CODE, "Unknown Status Code"
+        )
+        print_http_status(SORT_STATUS_CODE, SORT_STATUS_DESC)
 
-print("Finished!")
+    print(f" | ✂️ Disconnected from {JSON_GET_URL}")
+
+    print("Finished!")
