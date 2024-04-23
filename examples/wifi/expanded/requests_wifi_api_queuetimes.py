@@ -40,67 +40,49 @@ def time_calc(input_time):
 
 
 qtimes_json = {}
-while True:
-    now = time.monotonic()
-    # Connect to Wi-Fi
-    print("\n===============================")
-    print("Connecting to WiFi...")
-    while not wifi.radio.ipv4_address:
-        try:
-            wifi.radio.connect(ssid, password)
-        except ConnectionError as e:
-            print("❌ Connection Error:", e)
-            print("Retrying in 10 seconds")
-    print("✅ WiFi!")
 
+# Connect to Wi-Fi
+print("\n===============================")
+print("Connecting to WiFi...")
+while not wifi.radio.ipv4_address:
     try:
-        print(" | Attempting to GET Queue-Times JSON!")
-        try:
-            qtimes_response = requests.get(url=QTIMES_SOURCE)
-            qtimes_json = qtimes_response.json()
-        except ConnectionError as e:
-            print("Connection Error:", e)
-            print("Retrying in 10 seconds")
-        print(" | ✅ Queue-Times JSON!")
+        wifi.radio.connect(ssid, password)
+    except ConnectionError as e:
+        print("❌ Connection Error:", e)
+        print("Retrying in 10 seconds")
+print("✅ WiFi!")
 
-        DEBUG_QTIMES = False
-        if DEBUG_QTIMES:
-            print("Full API GET URL: ", QTIMES_SOURCE)
-            print(qtimes_json)
-        qtimes_response.close()
-        print("✂️ Disconnected from Queue-Times API")
+try:
+    with requests.get(url=QTIMES_SOURCE) as qtimes_response:
+        qtimes_json = qtimes_response.json()
+except ConnectionError as e:
+    print("Connection Error:", e)
+print(" | ✅ Queue-Times JSON\n")
+DEBUG_QTIMES = False
+if DEBUG_QTIMES:
+    print("Full API GET URL: ", QTIMES_SOURCE)
+    print(qtimes_json)
+qtimes_response.close()
 
-        print("\nFinished!")
-        print(f"Board Uptime: {time_calc(time.monotonic())}")
-        print(f"Next Update: {time_calc(SLEEP_TIME)}")
-        print("===============================")
-    except (ValueError, RuntimeError) as e:
-        print("Failed to get data, retrying\n", e)
-        time.sleep(60)
-        break
+# Poll Once and end script
+for land in qtimes_json["lands"]:
+    qtimes_lands = str(land["name"])
+    print(f" |  Land: {qtimes_lands}")
+    time.sleep(1)
 
-    # Loop infinitely until its time to re-poll
-    if time.monotonic() - now <= SLEEP_TIME:
-        for land in qtimes_json["lands"]:
-            qtimes_lands = str(land["name"])
-            print(f" |  | Lands: {qtimes_lands}")
-            time.sleep(1)
+    # Loop through each ride in the land
+    for ride in land["rides"]:
+        qtimes_rides = str(ride["name"])
+        qtimes_queuetime = str(ride["wait_time"])
+        qtimes_isopen = str(ride["is_open"])
 
-            # Loop through each ride in the land
-            for ride in land["rides"]:
-                qtimes_rides = str(ride["name"])
-                qtimes_queuetime = str(ride["wait_time"])
-                qtimes_isopen = str(ride["is_open"])
+        print(f" |  | Ride: {qtimes_rides}")
+        print(f" |  | Queue Time: {qtimes_queuetime} Minutes")
+        if qtimes_isopen == "False":
+            print(" |  | Status: Closed\n")
+        elif qtimes_isopen == "True":
+            print(" |  | Status: Open\n")
+        else:
+            print(" |  | Status: Unknown\n")
 
-                print(f" |  | Ride: {qtimes_rides}")
-                print(f" |  | Queue Time: {qtimes_queuetime} Minutes")
-                if qtimes_isopen == "False":
-                    print(" |  | Status: Closed")
-                elif qtimes_isopen == "True":
-                    print(" |  | Status: Open")
-                else:
-                    print(" |  | Status: Unknown")
-
-                time.sleep(1)  # delay between list items
-    else:  # When its time to poll, break to top of while True loop.
-        break
+        time.sleep(1)  # delay between list items
