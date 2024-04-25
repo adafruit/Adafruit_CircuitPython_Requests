@@ -23,5 +23,5 @@ with open("requests_wifi_file_upload_image.png", "rb") as file_handle:
         "othervalue": (None, "HelloWorld"),
     }
 
-    with requests.post(URL, files=files) as resp:
-        print(resp.content)
+    with requests.post(URL, files=files) as response:
+        print(response.content)
