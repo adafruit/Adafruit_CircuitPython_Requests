@@ -25,38 +25,36 @@ print(f"\nConnecting to {ssid}...")
 try:
     # Connect to the Wi-Fi network
     wifi.radio.connect(ssid, password)
-    # URL GET Request
-    response = requests.get(COOKIE_TEST_URL)
 except OSError as e:
     print(f"❌ OSError: {e}")
 print("✅ Wifi!")
 
-print(f" | Fetching Cookies: {COOKIE_TEST_URL}")
+# URL GET Request
+with requests.get(COOKIE_TEST_URL) as response:
+    print(f" | Fetching Cookies: {COOKIE_TEST_URL}")
 
-# Spilt up the cookies by ", "
-elements = response.headers["set-cookie"].split(", ")
+    # Spilt up the cookies by ", "
+    elements = response.headers["set-cookie"].split(", ")
 
-# NOTE: Some cookies use ", " when describing dates.  This code will iterate through
-# the previously split up 'set-cookie' header value and piece back together cookies
-# that were accidentally split up for this reason
-days_of_week = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
-elements_iter = iter(elements)
-cookie_list = []
-for element in elements_iter:
-    captured_day = [day for day in days_of_week if element.endswith(day)]
-    if captured_day:
-        cookie_list.append(element + ", " + next(elements_iter))
-    else:
-        cookie_list.append(element)
+    # NOTE: Some cookies use ", " when describing dates.  This code will iterate through
+    # the previously split up 'set-cookie' header value and piece back together cookies
+    # that were accidentally split up for this reason
+    days_of_week = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+    elements_iter = iter(elements)
+    cookie_list = []
+    for element in elements_iter:
+        captured_day = [day for day in days_of_week if element.endswith(day)]
+        if captured_day:
+            cookie_list.append(element + ", " + next(elements_iter))
+        else:
+            cookie_list.append(element)
 
-# Pring the information about the cookies
-print(f" | Total Cookies: {len(cookie_list)}")
-print("-" * 80)
-
-for cookie in cookie_list:
-    print(f" | 🍪 {cookie}")
+    # Pring the information about the cookies
+    print(f" | Total Cookies: {len(cookie_list)}")
     print("-" * 80)
 
-response.close()
-print(f"✂️ Disconnected from {COOKIE_TEST_URL}")
+    for cookie in cookie_list:
+        print(f" | 🍪 {cookie}")
+        print("-" * 80)
+
 print("Finished!")

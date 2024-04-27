@@ -174,17 +174,16 @@ while True:
                 print(f"Current Refresh Token: {Refresh_Token}")
             # TOKEN REFRESH POST
             try:
-                fitbit_oauth_refresh_POST = requests.post(
+                with requests.post(
                     url=FITBIT_OAUTH_TOKEN,
                     data=FITBIT_OAUTH_REFRESH_TOKEN,
                     headers=FITBIT_OAUTH_HEADER,
-                )
+                ) as fitbit_oauth_refresh_POST:
+                    fitbit_refresh_oauth_json = fitbit_oauth_refresh_POST.json()
             except adafruit_requests.OutOfRetries as ex:
                 print(f"OutOfRetries: {ex}")
                 break
             try:
-                fitbit_refresh_oauth_json = fitbit_oauth_refresh_POST.json()
-
                 fitbit_new_token = fitbit_refresh_oauth_json["access_token"]
                 if DEBUG:
                     print("Your Private SHA-256 Token: ", fitbit_new_token)
@@ -252,9 +251,9 @@ while True:
             print(" | Attempting to GET Fitbit JSON!")
             FBIS = FITBIT_INTRADAY_SOURCE
             FBH = fitbit_header
-            fitbit_get_response = requests.get(url=FBIS, headers=FBH)
             try:
-                fitbit_json = fitbit_get_response.json()
+                with requests.get(url=FBIS, headers=FBH) as fitbit_get_response:
+                    fitbit_json = fitbit_get_response.json()
             except ConnectionError as e:
                 print("Connection Error:", e)
                 print("Retrying in 10 seconds")
@@ -318,9 +317,9 @@ while True:
             print(" | Attempting to GET Device JSON!")
             FBDS = FITBIT_DEVICE_SOURCE
             FBH = fitbit_header
-            fitbit_get_device_response = requests.get(url=FBDS, headers=FBH)
             try:
-                fitbit_device_json = fitbit_get_device_response.json()
+                with requests.get(url=FBDS, headers=FBH) as fitbit_get_device_response:
+                    fitbit_device_json = fitbit_get_device_response.json()
             except ConnectionError as e:
                 print("Connection Error:", e)
                 print("Retrying in 10 seconds")

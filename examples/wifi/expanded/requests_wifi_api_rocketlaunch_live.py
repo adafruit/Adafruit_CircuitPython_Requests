@@ -58,8 +58,8 @@ while True:
         debug_rocketlaunch_full_response = False
 
         try:
-            rocketlaunch_response = requests.get(url=ROCKETLAUNCH_SOURCE)
-            rocketlaunch_json = rocketlaunch_response.json()
+            with requests.get(url=ROCKETLAUNCH_SOURCE) as rocketlaunch_response:
+                rocketlaunch_json = rocketlaunch_response.json()
         except ConnectionError as e:
             print("Connection Error:", e)
             print("Retrying in 10 seconds")
@@ -119,9 +119,6 @@ while True:
             print(f" |  | Description: {RLLD}")
         if RLM != "None":
             print(f" |  | Mission: {RLM}")
-
-        rocketlaunch_response.close()
-        print("✂️ Disconnected from RocketLaunch.Live API")
 
         print("\nFinished!")
         print(f"Board Uptime: {time_calc(time.monotonic())}")

@@ -80,8 +80,8 @@ while True:
         print(" | Attempting to GET OpenSky-Network Single Public Flight JSON!")
         print(" | Website Credentials NOT Required! Less daily calls than Private.")
         try:
-            opensky_response = requests.get(url=OPENSKY_SOURCE)
-            opensky_json = opensky_response.json()
+            with requests.get(url=OPENSKY_SOURCE) as opensky_response:
+                opensky_json = opensky_response.json()
         except ConnectionError as e:
             print("Connection Error:", e)
             print("Retrying in 10 seconds")
@@ -162,9 +162,6 @@ while True:
         else:
             print("This flight has no active data or you're polling too fast.")
             print("Public Limits: 10 second max poll & 400 weighted calls daily")
-
-        opensky_response.close()
-        print("✂️ Disconnected from OpenSky-Network API")
 
         print("\nFinished!")
         print(f"Board Uptime: {time_calc(time.monotonic())}")

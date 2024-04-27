@@ -34,37 +34,29 @@ except OSError as e:
 print("✅ Wifi!")
 
 print(f" | GET Text Test: {TEXT_URL}")
-response = requests.get(TEXT_URL)
-print(f" | ✅ GET Response: {response.text}")
-response.close()
-print(f" | ✂️ Disconnected from {TEXT_URL}")
+with requests.get(TEXT_URL) as response:
+    print(f" | ✅ GET Response: {response.text}")
 print("-" * 80)
 
 print(f" | GET Full Response Test: {JSON_GET_URL}")
-response = requests.get(JSON_GET_URL)
-print(f" | ✅ Unparsed Full JSON Response: {response.json()}")
-response.close()
-print(f" | ✂️ Disconnected from {JSON_GET_URL}")
+with requests.get(JSON_GET_URL) as response:
+    print(f" | ✅ Unparsed Full JSON Response: {response.json()}")
 print("-" * 80)
 
 DATA = "This is an example of a JSON value"
 print(f" | ✅ JSON 'value' POST Test: {JSON_POST_URL} {DATA}")
-response = requests.post(JSON_POST_URL, data=DATA)
-json_resp = response.json()
-# Parse out the 'data' key from json_resp dict.
-print(f" | ✅ JSON 'value' Response: {json_resp['data']}")
-response.close()
-print(f" | ✂️ Disconnected from {JSON_POST_URL}")
+with requests.post(JSON_POST_URL, data=DATA) as response:
+    json_resp = response.json()
+    # Parse out the 'data' key from json_resp dict.
+    print(f" | ✅ JSON 'value' Response: {json_resp['data']}")
 print("-" * 80)
 
 json_data = {"Date": "January 1, 1970"}
 print(f" | ✅ JSON 'key':'value' POST Test: {JSON_POST_URL} {json_data}")
-response = requests.post(JSON_POST_URL, json=json_data)
-json_resp = response.json()
-# Parse out the 'json' key from json_resp dict.
-print(f" | ✅ JSON 'key':'value' Response: {json_resp['json']}")
-response.close()
-print(f" | ✂️ Disconnected from {JSON_POST_URL}")
+with requests.post(JSON_POST_URL, json=json_data) as response:
+    json_resp = response.json()
+    # Parse out the 'json' key from json_resp dict.
+    print(f" | ✅ JSON 'key':'value' Response: {json_resp['json']}")
 print("-" * 80)
 
 print("Finished!")

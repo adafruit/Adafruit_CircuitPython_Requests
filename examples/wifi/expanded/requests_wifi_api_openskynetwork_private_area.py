@@ -108,8 +108,10 @@ while True:
     try:
         print(" | Attempting to GET OpenSky-Network Area Flights JSON!")
         try:
-            opensky_response = requests.get(url=OPENSKY_SOURCE, headers=OSN_HEADER)
-            opensky_json = opensky_response.json()
+            with requests.get(
+                url=OPENSKY_SOURCE, headers=OSN_HEADER
+            ) as opensky_response:
+                opensky_json = opensky_response.json()
         except ConnectionError as e:
             print("Connection Error:", e)
             print("Retrying in 10 seconds")
@@ -183,9 +185,6 @@ while True:
 
         else:
             print(" |  | ❌ Area has no active data or you're polling too fast.")
-
-        opensky_response.close()
-        print("✂️ Disconnected from OpenSky-Network API")
 
         print("\nFinished!")
         print(f"Board Uptime: {time_calc(time.monotonic())}")
