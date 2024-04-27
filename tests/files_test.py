@@ -37,15 +37,20 @@ def request_logging(log_stream):
 
 def get_actual_request_data(log_stream):
     boundary_pattern = r"(?<=boundary=)(.\w*)"
+    content_length_pattern = r"(?<=Content-Length: )(.\d*)"
 
     boundary = ""
     actual_request_post = ""
+    content_length = ""
     for log in log_stream:
         for log_arg in log:
             boundary_search = re.findall(boundary_pattern, log_arg)
+            content_length_search = re.findall(content_length_pattern, log_arg)
             if boundary_search:
                 boundary = boundary_search[0]
-            elif "Content-Disposition" in log_arg:
+            if content_length_search:
+                content_length = content_length_search[0]
+            if "Content-Disposition" in log_arg:
                 # this will look like:
                 #  b\'{content}\'
                 # and escapped characters look like:
@@ -55,7 +60,7 @@ def get_actual_request_data(log_stream):
                 post_unescaped = post_bytes.decode("unicode_escape")
                 actual_request_post = post_unescaped.encode("latin1")
 
-    return boundary, actual_request_post
+    return boundary, content_length, actual_request_post
 
 
 def test_post_files_text(  # pylint: disable=unused-argument
@@ -66,7 +71,7 @@ def test_post_files_text(  # pylint: disable=unused-argument
     }
 
     python_requests.post(post_url, files=file_data)
-    boundary, actual_request_post = get_actual_request_data(log_stream)
+    boundary, content_length, actual_request_post = get_actual_request_data(log_stream)
 
     requests._build_boundary_string = mock.Mock(return_value=boundary)
     requests.post("http://" + mocket.MOCK_HOST_1 + "/post", files=file_data)
@@ -84,7 +89,7 @@ def test_post_files_text(  # pylint: disable=unused-argument
         [
             mock.call(b"Content-Length"),
             mock.call(b": "),
-            mock.call(b"131"),
+            mock.call(content_length.encode()),
             mock.call(b"\r\n"),
         ]
     )
@@ -111,7 +116,9 @@ def test_post_files_file(  # pylint: disable=unused-argument
         }
 
         python_requests.post(post_url, files=file_data)
-        boundary, actual_request_post = get_actual_request_data(log_stream)
+        boundary, content_length, actual_request_post = get_actual_request_data(
+            log_stream
+        )
 
         requests._build_boundary_string = mock.Mock(return_value=boundary)
         requests.post("http://" + mocket.MOCK_HOST_1 + "/post", files=file_data)
@@ -129,7 +136,7 @@ def test_post_files_file(  # pylint: disable=unused-argument
         [
             mock.call(b"Content-Length"),
             mock.call(b": "),
-            mock.call(b"347"),
+            mock.call(content_length.encode()),
             mock.call(b"\r\n"),
         ]
     )
@@ -164,7 +171,9 @@ def test_post_files_complex(  # pylint: disable=unused-argument
         }
 
         python_requests.post(post_url, files=file_data)
-        boundary, actual_request_post = get_actual_request_data(log_stream)
+        boundary, content_length, actual_request_post = get_actual_request_data(
+            log_stream
+        )
 
         requests._build_boundary_string = mock.Mock(return_value=boundary)
         requests.post("http://" + mocket.MOCK_HOST_1 + "/post", files=file_data)
@@ -182,7 +191,7 @@ def test_post_files_complex(  # pylint: disable=unused-argument
         [
             mock.call(b"Content-Length"),
             mock.call(b": "),
-            mock.call(b"796"),
+            mock.call(content_length.encode()),
             mock.call(b"\r\n"),
         ]
     )
