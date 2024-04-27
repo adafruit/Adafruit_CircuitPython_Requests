@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.2.x
 """Steam API Get Owned Games Example"""
-# pylint: disable=import-error
 
 import os
 import time
@@ -90,8 +89,8 @@ while True:
     try:
         print(" | Attempting to GET Steam API JSON!")
         try:
-            steam_response = requests.get(url=STEAM_SOURCE)
-            steam_json = steam_response.json()
+            with requests.get(url=STEAM_SOURCE) as steam_response:
+                steam_json = steam_response.json()
         except ConnectionError as e:
             print("Connection Error:", e)
             print("Retrying in 10 seconds")
@@ -114,9 +113,6 @@ while True:
         print(f" |  | Total Hours: {total_hours}")
         print(f" |  | Total Days:  {total_days}")
         print(f" |  | Total Years: {total_years:.2f}")
-
-        steam_response.close()
-        print("✂️ Disconnected from Steam API")
 
         print("\nFinished!")
         print(f"Board Uptime: {time_calc(time.monotonic())}")

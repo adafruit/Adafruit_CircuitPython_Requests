@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.2.x
 """Discord Web Scrape Example"""
-# pylint: disable=import-error
 
 import os
 import time
@@ -70,8 +69,10 @@ while True:
         DEBUG_RESPONSE = False
 
         try:
-            discord_response = requests.get(url=DISCORD_SOURCE, headers=DISCORD_HEADER)
-            discord_json = discord_response.json()
+            with requests.get(
+                url=DISCORD_SOURCE, headers=DISCORD_HEADER
+            ) as discord_response:
+                discord_json = discord_response.json()
         except ConnectionError as e:
             print(f"Connection Error: {e}")
             print("Retrying in 10 seconds")

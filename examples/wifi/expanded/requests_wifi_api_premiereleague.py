@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.2.x
 """Premiere League Total Players API Example"""
-# pylint: disable=import-error
 
 import os
 import time
@@ -63,16 +62,14 @@ while True:
         DEBUG_RESPONSE = False
 
         try:
-            PREMIERE_LEAGUE_RESPONSE = requests.get(url=PREMIERE_LEAGUE_SOURCE)
-            pl_json = json_stream.load(PREMIERE_LEAGUE_RESPONSE.iter_content(32))
+            with requests.get(url=PREMIERE_LEAGUE_SOURCE) as PREMIERE_LEAGUE_RESPONSE:
+                pl_json = json_stream.load(PREMIERE_LEAGUE_RESPONSE.iter_content(32))
         except ConnectionError as e:
             print(f"Connection Error: {e}")
             print("Retrying in 10 seconds")
         print(" | ✅ Premiere League JSON!")
 
         print(f" | Total Premiere League Players: {pl_json['total_players']}")
-        PREMIERE_LEAGUE_RESPONSE.close()
-        print("✂️ Disconnected from Premiere League")
 
         print("\nFinished!")
         print(f"Board Uptime: {time.monotonic()}")

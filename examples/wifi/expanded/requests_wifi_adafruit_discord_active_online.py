@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 8.2.x
 """Discord Active Online Shields.IO Example"""
-# pylint: disable=import-error
 
 import os
 import time
@@ -61,8 +60,8 @@ while True:
         DEBUG_RESPONSE = True
 
         try:
-            shieldsio_response = requests.get(url=ADA_DISCORD_JSON)
-            shieldsio_json = shieldsio_response.json()
+            with requests.get(url=ADA_DISCORD_JSON) as shieldsio_response:
+                shieldsio_json = shieldsio_response.json()
         except ConnectionError as e:
             print(f"Connection Error: {e}")
             print("Retrying in 10 seconds")
