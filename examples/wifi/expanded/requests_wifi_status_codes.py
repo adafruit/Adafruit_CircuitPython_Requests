@@ -6,6 +6,7 @@
 """ WiFi Status Codes Example """
 
 import os
+import time
 
 import adafruit_connection_manager
 import wifi
@@ -23,18 +24,29 @@ requests = adafruit_requests.Session(pool, ssl_context)
 rssi = wifi.radio.ap_info.rssi
 
 
-def print_http_status(code, description):
+def print_http_status(expected_code, actual_code, description):
     """Returns HTTP status code and description"""
-    if "100" <= code <= "103":
-        print(f" | ✅ Status Test: {code} - {description}")
-    elif "200" == code:
-        print(f" | 🆗 Status Test: {code} - {description}")
-    elif "201" <= code <= "299":
-        print(f" | ✅ Status Test: {code} - {description}")
-    elif "300" <= code <= "600":
-        print(f" | ❌ Status Test: {code} - {description}")
+    if "100" <= actual_code <= "103":
+        print(
+            f" | ✅ Status Test Expected: {expected_code} Actual: {actual_code} - {description}"
+        )
+    elif "200" == actual_code:
+        print(
+            f" | 🆗 Status Test Expected: {expected_code} Actual: {actual_code} - {description}"
+        )
+    elif "201" <= actual_code <= "299":
+        print(
+            f" | ✅ Status Test Expected: {expected_code} Actual: {actual_code} - {description}"
+        )
+    elif "300" <= actual_code <= "600":
+        print(
+            f" | ❌ Status Test Expected: {expected_code} Actual: {actual_code} - {description}"
+        )
     else:
-        print(f" | Unknown Response Status: {code} - {description}")
+        print(
+            f" | Unknown Response Status Expected: {expected_code} "
+            + f"Actual: {actual_code} - {description}"
+        )
 
 
 # All HTTP Status Codes
@@ -104,7 +116,6 @@ http_status_codes = {
     "511": "Network Authentication Required",
 }
 
-JSON_GET_URL = "https://httpbin.org/get"
 STATUS_TEST_URL = "https://httpbin.org/status/"
 
 print(f"\nConnecting to {ssid}...")
@@ -116,37 +127,22 @@ except OSError as e:
     print(f"❌ OSError: {e}")
 print("✅ Wifi!")
 
-# Define a custom header as a dict.
-HEADERS = {"user-agent": "blinka/1.0.0"}
 
-print(f" | GET JSON: {JSON_GET_URL}")
-with requests.get(JSON_GET_URL, headers=HEADERS) as response:
-    json_data = response.json()
-    HEADERS = json_data["headers"]
-    print(f" | User-Agent: {HEADERS['User-Agent']}")
-
-    # HTTP STATUS CODE TESTING
-    # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-    STATUS_CODE = str(response.status_code)
-    STATUS_DESCRIPTION = http_status_codes.get(STATUS_CODE, "Unknown Status Code")
-    print_http_status(STATUS_CODE, STATUS_DESCRIPTION)
-    response.close()
-    print(f" | ✂️ Disconnected from {JSON_GET_URL}")
-    print(" | ")
-
-    print(f" | Status Code Test: {STATUS_TEST_URL}")
-    # Some return errors then confirm the error (that's a good thing)
-    # Demonstrates not all errors have the same behavior
-    # 300, 304, and 306 in particular
-    for codes in sorted(http_status_codes.keys(), key=int):
-        header_status_test_url = STATUS_TEST_URL + codes
-        response = requests.get(header_status_test_url, headers=HEADERS)
-        SORT_STATUS_CODE = str(response.status_code)
+print(f" | Status Code Test: {STATUS_TEST_URL}")
+# Some return errors then confirm the error (that's a good thing)
+# Demonstrates not all errors have the same behavior
+# Some 300 level responses contain redirects that requests automatically follows
+# By default the response object will contain the status code from the final
+# response after all redirect, so it can differ from the expected status code.
+for current_code in sorted(http_status_codes.keys(), key=int):
+    header_status_test_url = STATUS_TEST_URL + current_code
+    with requests.get(header_status_test_url) as response:
+        response_status_code = str(response.status_code)
         SORT_STATUS_DESC = http_status_codes.get(
-            SORT_STATUS_CODE, "Unknown Status Code"
+            response_status_code, "Unknown Status Code"
         )
-        print_http_status(SORT_STATUS_CODE, SORT_STATUS_DESC)
+        print_http_status(current_code, response_status_code, SORT_STATUS_DESC)
 
-    print(f" | ✂️ Disconnected from {JSON_GET_URL}")
-
-    print("Finished!")
+    # Rate limit ourselves a little to avoid strain on server
+    time.sleep(0.5)
+print("Finished!")
