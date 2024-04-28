@@ -4,7 +4,6 @@
 """Queue-Times.com API Example"""
 
 import os
-import time
 
 import adafruit_connection_manager
 import wifi
@@ -55,34 +54,33 @@ print("✅ WiFi!")
 try:
     with requests.get(url=QTIMES_SOURCE) as qtimes_response:
         qtimes_json = qtimes_response.json()
+
+    print(" | ✅ Queue-Times JSON\n")
+    DEBUG_QTIMES = False
+    if DEBUG_QTIMES:
+        print("Full API GET URL: ", QTIMES_SOURCE)
+        print(qtimes_json)
+
+    # Poll Once and end script
+    for land in qtimes_json["lands"]:
+        qtimes_lands = str(land["name"])
+        print(f" |  Land: {qtimes_lands}")
+
+        # Loop through each ride in the land
+        for ride in land["rides"]:
+            qtimes_rides = str(ride["name"])
+            qtimes_queuetime = str(ride["wait_time"])
+            qtimes_isopen = str(ride["is_open"])
+
+            print(f" |  | Ride: {qtimes_rides}")
+            print(f" |  | Queue Time: {qtimes_queuetime} Minutes")
+            if qtimes_isopen == "False":
+                print(" |  | Status: Closed\n")
+            elif qtimes_isopen == "True":
+                print(" |  | Status: Open\n")
+            else:
+                print(" |  | Status: Unknown\n")
+
+
 except ConnectionError as e:
     print("Connection Error:", e)
-print(" | ✅ Queue-Times JSON\n")
-DEBUG_QTIMES = False
-if DEBUG_QTIMES:
-    print("Full API GET URL: ", QTIMES_SOURCE)
-    print(qtimes_json)
-qtimes_response.close()
-
-# Poll Once and end script
-for land in qtimes_json["lands"]:
-    qtimes_lands = str(land["name"])
-    print(f" |  Land: {qtimes_lands}")
-    time.sleep(1)
-
-    # Loop through each ride in the land
-    for ride in land["rides"]:
-        qtimes_rides = str(ride["name"])
-        qtimes_queuetime = str(ride["wait_time"])
-        qtimes_isopen = str(ride["is_open"])
-
-        print(f" |  | Ride: {qtimes_rides}")
-        print(f" |  | Queue Time: {qtimes_queuetime} Minutes")
-        if qtimes_isopen == "False":
-            print(" |  | Status: Closed\n")
-        elif qtimes_isopen == "True":
-            print(" |  | Status: Open\n")
-        else:
-            print(" |  | Status: Unknown\n")
-
-        time.sleep(1)  # delay between list items
