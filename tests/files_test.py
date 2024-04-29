@@ -1,8 +1,8 @@
-# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
+# SPDX-FileCopyrightText: 2024 Justin Myers
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Post Tests """
+""" Post Files Tests """
 # pylint: disable=line-too-long
 
 import re
@@ -53,7 +53,7 @@ def get_actual_request_data(log_stream):
             if "Content-Disposition" in log_arg:
                 # this will look like:
                 #  b\'{content}\'
-                # and escapped characters look like:
+                # and escaped characters look like:
                 #  \\r
                 post_data = log_arg[2:-1]
                 post_bytes = post_data.encode("utf-8")
@@ -70,7 +70,7 @@ def test_post_files_text(  # pylint: disable=unused-argument
         "key_4": (None, "Value 5"),
     }
 
-    python_requests.post(post_url, files=file_data)
+    python_requests.post(post_url, files=file_data, timeout=30)
     boundary, content_length, actual_request_post = get_actual_request_data(log_stream)
 
     requests._build_boundary_string = mock.Mock(return_value=boundary)
@@ -115,7 +115,7 @@ def test_post_files_file(  # pylint: disable=unused-argument
             ),
         }
 
-        python_requests.post(post_url, files=file_data)
+        python_requests.post(post_url, files=file_data, timeout=30)
         boundary, content_length, actual_request_post = get_actual_request_data(
             log_stream
         )
@@ -170,7 +170,7 @@ def test_post_files_complex(  # pylint: disable=unused-argument
             "key_6": (None, "Value 6"),
         }
 
-        python_requests.post(post_url, files=file_data)
+        python_requests.post(post_url, files=file_data, timeout=30)
         boundary, content_length, actual_request_post = get_actual_request_data(
             log_stream
         )
