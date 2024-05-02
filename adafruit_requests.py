@@ -41,7 +41,7 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 
 import errno
 import json as json_module
-import random
+import os
 import sys
 
 from adafruit_connection_manager import get_connection_manager
@@ -418,11 +418,7 @@ class Session:
 
     @staticmethod
     def _build_boundary_string():
-        hex_characters = "0123456789abcdef"
-        _boundary = ""
-        for _ in range(32):
-            _boundary += random.choice(hex_characters)
-        return _boundary
+        return os.urandom(16).hex()
 
     @staticmethod
     def _check_headers(headers: Dict[str, str]):
