@@ -369,22 +369,22 @@ class Session:
             file_name = field_values[0]
             file_handle = field_values[1]
 
-            boundary_data = f"--{boundary_string}\r\n"
-            boundary_data += f'Content-Disposition: form-data; name="{field_name}"'
+            boundary_objects.append(
+                f'--{boundary_string}\r\nContent-Disposition: form-data; name="{field_name}"'
+            )
             if file_name is not None:
-                boundary_data += f'; filename="{file_name}"'
-            boundary_data += "\r\n"
+                boundary_objects.append(f'; filename="{file_name}"')
+            boundary_objects.append("\r\n")
             if len(field_values) >= 3:
                 file_content_type = field_values[2]
-                boundary_data += f"Content-Type: {file_content_type}\r\n"
+                boundary_objects.append(f"Content-Type: {file_content_type}\r\n")
             if len(field_values) >= 4:
                 file_headers = field_values[3]
                 for file_header_key, file_header_value in file_headers.items():
-                    boundary_data += f"{file_header_key}: {file_header_value}\r\n"
-            boundary_data += "\r\n"
-
-            content_length += len(boundary_data)
-            boundary_objects.append(boundary_data)
+                    boundary_objects.append(
+                        f"{file_header_key}: {file_header_value}\r\n"
+                    )
+            boundary_objects.append("\r\n")
 
             if hasattr(file_handle, "read"):
                 is_binary = False
@@ -400,19 +400,15 @@ class Session:
                 file_handle.seek(0, SEEK_END)
                 content_length += file_handle.tell()
                 file_handle.seek(0)
-                boundary_objects.append(file_handle)
-                boundary_data = ""
-            else:
-                boundary_data = file_handle
 
-            boundary_data += "\r\n"
-            content_length += len(boundary_data)
-            boundary_objects.append(boundary_data)
+            boundary_objects.append(file_handle)
+            boundary_objects.append("\r\n")
 
-        boundary_data = f"--{boundary_string}--\r\n"
+        boundary_objects.append(f"--{boundary_string}--\r\n")
 
-        content_length += len(boundary_data)
-        boundary_objects.append(boundary_data)
+        for boundary_object in boundary_objects:
+            if isinstance(boundary_object, str):
+                content_length += len(boundary_object)
 
         return boundary_string, content_length, boundary_objects
 
