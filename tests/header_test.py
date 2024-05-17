@@ -11,7 +11,7 @@ import pytest
 def test_check_headers_not_dict(requests):
     with pytest.raises(AttributeError) as context:
         requests._check_headers("")
-    assert "headers must be in dict format" in str(context)
+    assert "Headers must be in dict format" in str(context)
 
 
 def test_check_headers_not_valid(requests):

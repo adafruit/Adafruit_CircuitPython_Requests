@@ -41,9 +41,12 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Requests.git"
 
 import errno
 import json as json_module
+import os
 import sys
 
 from adafruit_connection_manager import get_connection_manager
+
+SEEK_END = 2
 
 if not sys.implementation.name == "circuitpython":
     from types import TracebackType
@@ -357,10 +360,66 @@ class Session:
         self._session_id = session_id
         self._last_response = None
 
+    def _build_boundary_data(self, files: dict):  # pylint: disable=too-many-locals
+        boundary_string = self._build_boundary_string()
+        content_length = 0
+        boundary_objects = []
+
+        for field_name, field_values in files.items():
+            file_name = field_values[0]
+            file_handle = field_values[1]
+
+            boundary_objects.append(
+                f'--{boundary_string}\r\nContent-Disposition: form-data; name="{field_name}"'
+            )
+            if file_name is not None:
+                boundary_objects.append(f'; filename="{file_name}"')
+            boundary_objects.append("\r\n")
+            if len(field_values) >= 3:
+                file_content_type = field_values[2]
+                boundary_objects.append(f"Content-Type: {file_content_type}\r\n")
+            if len(field_values) >= 4:
+                file_headers = field_values[3]
+                for file_header_key, file_header_value in file_headers.items():
+                    boundary_objects.append(
+                        f"{file_header_key}: {file_header_value}\r\n"
+                    )
+            boundary_objects.append("\r\n")
+
+            if hasattr(file_handle, "read"):
+                is_binary = False
+                try:
+                    content = file_handle.read(1)
+                    is_binary = isinstance(content, bytes)
+                except UnicodeError:
+                    is_binary = False
+
+                if not is_binary:
+                    raise AttributeError("Files must be opened in binary mode")
+
+                file_handle.seek(0, SEEK_END)
+                content_length += file_handle.tell()
+                file_handle.seek(0)
+
+            boundary_objects.append(file_handle)
+            boundary_objects.append("\r\n")
+
+        boundary_objects.append(f"--{boundary_string}--\r\n")
+
+        for boundary_object in boundary_objects:
+            if isinstance(boundary_object, str):
+                content_length += len(boundary_object)
+
+        return boundary_string, content_length, boundary_objects
+
+    @staticmethod
+    def _build_boundary_string():
+        return os.urandom(16).hex()
+
     @staticmethod
     def _check_headers(headers: Dict[str, str]):
         if not isinstance(headers, dict):
-            raise AttributeError("headers must be in dict format")
+            raise AttributeError("Headers must be in dict format")
 
         for key, value in headers.items():
             if isinstance(value, (str, bytes)) or value is None:
@@ -394,6 +453,19 @@ class Session:
     def _send_as_bytes(self, socket: SocketType, data: str):
         return self._send(socket, bytes(data, "utf-8"))
 
+    def _send_boundary_objects(self, socket: SocketType, boundary_objects: Any):
+        for boundary_object in boundary_objects:
+            if isinstance(boundary_object, str):
+                self._send_as_bytes(socket, boundary_object)
+            else:
+                chunk_size = 32
+                b = bytearray(chunk_size)
+                while True:
+                    size = boundary_object.readinto(b)
+                    if size == 0:
+                        break
+                    self._send(socket, b[:size])
+
     def _send_header(self, socket, header, value):
         if value is None:
             return
@@ -405,8 +477,7 @@ class Session:
             self._send_as_bytes(socket, value)
         self._send(socket, b"\r\n")
 
-    # pylint: disable=too-many-arguments
-    def _send_request(
+    def _send_request(  # pylint: disable=too-many-arguments
         self,
         socket: SocketType,
         host: str,
@@ -415,7 +486,8 @@ class Session:
         headers: Dict[str, str],
         data: Any,
         json: Any,
-    ):
+        files: Optional[Dict[str, tuple]],
+    ):  # pylint: disable=too-many-branches,too-many-locals,too-many-statements
         # Check headers
         self._check_headers(headers)
 
@@ -425,11 +497,13 @@ class Session:
         # If json is sent, set content type header and convert to string
         if json is not None:
             assert data is None
+            assert files is None
             content_type_header = "application/json"
             data = json_module.dumps(json)
 
         # If data is sent and it's a dict, set content type header and convert to string
         if data and isinstance(data, dict):
+            assert files is None
             content_type_header = "application/x-www-form-urlencoded"
             _post_data = ""
             for k in data:
@@ -440,6 +514,19 @@ class Session:
         # Convert str data to bytes
         if data and isinstance(data, str):
             data = bytes(data, "utf-8")
+
+        # If files are send, build data to send and calculate length
+        content_length = 0
+        boundary_objects = None
+        if files and isinstance(files, dict):
+            boundary_string, content_length, boundary_objects = (
+                self._build_boundary_data(files)
+            )
+            content_type_header = f"multipart/form-data; boundary={boundary_string}"
+        else:
+            if data is None:
+                data = b""
+            content_length = len(data)
 
         self._send_as_bytes(socket, method)
         self._send(socket, b" /")
@@ -456,8 +543,8 @@ class Session:
             self._send_header(socket, "User-Agent", "Adafruit CircuitPython")
         if content_type_header and not "content-type" in supplied_headers:
             self._send_header(socket, "Content-Type", content_type_header)
-        if data and not "content-length" in supplied_headers:
-            self._send_header(socket, "Content-Length", str(len(data)))
+        if (data or files) and not "content-length" in supplied_headers:
+            self._send_header(socket, "Content-Length", str(content_length))
         # Iterate over keys to avoid tuple alloc
         for header in headers:
             self._send_header(socket, header, headers[header])
@@ -466,6 +553,8 @@ class Session:
         # Send data
         if data:
             self._send(socket, bytes(data))
+        elif boundary_objects:
+            self._send_boundary_objects(socket, boundary_objects)
 
     # pylint: disable=too-many-branches, too-many-statements, unused-argument, too-many-arguments, too-many-locals
     def request(
@@ -478,6 +567,7 @@ class Session:
         stream: bool = False,
         timeout: float = 60,
         allow_redirects: bool = True,
+        files: Optional[Dict[str, tuple]] = None,
     ) -> Response:
         """Perform an HTTP request to the given url which we will parse to determine
         whether to use SSL ('https://') or not. We can also send some provided 'data'
@@ -526,7 +616,9 @@ class Session:
             )
             ok = True
             try:
-                self._send_request(socket, host, method, path, headers, data, json)
+                self._send_request(
+                    socket, host, method, path, headers, data, json, files
+                )
             except OSError as exc:
                 last_exc = exc
                 ok = False
