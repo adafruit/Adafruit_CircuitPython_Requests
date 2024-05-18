@@ -209,6 +209,6 @@ def test_post_files_not_binary(requests):
             ),
         }
 
-        with pytest.raises(AttributeError) as context:
+        with pytest.raises(ValueError) as context:
             requests.post("http://" + mocket.MOCK_HOST_1 + "/post", files=file_data)
         assert "Files must be opened in binary mode" in str(context)
