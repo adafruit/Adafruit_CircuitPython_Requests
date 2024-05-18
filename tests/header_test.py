@@ -9,13 +9,13 @@ import pytest
 
 
 def test_check_headers_not_dict(requests):
-    with pytest.raises(AttributeError) as context:
+    with pytest.raises(TypeError) as context:
         requests._check_headers("")
     assert "Headers must be in dict format" in str(context)
 
 
 def test_check_headers_not_valid(requests):
-    with pytest.raises(AttributeError) as context:
+    with pytest.raises(TypeError) as context:
         requests._check_headers(
             {"Good1": "a", "Good2": b"b", "Good3": None, "Bad1": True}
         )

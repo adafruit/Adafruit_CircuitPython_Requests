@@ -395,7 +395,7 @@ class Session:
                     is_binary = False
 
                 if not is_binary:
-                    raise AttributeError("Files must be opened in binary mode")
+                    raise ValueError("Files must be opened in binary mode")
 
                 file_handle.seek(0, SEEK_END)
                 content_length += file_handle.tell()
@@ -419,12 +419,12 @@ class Session:
     @staticmethod
     def _check_headers(headers: Dict[str, str]):
         if not isinstance(headers, dict):
-            raise AttributeError("Headers must be in dict format")
+            raise TypeError("Headers must be in dict format")
 
         for key, value in headers.items():
             if isinstance(value, (str, bytes)) or value is None:
                 continue
-            raise AttributeError(
+            raise TypeError(
                 f"Header part ({value}) from {key} must be of type str or bytes, not {type(value)}"
             )
 
