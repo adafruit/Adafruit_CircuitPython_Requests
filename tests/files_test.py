@@ -50,7 +50,7 @@ def get_actual_request_data(log_stream):
                 boundary = boundary_search[0]
             if content_length_search:
                 content_length = content_length_search[0]
-            if "Content-Disposition" in log_arg:
+            if "Content-Disposition" in log_arg or "\\x" in log_arg:
                 # this will look like:
                 #  b\'{content}\'
                 # and escaped characters look like:
@@ -61,6 +61,28 @@ def get_actual_request_data(log_stream):
                 actual_request_post = post_unescaped.encode("latin1")
 
     return boundary, content_length, actual_request_post
+
+
+def test_post_file_as_data(  # pylint: disable=unused-argument
+    requests, sock, log_stream, post_url, request_logging
+):
+    with open("tests/files/red_green.png", "rb") as file_1:
+        python_requests.post(post_url, data=file_1, timeout=30)
+        __, content_length, actual_request_post = get_actual_request_data(log_stream)
+
+        requests.post("http://" + mocket.MOCK_HOST_1 + "/post", data=file_1)
+
+    sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
+    sock.send.assert_has_calls(
+        [
+            mock.call(b"Content-Length"),
+            mock.call(b": "),
+            mock.call(content_length.encode()),
+            mock.call(b"\r\n"),
+        ]
+    )
+    sent = b"".join(sock.sent_data)
+    assert sent.endswith(actual_request_post)
 
 
 def test_post_files_text(  # pylint: disable=unused-argument
