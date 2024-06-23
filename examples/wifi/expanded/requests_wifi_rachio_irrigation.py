@@ -195,7 +195,7 @@ while True:
 
         rachio_longitude = str(rachio_json["devices"][0]["longitude"])
         rachio_long_ast = obfuscating_asterix(rachio_longitude, "all")
-        print(" |  |  | Latitude: ", rachio_long_ast)
+        print(" |  |  | Longitude: ", rachio_long_ast)
 
         rachio_rainsensor = rachio_json["devices"][0]["rainSensorTripped"]
         print(" |  |  | Rain Sensor: ", rachio_rainsensor)
