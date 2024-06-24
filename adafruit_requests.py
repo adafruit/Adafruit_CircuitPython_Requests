@@ -50,7 +50,7 @@ SEEK_END = 2
 
 if not sys.implementation.name == "circuitpython":
     from types import TracebackType
-    from typing import Any, Dict, Optional, Type
+    from typing import IO, Any, Dict, Optional, Type
 
     from circuitpython_typing.socket import (
         SocketpoolModuleType,
@@ -387,19 +387,7 @@ class Session:
             boundary_objects.append("\r\n")
 
             if hasattr(file_handle, "read"):
-                is_binary = False
-                try:
-                    content = file_handle.read(1)
-                    is_binary = isinstance(content, bytes)
-                except UnicodeError:
-                    is_binary = False
-
-                if not is_binary:
-                    raise ValueError("Files must be opened in binary mode")
-
-                file_handle.seek(0, SEEK_END)
-                content_length += file_handle.tell()
-                file_handle.seek(0)
+                content_length += self._get_file_length(file_handle)
 
             boundary_objects.append(file_handle)
             boundary_objects.append("\r\n")
@@ -427,6 +415,25 @@ class Session:
             raise TypeError(
                 f"Header part ({value}) from {key} must be of type str or bytes, not {type(value)}"
             )
+
+    @staticmethod
+    def _get_file_length(file_handle: IO):
+        is_binary = False
+        try:
+            file_handle.seek(0)
+            # read at least 4 bytes incase we are reading a b64 stream
+            content = file_handle.read(4)
+            is_binary = isinstance(content, bytes)
+        except UnicodeError:
+            is_binary = False
+
+        if not is_binary:
+            raise ValueError("Files must be opened in binary mode")
+
+        file_handle.seek(0, SEEK_END)
+        content_length = file_handle.tell()
+        file_handle.seek(0)
+        return content_length
 
     @staticmethod
     def _send(socket: SocketType, data: bytes):
@@ -458,13 +465,16 @@ class Session:
             if isinstance(boundary_object, str):
                 self._send_as_bytes(socket, boundary_object)
             else:
-                chunk_size = 32
-                b = bytearray(chunk_size)
-                while True:
-                    size = boundary_object.readinto(b)
-                    if size == 0:
-                        break
-                    self._send(socket, b[:size])
+                self._send_file(socket, boundary_object)
+
+    def _send_file(self, socket: SocketType, file_handle: IO):
+        chunk_size = 36
+        b = bytearray(chunk_size)
+        while True:
+            size = file_handle.readinto(b)
+            if size == 0:
+                break
+            self._send(socket, b[:size])
 
     def _send_header(self, socket, header, value):
         if value is None:
@@ -517,12 +527,16 @@ class Session:
 
         # If files are send, build data to send and calculate length
         content_length = 0
+        data_is_file = False
         boundary_objects = None
         if files and isinstance(files, dict):
             boundary_string, content_length, boundary_objects = (
                 self._build_boundary_data(files)
             )
             content_type_header = f"multipart/form-data; boundary={boundary_string}"
+        elif data and hasattr(data, "read"):
+            data_is_file = True
+            content_length = self._get_file_length(data)
         else:
             if data is None:
                 data = b""
@@ -551,7 +565,9 @@ class Session:
         self._send(socket, b"\r\n")
 
         # Send data
-        if data:
+        if data_is_file:
+            self._send_file(socket, data)
+        elif data:
             self._send(socket, bytes(data))
         elif boundary_objects:
             self._send_boundary_objects(socket, boundary_objects)
