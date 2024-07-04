@@ -88,6 +88,21 @@ class Response:
     # pylint: disable=too-many-instance-attributes
 
     encoding = None
+    socket: SocketType
+    """The underlying socket object (CircuitPython extension, not in standard requests)
+
+    Under the following circumstances, calling code may directly access the underlying
+    socket object:
+
+     * The request was made with ``stream=True``
+     * The request headers included ``{'connection': 'close'}``
+     * No methods or properties on the Response object that access the response content
+       may be used
+
+    Methods and properties that access response headers may be accessed.
+
+    It is still necessary to ``close`` the response object for correct management of
+    sockets, including doing so implicitly via ``with requests.get(...) as response``."""
 
     def __init__(self, sock: SocketType, session: "Session") -> None:
         self.socket = sock
