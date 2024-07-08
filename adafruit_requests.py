@@ -266,7 +266,8 @@ class Response:
             header = self._readto(b"\r\n")
             if not header:
                 break
-            title, content = bytes(header).split(b": ", 1)
+            title, content = bytes(header).split(b":", 1)
+            content = content.strip()
             if title and content:
                 # enforce that all headers are lowercase
                 title = str(title, "utf-8").lower()
