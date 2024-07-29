@@ -75,8 +75,8 @@ while True:
         DEBUG_RESPONSE = False
 
         try:
-            mastodon_response = requests.get(url=MAST_SOURCE)
-            mastodon_json = mastodon_response.json()
+            with requests.get(url=MAST_SOURCE) as mastodon_response:
+                mastodon_json = mastodon_response.json()
         except ConnectionError as e:
             print(f"Connection Error: {e}")
             print("Retrying in 10 seconds")

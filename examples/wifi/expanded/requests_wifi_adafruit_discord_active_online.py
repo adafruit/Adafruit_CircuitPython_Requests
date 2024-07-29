@@ -60,8 +60,8 @@ while True:
         DEBUG_RESPONSE = True
 
         try:
-            shieldsio_response = requests.get(url=ADA_DISCORD_JSON)
-            shieldsio_json = shieldsio_response.json()
+            with requests.get(url=ADA_DISCORD_JSON) as shieldsio_response:
+                shieldsio_json = shieldsio_response.json()
         except ConnectionError as e:
             print(f"Connection Error: {e}")
             print("Retrying in 10 seconds")

@@ -11,7 +11,7 @@ import pytest
 
 
 def test_get_https_no_ssl(requests):
-    with pytest.raises(AttributeError):
+    with pytest.raises(ValueError):
         requests.get("https://" + mocket.MOCK_ENDPOINT_1)
 
 

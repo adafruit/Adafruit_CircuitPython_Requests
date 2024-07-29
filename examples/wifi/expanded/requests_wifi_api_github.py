@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2024 DJDevon3
 # SPDX-License-Identifier: MIT
-# Coded for Circuit Python 8.2.x
+# Coded for Circuit Python 9.x
 """Github API Example"""
 
 import os
@@ -61,8 +61,10 @@ while True:
     try:
         print(" | Attempting to GET Github JSON!")
         try:
-            github_response = requests.get(url=GITHUB_SOURCE, headers=GITHUB_HEADER)
-            github_json = github_response.json()
+            with requests.get(
+                url=GITHUB_SOURCE, headers=GITHUB_HEADER
+            ) as github_response:
+                github_json = github_response.json()
         except ConnectionError as e:
             print("Connection Error:", e)
             print("Retrying in 10 seconds")
@@ -91,9 +93,6 @@ while True:
         if DEBUG:
             print("Full API GET URL: ", GITHUB_SOURCE)
             print(github_json)
-
-        github_response.close()
-        print("✂️ Disconnected from Github API")
 
         print("\nFinished!")
         print(f"Board Uptime: {time_calc(time.monotonic())}")

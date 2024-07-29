@@ -1,124 +1,117 @@
-# SPDX-FileCopyrightText: 2022 DJDevon3 for Adafruit Industries
+# SPDX-FileCopyrightText: 2024 DJDevon3
 # SPDX-License-Identifier: MIT
-# Coded for Circuit Python 8.0
-"""DJDevon3 Adafruit Feather ESP32-S2 YouTube_API_Example"""
+# Coded for Circuit Python 8.2.x
+"""YouTube API Subscriber Count Example"""
 
-import gc
-import json
 import os
-import ssl
 import time
 
-import socketpool
+import adafruit_connection_manager
 import wifi
 
 import adafruit_requests
 
-# Ensure these are uncommented and in secrets.py or .env
-# "YT_username": "Your YouTube Username",
-# "YT_token" : "Your long API developer token",
+# Initalize Wifi, Socket Pool, Request Session
+pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
+ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
+requests = adafruit_requests.Session(pool, ssl_context)
 
-# Initialize WiFi Pool (There can be only 1 pool & top of script)
-pool = socketpool.SocketPool(wifi.radio)
-
-# Time between API refreshes
+# API Polling Rate
 # 900 = 15 mins, 1800 = 30 mins, 3600 = 1 hour
-sleep_time = 900
+SLEEP_TIME = 900
+
+# Set debug to True for full JSON response.
+# WARNING: Will show credentials
+DEBUG = False
+
+# Ensure these are uncommented and in settings.toml
+# YOUTUBE_USERNAME = "Your YouTube Username",
+# YOUTUBE_TOKEN = "Your long API developer token",
 
 # Get WiFi details, ensure these are setup in settings.toml
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
-yt_username = os.getenv("YT_username")
-yt_token = os.getenv("YT_token")
+# Requires YouTube/Google API key
+# https://console.cloud.google.com/apis/dashboard
+YT_USERNAME = os.getenv("YOUTUBE_USERNAME")
+YT_TOKEN = os.getenv("YOUTUBE_TOKEN")
 
 
-if sleep_time < 60:
-    sleep_time_conversion = "seconds"
-    sleep_int = sleep_time
-elif 60 <= sleep_time < 3600:
-    sleep_int = sleep_time / 60
-    sleep_time_conversion = "minutes"
-elif 3600 <= sleep_time < 86400:
-    sleep_int = sleep_time / 60 / 60
-    sleep_time_conversion = "hours"
-else:
-    sleep_int = sleep_time / 60 / 60 / 24
-    sleep_time_conversion = "days"
+def time_calc(input_time):
+    """Converts seconds to minutes/hours/days"""
+    if input_time < 60:
+        return f"{input_time:.0f} seconds"
+    if input_time < 3600:
+        return f"{input_time / 60:.0f} minutes"
+    if input_time < 86400:
+        return f"{input_time / 60 / 60:.0f} hours"
+    return f"{input_time / 60 / 60 / 24:.1f} days"
+
 
 # https://youtube.googleapis.com/youtube/v3/channels?part=statistics&forUsername=[YOUR_USERNAME]&key=[YOUR_API_KEY]
-YT_SOURCE = (
-    "https://youtube.googleapis.com/youtube/v3/channels?"
-    + "part=statistics"
-    + "&forUsername="
-    + yt_username
+YOUTUBE_SOURCE = (
+    "https://youtube.googleapis.com/youtube/v3/channels?part=statistics&forUsername="
+    + str(YT_USERNAME)
     + "&key="
-    + yt_token
+    + str(YT_TOKEN)
 )
 
-# Connect to Wi-Fi
-print("\n===============================")
-print("Connecting to WiFi...")
-requests = adafruit_requests.Session(pool, ssl.create_default_context())
-while not wifi.radio.ipv4_address:
-    try:
-        wifi.radio.connect(ssid, password)
-    except ConnectionError as e:
-        print("Connection Error:", e)
-        print("Retrying in 10 seconds")
-    time.sleep(10)
-    gc.collect()
-print("Connected!\n")
-
 while True:
-    try:
-        print("Attempting to GET YouTube Stats!")  # ----------------------------------
-        debug_request = False  # Set true to see full request
-        if debug_request:
-            print("Full API GET URL: ", YT_SOURCE)
-        print("===============================")
+    # Connect to Wi-Fi
+    print("\nConnecting to WiFi...")
+    while not wifi.radio.ipv4_address:
         try:
-            response = requests.get(YT_SOURCE).json()
+            wifi.radio.connect(ssid, password)
+        except ConnectionError as e:
+            print("❌ Connection Error:", e)
+            print("Retrying in 10 seconds")
+    print("✅ Wifi!")
+    try:
+        print(" | Attempting to GET YouTube JSON...")
+        try:
+            with requests.get(url=YOUTUBE_SOURCE) as youtube_response:
+                youtube_json = youtube_response.json()
         except ConnectionError as e:
             print("Connection Error:", e)
             print("Retrying in 10 seconds")
+        print(" | ✅ YouTube JSON!")
 
-        # Print Full JSON to Serial
-        debug_response = False  # Set true to see full response
-        if debug_response:
-            dump_object = json.dumps(response)
-            print("JSON Dump: ", dump_object)
+        if DEBUG:
+            print(f" | Full API GET URL: {YOUTUBE_SOURCE}")
+            print(f" | Full API Dump: {youtube_json}")
 
-        # Print to Serial
-        yt_debug_keys = True  # Set to True to print Serial data
-        if yt_debug_keys:
-            print("Matching Results: ", response["pageInfo"]["totalResults"])
+        # Key:Value RESPONSES
+        if "pageInfo" in youtube_json:
+            totalResults = youtube_json["pageInfo"]["totalResults"]
+            print(f" |  | Matching Results: {totalResults}")
 
-            YT_request_kind = response["items"][0]["kind"]
-            print("Request Kind: ", YT_request_kind)
+        if "items" in youtube_json:
+            YT_request_kind = youtube_json["items"][0]["kind"]
+            print(f" |  | Request Kind: {YT_request_kind}")
 
-            YT_response_kind = response["kind"]
-            print("Response Kind: ", YT_response_kind)
+            YT_channel_id = youtube_json["items"][0]["id"]
+            print(f" |  | Channel ID: {YT_channel_id}")
 
-            YT_channel_id = response["items"][0]["id"]
-            print("Channel ID: ", YT_channel_id)
+            YT_videoCount = youtube_json["items"][0]["statistics"]["videoCount"]
+            print(f" |  | Videos: {YT_videoCount}")
 
-            YT_videoCount = response["items"][0]["statistics"]["videoCount"]
-            print("Videos: ", YT_videoCount)
+            YT_viewCount = youtube_json["items"][0]["statistics"]["viewCount"]
+            print(f" |  | Views: {YT_viewCount}")
 
-            YT_viewCount = response["items"][0]["statistics"]["viewCount"]
-            print("Views: ", YT_viewCount)
+            YT_subsCount = youtube_json["items"][0]["statistics"]["subscriberCount"]
+            print(f" |  | Subscribers: {YT_subsCount}")
 
-            YT_subsCount = response["items"][0]["statistics"]["subscriberCount"]
-            print("Subscribers: ", YT_subsCount)
-            print("Monotonic: ", time.monotonic())
+        if "kind" in youtube_json:
+            YT_response_kind = youtube_json["kind"]
+            print(f" |  | Response Kind: {YT_response_kind}")
 
         print("\nFinished!")
-        print(f"Next Update in {int(sleep_int)} {sleep_time_conversion}")
+        print(f"Board Uptime: {time_calc(time.monotonic())}")
+        print(f"Next Update: {time_calc(SLEEP_TIME)}")
         print("===============================")
-        gc.collect()
 
     except (ValueError, RuntimeError) as e:
-        print("Failed to get data, retrying\n", e)
+        print(f"Failed to get data, retrying\n {e}")
         time.sleep(60)
-        continue
-    time.sleep(sleep_time)
+        break
+    time.sleep(SLEEP_TIME)

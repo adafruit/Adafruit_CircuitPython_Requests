@@ -94,12 +94,14 @@ while True:
         )
 
         # POST REQUEST
-        twitch_0auth_response = requests.post(
-            url=TWITCH_0AUTH_TOKEN, data=twitch_0auth_data, headers=twitch_0auth_header
-        )
         try:
-            twitch_0auth_json = twitch_0auth_response.json()
-            twitch_access_token = twitch_0auth_json["access_token"]
+            with requests.post(
+                url=TWITCH_0AUTH_TOKEN,
+                data=twitch_0auth_data,
+                headers=twitch_0auth_header,
+            ) as twitch_0auth_response:
+                twitch_0auth_json = twitch_0auth_response.json()
+                twitch_access_token = twitch_0auth_json["access_token"]
         except ConnectionError as e:
             print(f"Connection Error: {e}")
             print("Retrying in 10 seconds")
@@ -133,11 +135,11 @@ while True:
             + TWITCH_UID
         )
         print(" | Attempting to GET Twitch JSON!")
-        twitch_response = requests.get(
-            url=TWITCH_FOLLOWERS_SOURCE, headers=twitch_header
-        )
         try:
-            twitch_json = twitch_response.json()
+            with requests.get(
+                url=TWITCH_FOLLOWERS_SOURCE, headers=twitch_header
+            ) as twitch_response:
+                twitch_json = twitch_response.json()
         except ConnectionError as e:
             print(f"Connection Error: {e}")
             print("Retrying in 10 seconds")
@@ -163,9 +165,6 @@ while True:
             print(" | ✅ Twitch JSON!")
             twitch_followers = twitch_json["total"]
             print(f" |  | Followers: {twitch_followers}")
-
-        twitch_response.close()
-        print("✂️ Disconnected from Twitch API")
 
         print("\nFinished!")
         print(f"Board Uptime: {time_calc(time.monotonic())}")
