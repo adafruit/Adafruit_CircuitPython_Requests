@@ -3,7 +3,7 @@
 # Updated for Circuit Python 9.0
 # https://help.openai.com/en/articles/6825453-chatgpt-release-notes
 # https://chat.openai.com/share/32ef0c5f-ac92-4d36-9d1e-0f91e0c4c574
-""" WiFi Status Codes Example """
+"""WiFi Status Codes Example"""
 
 import os
 import time
@@ -27,21 +27,13 @@ rssi = wifi.radio.ap_info.rssi
 def print_http_status(expected_code, actual_code, description):
     """Returns HTTP status code and description"""
     if "100" <= actual_code <= "103":
-        print(
-            f" | ✅ Status Test Expected: {expected_code} Actual: {actual_code} - {description}"
-        )
+        print(f" | ✅ Status Test Expected: {expected_code} Actual: {actual_code} - {description}")
     elif "200" == actual_code:
-        print(
-            f" | 🆗 Status Test Expected: {expected_code} Actual: {actual_code} - {description}"
-        )
+        print(f" | 🆗 Status Test Expected: {expected_code} Actual: {actual_code} - {description}")
     elif "201" <= actual_code <= "299":
-        print(
-            f" | ✅ Status Test Expected: {expected_code} Actual: {actual_code} - {description}"
-        )
+        print(f" | ✅ Status Test Expected: {expected_code} Actual: {actual_code} - {description}")
     elif "300" <= actual_code <= "600":
-        print(
-            f" | ❌ Status Test Expected: {expected_code} Actual: {actual_code} - {description}"
-        )
+        print(f" | ❌ Status Test Expected: {expected_code} Actual: {actual_code} - {description}")
     else:
         print(
             f" | Unknown Response Status Expected: {expected_code} "
@@ -138,9 +130,7 @@ for current_code in sorted(http_status_codes.keys(), key=int):
     header_status_test_url = STATUS_TEST_URL + current_code
     with requests.get(header_status_test_url) as response:
         response_status_code = str(response.status_code)
-        SORT_STATUS_DESC = http_status_codes.get(
-            response_status_code, "Unknown Status Code"
-        )
+        SORT_STATUS_DESC = http_status_codes.get(response_status_code, "Unknown Status Code")
         print_http_status(current_code, response_status_code, SORT_STATUS_DESC)
 
     # Rate limit ourselves a little to avoid strain on server

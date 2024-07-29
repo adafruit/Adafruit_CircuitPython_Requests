@@ -69,9 +69,7 @@ while True:
         DEBUG_RESPONSE = False
 
         try:
-            with requests.get(
-                url=DISCORD_SOURCE, headers=DISCORD_HEADER
-            ) as discord_response:
+            with requests.get(url=DISCORD_SOURCE, headers=DISCORD_HEADER) as discord_response:
                 discord_json = discord_response.json()
         except ConnectionError as e:
             print(f"Connection Error: {e}")

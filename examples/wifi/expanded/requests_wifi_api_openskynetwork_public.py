@@ -54,14 +54,9 @@ def time_calc(input_time):
 
 
 def _format_datetime(datetime):
-    """F-String formatted struct time conversion"""
     return (
-        f"{datetime.tm_mon:02}/"
-        + f"{datetime.tm_mday:02}/"
-        + f"{datetime.tm_year:02} "
-        + f"{datetime.tm_hour:02}:"
-        + f"{datetime.tm_min:02}:"
-        + f"{datetime.tm_sec:02}"
+        f"{datetime.tm_mon:02}/{datetime.tm_mday:02}/{datetime.tm_year} "
+        f"{datetime.tm_hour:02}:{datetime.tm_min:02}:{datetime.tm_sec:02}"
     )
 
 

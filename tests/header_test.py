@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Header Tests """
+"""Header Tests"""
 
 import mocket
 import pytest
@@ -16,9 +16,7 @@ def test_check_headers_not_dict(requests):
 
 def test_check_headers_not_valid(requests):
     with pytest.raises(TypeError) as context:
-        requests._check_headers(
-            {"Good1": "a", "Good2": b"b", "Good3": None, "Bad1": True}
-        )
+        requests._check_headers({"Good1": "a", "Good2": b"b", "Good3": None, "Bad1": True})
     assert "Header part (True) from Bad1 must be of type str or bytes" in str(context)
 
 

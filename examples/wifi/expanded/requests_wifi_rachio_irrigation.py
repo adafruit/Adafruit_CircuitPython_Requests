@@ -106,9 +106,7 @@ while True:
         try:
             print(" | Attempting to GET Rachio Authorization")
             try:
-                with requests.get(
-                    url=RACHIO_SOURCE, headers=RACHIO_HEADER
-                ) as rachio_response:
+                with requests.get(url=RACHIO_SOURCE, headers=RACHIO_HEADER) as rachio_response:
                     rachio_json = rachio_response.json()
             except ConnectionError as e:
                 print("Connection Error:", e)
@@ -127,9 +125,7 @@ while True:
             print(f"Failed to GET data: {e}")
             time.sleep(60)
             break
-        print(
-            "\nThis script can only continue when a proper APIKey & PersonID is used."
-        )
+        print("\nThis script can only continue when a proper APIKey & PersonID is used.")
         print("\nFinished!")
         print("===============================")
         time.sleep(SLEEP_TIME)
@@ -191,7 +187,7 @@ while True:
                 print(f" |  | Unix Registration Date: {rachio_createdate}")
                 print(f" |  | Unix Timezone Offset: {rachio_timezone_offset}")
             current_struct_time = time.localtime(local_unix_time)
-            final_timestamp = "{}".format(_format_datetime(current_struct_time))
+            final_timestamp = f"{_format_datetime(current_struct_time)}"
             print(f" |  | Registration Date: {final_timestamp}")
 
             rachio_devices = rachio_json["devices"][0]["name"]

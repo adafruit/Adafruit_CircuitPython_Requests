@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Mock Socket """
+"""Mock Socket"""
 
 from unittest import mock
 
@@ -13,25 +13,22 @@ MOCK_HOST_2 = "wifitest2.adafruit.com"
 MOCK_PATH_1 = "/testwifi/index.html"
 MOCK_ENDPOINT_1 = MOCK_HOST_1 + MOCK_PATH_1
 MOCK_ENDPOINT_2 = MOCK_HOST_2 + MOCK_PATH_1
-MOCK_RESPONSE_TEXT = (
-    b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
-)
+MOCK_RESPONSE_TEXT = b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
 MOCK_RESPONSE = b"HTTP/1.0 200 OK\r\nContent-Length: 70\r\n\r\n" + MOCK_RESPONSE_TEXT
 
 
-class MocketPool:  # pylint: disable=too-few-public-methods
+class MocketPool:
     """Mock SocketPool"""
 
     SOCK_STREAM = 0
 
-    # pylint: disable=unused-argument
     def __init__(self, radio=None):
         self.getaddrinfo = mock.Mock()
         self.getaddrinfo.return_value = ((None, None, None, None, (MOCK_POOL_IP, 80)),)
         self.socket = mock.Mock()
 
 
-class Mocket:  # pylint: disable=too-few-public-methods
+class Mocket:
     """Mock Socket"""
 
     def __init__(self, response=MOCK_RESPONSE):
@@ -78,19 +75,16 @@ class Mocket:  # pylint: disable=too-few-public-methods
         return read
 
 
-class SSLContext:  # pylint: disable=too-few-public-methods
+class SSLContext:
     """Mock SSL Context"""
 
     def __init__(self):
         self.wrap_socket = mock.Mock(side_effect=self._wrap_socket)
 
-    def _wrap_socket(
-        self, sock, server_hostname=None
-    ):  # pylint: disable=no-self-use,unused-argument
+    def _wrap_socket(self, sock, server_hostname=None):
         return sock
 
 
-# pylint: disable=too-few-public-methods
 class MockRadio:
     class Radio:
         pass

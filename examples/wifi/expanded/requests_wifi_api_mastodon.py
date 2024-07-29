@@ -48,11 +48,7 @@ def time_calc(input_time):
 
 # Publicly available data no header required
 MAST_SOURCE = (
-    "https://"
-    + MASTODON_SERVER
-    + "/api/v1/accounts/"
-    + MASTODON_USERID
-    + "/statuses?limit=1"
+    "https://" + MASTODON_SERVER + "/api/v1/accounts/" + MASTODON_USERID + "/statuses?limit=1"
 )
 
 while True:

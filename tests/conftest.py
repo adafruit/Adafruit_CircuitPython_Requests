@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" PyTest Setup """
+"""PyTest Setup"""
 
 import adafruit_connection_manager
 import mocket
@@ -28,9 +28,7 @@ def sock():
 @pytest.fixture
 def pool(sock):
     pool = mocket.MocketPool()
-    pool.getaddrinfo.return_value = (
-        (None, None, None, None, (mocket.MOCK_POOL_IP, 80)),
-    )
+    pool.getaddrinfo.return_value = ((None, None, None, None, (mocket.MOCK_POOL_IP, 80)),)
     pool.socket.return_value = sock
     return pool
 

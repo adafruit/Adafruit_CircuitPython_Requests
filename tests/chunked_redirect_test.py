@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Redirection Tests """
+"""Redirection Tests"""
 
 from unittest import mock
 
@@ -27,9 +27,7 @@ RELATIVE_RELATIVE_REDIRECT = (
     b"370cmver1f290kjsnpar5ku2h9g/3llvt5u8njbvat22m9l19db1h4/1656191325000/109226138307867586192/*/"
     + FILE_REDIRECT
 )
-RELATIVE_ABSOLUTE_REDIRECT = (
-    b"/pub/70cmver1f290kjsnpar5ku2h9g/" + RELATIVE_RELATIVE_REDIRECT
-)
+RELATIVE_ABSOLUTE_REDIRECT = b"/pub/70cmver1f290kjsnpar5ku2h9g/" + RELATIVE_RELATIVE_REDIRECT
 ABSOLUTE_ABSOLUTE_REDIRECT = (
     b"https://doc-14-2g-sheets.googleusercontent.com" + RELATIVE_ABSOLUTE_REDIRECT
 )
@@ -113,7 +111,7 @@ BODY = (
 )
 
 
-class MocketRecvInto(mocket.Mocket):  # pylint: disable=too-few-public-methods
+class MocketRecvInto(mocket.Mocket):
     """A special Mocket to cap the number of bytes returned from recv_into()"""
 
     def __init__(self, response):
@@ -137,9 +135,7 @@ def test_chunked_absolute_absolute_redirect():
     chunk = _chunk(BODY_REDIRECT, len(BODY_REDIRECT))
     chunk2 = _chunk(BODY, len(BODY))
 
-    redirect = HEADERS_REDIRECT.replace(
-        b"NEW_LOCATION_HERE", ABSOLUTE_ABSOLUTE_REDIRECT
-    )
+    redirect = HEADERS_REDIRECT.replace(b"NEW_LOCATION_HERE", ABSOLUTE_ABSOLUTE_REDIRECT)
     sock1 = MocketRecvInto(redirect + chunk)
     sock2 = mocket.Mocket(HEADERS + chunk2)
     pool.socket.side_effect = (sock1, sock2)
@@ -148,9 +144,7 @@ def test_chunked_absolute_absolute_redirect():
     response = requests_session.get("https://" + HOST + PATH)
 
     sock1.connect.assert_called_once_with((HOST, 443))
-    sock2.connect.assert_called_once_with(
-        ("doc-14-2g-sheets.googleusercontent.com", 443)
-    )
+    sock2.connect.assert_called_once_with(("doc-14-2g-sheets.googleusercontent.com", 443))
     sock2.send.assert_has_calls([mock.call(RELATIVE_ABSOLUTE_REDIRECT[1:])])
 
     assert response.text == str(BODY, "utf-8")
@@ -162,9 +156,7 @@ def test_chunked_relative_absolute_redirect():
     chunk = _chunk(BODY_REDIRECT, len(BODY_REDIRECT))
     chunk2 = _chunk(BODY, len(BODY))
 
-    redirect = HEADERS_REDIRECT.replace(
-        b"NEW_LOCATION_HERE", RELATIVE_ABSOLUTE_REDIRECT
-    )
+    redirect = HEADERS_REDIRECT.replace(b"NEW_LOCATION_HERE", RELATIVE_ABSOLUTE_REDIRECT)
     sock1 = MocketRecvInto(redirect + chunk)
     sock2 = mocket.Mocket(HEADERS + chunk2)
     pool.socket.side_effect = (sock1, sock2)
@@ -185,9 +177,7 @@ def test_chunked_relative_relative_redirect():
     chunk = _chunk(BODY_REDIRECT, len(BODY_REDIRECT))
     chunk2 = _chunk(BODY, len(BODY))
 
-    redirect = HEADERS_REDIRECT.replace(
-        b"NEW_LOCATION_HERE", RELATIVE_RELATIVE_REDIRECT
-    )
+    redirect = HEADERS_REDIRECT.replace(b"NEW_LOCATION_HERE", RELATIVE_RELATIVE_REDIRECT)
     sock1 = MocketRecvInto(redirect + chunk)
     sock2 = mocket.Mocket(HEADERS + chunk2)
     pool.socket.side_effect = (sock1, sock2)
@@ -214,13 +204,9 @@ def test_chunked_relative_relative_redirect_backstep():
     backstep = b"../" * remove_paths
     path_base_parts = PATH_BASE.split("/")
     # PATH_BASE starts with "/" so skip it and also remove from the count
-    path_base = (
-        "/".join(path_base_parts[1 : len(path_base_parts) - remove_paths - 1]) + "/"
-    )
+    path_base = "/".join(path_base_parts[1 : len(path_base_parts) - remove_paths - 1]) + "/"
 
-    redirect = HEADERS_REDIRECT.replace(
-        b"NEW_LOCATION_HERE", backstep + RELATIVE_RELATIVE_REDIRECT
-    )
+    redirect = HEADERS_REDIRECT.replace(b"NEW_LOCATION_HERE", backstep + RELATIVE_RELATIVE_REDIRECT)
     sock1 = MocketRecvInto(redirect + chunk)
     sock2 = mocket.Mocket(HEADERS + chunk2)
     pool.socket.side_effect = (sock1, sock2)
@@ -230,9 +216,7 @@ def test_chunked_relative_relative_redirect_backstep():
 
     sock1.connect.assert_called_once_with((HOST, 443))
     sock2.connect.assert_called_once_with(("docs.google.com", 443))
-    sock2.send.assert_has_calls(
-        [mock.call(bytes(path_base, "utf-8") + RELATIVE_RELATIVE_REDIRECT)]
-    )
+    sock2.send.assert_has_calls([mock.call(bytes(path_base, "utf-8") + RELATIVE_RELATIVE_REDIRECT)])
 
     assert response.text == str(BODY, "utf-8")
 
@@ -243,9 +227,7 @@ def test_chunked_allow_redirects_false():
     chunk = _chunk(BODY_REDIRECT, len(BODY_REDIRECT))
     chunk2 = _chunk(BODY, len(BODY))
 
-    redirect = HEADERS_REDIRECT.replace(
-        b"NEW_LOCATION_HERE", ABSOLUTE_ABSOLUTE_REDIRECT
-    )
+    redirect = HEADERS_REDIRECT.replace(b"NEW_LOCATION_HERE", ABSOLUTE_ABSOLUTE_REDIRECT)
     sock1 = MocketRecvInto(redirect + chunk)
     sock2 = mocket.Mocket(HEADERS + chunk2)
     pool.socket.side_effect = (sock1, sock2)

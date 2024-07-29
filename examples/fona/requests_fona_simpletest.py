@@ -10,8 +10,8 @@ import adafruit_fona.adafruit_fona_socket as pool
 import board
 import busio
 import digitalio
-from adafruit_fona.adafruit_fona import FONA  # pylint: disable=unused-import
-from adafruit_fona.fona_3g import FONA3G  # pylint: disable=unused-import
+from adafruit_fona.adafruit_fona import FONA
+from adafruit_fona.fona_3g import FONA3G
 
 import adafruit_requests
 
@@ -65,7 +65,7 @@ with requests.get(JSON_GET_URL) as response:
     print("-" * 40)
 
 data = "31F"
-print("POSTing data to {0}: {1}".format(JSON_POST_URL, data))
+print(f"POSTing data to {JSON_POST_URL}: {data}")
 with requests.post(JSON_POST_URL, data=data) as response:
     print("-" * 40)
     json_resp = response.json()
@@ -74,7 +74,7 @@ with requests.post(JSON_POST_URL, data=data) as response:
     print("-" * 40)
 
 json_data = {"Date": "July 25, 2019"}
-print("POSTing data to {0}: {1}".format(JSON_POST_URL, json_data))
+print(f"POSTing data to {JSON_POST_URL}: {json_data}")
 with requests.post(JSON_POST_URL, json=json_data) as response:
     print("-" * 40)
     json_resp = response.json()

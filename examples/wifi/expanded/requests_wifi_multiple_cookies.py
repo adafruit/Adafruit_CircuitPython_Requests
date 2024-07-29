@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2022 Alec Delaney
 # SPDX-License-Identifier: MIT
 # Coded for Circuit Python 9.0
-""" Multiple Cookies Example written for MagTag """
+"""Multiple Cookies Example written for MagTag"""
 
 import os
 
