@@ -30,9 +30,7 @@ ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 Fitbit_ClientID = os.getenv("FITBIT_CLIENTID")
 Fitbit_Token = os.getenv("FITBIT_ACCESS_TOKEN")
-Fitbit_First_Refresh_Token = os.getenv(
-    "FITBIT_FIRST_REFRESH_TOKEN"
-)  # overides nvm first run only
+Fitbit_First_Refresh_Token = os.getenv("FITBIT_FIRST_REFRESH_TOKEN")  # overides nvm first run only
 Fitbit_UserID = os.getenv("FITBIT_USERID")
 
 # Set debug to True for full INTRADAY JSON response.
@@ -167,8 +165,7 @@ while True:
             print(" | Requesting authorization for next token")
             if DEBUG:
                 print(
-                    "FULL REFRESH TOKEN POST:"
-                    + f"{FITBIT_OAUTH_TOKEN}{FITBIT_OAUTH_REFRESH_TOKEN}"
+                    "FULL REFRESH TOKEN POST:" + f"{FITBIT_OAUTH_TOKEN}{FITBIT_OAUTH_REFRESH_TOKEN}"
                 )
                 print(f"Current Refresh Token: {Refresh_Token}")
             # TOKEN REFRESH POST
@@ -270,24 +267,20 @@ while True:
             try:
                 # Fitbit's sync to mobile device & server every 15 minutes in chunks.
                 # Pointless to poll their API faster than 15 minute intervals.
-                activities_heart_value = fitbit_json["activities-heart-intraday"][
-                    "dataset"
-                ]
+                activities_heart_value = fitbit_json["activities-heart-intraday"]["dataset"]
                 if MIDNIGHT_DEBUG:
                     RESPONSE_LENGTH = 0
                 else:
                     RESPONSE_LENGTH = len(activities_heart_value)
                 if RESPONSE_LENGTH >= 15:
-                    activities_timestamp = fitbit_json["activities-heart"][0][
-                        "dateTime"
-                    ]
+                    activities_timestamp = fitbit_json["activities-heart"][0]["dateTime"]
                     print(f" |  | Fitbit Date: {activities_timestamp}")
                     if MIDNIGHT_DEBUG:
                         ACTIVITIES_LATEST_HEART_TIME = "00:05:00"
                     else:
-                        ACTIVITIES_LATEST_HEART_TIME = fitbit_json[
-                            "activities-heart-intraday"
-                        ]["dataset"][RESPONSE_LENGTH - 1]["time"]
+                        ACTIVITIES_LATEST_HEART_TIME = fitbit_json["activities-heart-intraday"][
+                            "dataset"
+                        ][RESPONSE_LENGTH - 1]["time"]
                     print(f" |  | Fitbit Time: {ACTIVITIES_LATEST_HEART_TIME[0:-3]}")
                     print(f" |  | Today's Logged Pulses: {RESPONSE_LENGTH}")
 

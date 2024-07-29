@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
 # SPDX-License-Identifier: MIT
 # Updated for Circuit Python 9.0
-""" WiFi Simpletest """
+"""WiFi Simpletest"""
 
 import os
 

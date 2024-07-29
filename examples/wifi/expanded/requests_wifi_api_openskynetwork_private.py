@@ -69,7 +69,10 @@ def time_calc(input_time):
 
 
 def _format_datetime(datetime):
-    return f"{datetime.tm_mon:02}/{datetime.tm_mday:02}/{datetime.tm_year} {datetime.tm_hour:02}:{datetime.tm_min:02}:{datetime.tm_sec:02}"
+    return (
+        f"{datetime.tm_mon:02}/{datetime.tm_mday:02}/{datetime.tm_year} "
+        f"{datetime.tm_hour:02}:{datetime.tm_min:02}:{datetime.tm_sec:02}"
+    )
 
 
 while True:
@@ -87,9 +90,7 @@ while True:
         print(" | Attempting to GET OpenSky-Network Single Private Flight JSON!")
         print(" | Website Credentials Required! Allows more daily calls than Public.")
         try:
-            with requests.get(
-                url=OPENSKY_SOURCE, headers=OPENSKY_HEADER
-            ) as opensky_response:
+            with requests.get(url=OPENSKY_SOURCE, headers=OPENSKY_HEADER) as opensky_response:
                 opensky_json = opensky_response.json()
         except ConnectionError as e:
             print("Connection Error:", e)

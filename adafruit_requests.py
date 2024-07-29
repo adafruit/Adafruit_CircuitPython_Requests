@@ -191,9 +191,7 @@ class Response:
 
     def _readinto(self, buf: bytearray) -> int:
         if not self.socket:
-            raise RuntimeError(
-                "Newer Response closed this one. Use Responses immediately."
-            )
+            raise RuntimeError("Newer Response closed this one. Use Responses immediately.")
 
         if not self._remaining:
             # Consume the chunk header if need be.
@@ -280,10 +278,7 @@ class Response:
 
     def _validate_not_gzip(self) -> None:
         """gzip encoding is not supported. Raise an exception if found."""
-        if (
-            "content-encoding" in self.headers
-            and self.headers["content-encoding"] == "gzip"
-        ):
+        if "content-encoding" in self.headers and self.headers["content-encoding"] == "gzip":
             raise ValueError(
                 "Content-encoding is gzip, data cannot be accessed as json or text. "
                 "Use content property to access raw bytes."
@@ -394,9 +389,7 @@ class Session:
             if len(field_values) >= 4:
                 file_headers = field_values[3]
                 for file_header_key, file_header_value in file_headers.items():
-                    boundary_objects.append(
-                        f"{file_header_key}: {file_header_value}\r\n"
-                    )
+                    boundary_objects.append(f"{file_header_key}: {file_header_value}\r\n")
             boundary_objects.append("\r\n")
 
             if hasattr(file_handle, "read"):
@@ -500,7 +493,8 @@ class Session:
             self._send_as_bytes(socket, value)
         self._send(socket, b"\r\n")
 
-    def _send_request(  # noqa: PLR0913 Too many arguments in function definition
+    # noqa: PLR0912 Too many branches
+    def _send_request(  # noqa: PLR0913,PLR0912 Too many arguments in function definition,Too many branches
         self,
         socket: SocketType,
         host: str,
@@ -543,9 +537,7 @@ class Session:
         data_is_file = False
         boundary_objects = None
         if files and isinstance(files, dict):
-            boundary_string, content_length, boundary_objects = (
-                self._build_boundary_data(files)
-            )
+            boundary_string, content_length, boundary_objects = self._build_boundary_data(files)
             content_type_header = f"multipart/form-data; boundary={boundary_string}"
         elif data and hasattr(data, "read"):
             data_is_file = True
@@ -644,9 +636,7 @@ class Session:
             )
             ok = True
             try:
-                self._send_request(
-                    socket, host, method, path, headers, data, json, files
-                )
+                self._send_request(socket, host, method, path, headers, data, json, files)
             except OSError as exc:
                 last_exc = exc
                 ok = False

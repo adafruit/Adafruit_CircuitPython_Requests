@@ -13,9 +13,7 @@ MOCK_HOST_2 = "wifitest2.adafruit.com"
 MOCK_PATH_1 = "/testwifi/index.html"
 MOCK_ENDPOINT_1 = MOCK_HOST_1 + MOCK_PATH_1
 MOCK_ENDPOINT_2 = MOCK_HOST_2 + MOCK_PATH_1
-MOCK_RESPONSE_TEXT = (
-    b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
-)
+MOCK_RESPONSE_TEXT = b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
 MOCK_RESPONSE = b"HTTP/1.0 200 OK\r\nContent-Length: 70\r\n\r\n" + MOCK_RESPONSE_TEXT
 
 

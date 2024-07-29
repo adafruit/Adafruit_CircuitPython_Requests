@@ -129,10 +129,7 @@ while True:
             "Client-Id": "" + TWITCH_CID + "",
         }
         TWITCH_FOLLOWERS_SOURCE = (
-            "https://api.twitch.tv/helix/channels"
-            + "/followers?"
-            + "broadcaster_id="
-            + TWITCH_UID
+            "https://api.twitch.tv/helix/channels" + "/followers?" + "broadcaster_id=" + TWITCH_UID
         )
         print(" | Attempting to GET Twitch JSON!")
         try:

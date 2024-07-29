@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Post Files Tests """
+"""Post Files Tests"""
 # pylint: disable=line-too-long
 
 import re
@@ -138,9 +138,7 @@ def test_post_files_file(  # pylint: disable=unused-argument
         }
 
         python_requests.post(post_url, files=file_data, timeout=30)
-        boundary, content_length, actual_request_post = get_actual_request_data(
-            log_stream
-        )
+        boundary, content_length, actual_request_post = get_actual_request_data(log_stream)
 
         requests._build_boundary_string = mock.Mock(return_value=boundary)
         requests.post("http://" + mocket.MOCK_HOST_1 + "/post", files=file_data)
@@ -193,9 +191,7 @@ def test_post_files_complex(  # pylint: disable=unused-argument
         }
 
         python_requests.post(post_url, files=file_data, timeout=30)
-        boundary, content_length, actual_request_post = get_actual_request_data(
-            log_stream
-        )
+        boundary, content_length, actual_request_post = get_actual_request_data(log_stream)
 
         requests._build_boundary_string = mock.Mock(return_value=boundary)
         requests.post("http://" + mocket.MOCK_HOST_1 + "/post", files=file_data)
@@ -222,7 +218,7 @@ def test_post_files_complex(  # pylint: disable=unused-argument
 
 
 def test_post_files_not_binary(requests):
-    with open("tests/files/red_green.png", "r") as file_1:
+    with open("tests/files/red_green.png") as file_1:
         file_data = {
             "file_1": (
                 "red_green.png",

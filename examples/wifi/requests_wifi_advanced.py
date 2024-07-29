@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # Updated for Circuit Python 9.0
 
-""" WiFi Advanced Example """
+"""WiFi Advanced Example"""
 
 import os
 

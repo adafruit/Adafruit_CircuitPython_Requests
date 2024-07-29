@@ -61,9 +61,7 @@ while True:
     try:
         print(" | Attempting to GET Github JSON!")
         try:
-            with requests.get(
-                url=GITHUB_SOURCE, headers=GITHUB_HEADER
-            ) as github_response:
+            with requests.get(url=GITHUB_SOURCE, headers=GITHUB_HEADER) as github_response:
                 github_json = github_response.json()
         except ConnectionError as e:
             print("Connection Error:", e)

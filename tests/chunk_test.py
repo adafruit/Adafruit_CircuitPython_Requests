@@ -28,11 +28,7 @@ def _chunk(response, split, extra=b""):
             chunk_size = remaining
         new_i = i + chunk_size
         chunked += (
-            hex(chunk_size)[2:].encode("ascii")
-            + extra
-            + b"\r\n"
-            + response[i:new_i]
-            + b"\r\n"
+            hex(chunk_size)[2:].encode("ascii") + extra + b"\r\n" + response[i:new_i] + b"\r\n"
         )
         i = new_i
     # The final chunk is zero length.
