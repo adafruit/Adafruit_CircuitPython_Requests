@@ -64,7 +64,7 @@ while True:
             # Server JSON Content Responses
             print("\nJSON: ")
             json_status = response_json["status"]
-            print(f"Content Type: {json_status}")
+            print(f"Response Status: {json_status}")
             json_psp_monitors = response_json["psp"]["totalMonitors"]
             print(f"Total Monitors: {json_psp_monitors}")
 
