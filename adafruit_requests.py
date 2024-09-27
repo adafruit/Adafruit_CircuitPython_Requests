@@ -648,8 +648,8 @@ class Session:
                 # Read the H of "HTTP/1.1" to make sure the socket is alive. send can appear to work
                 # even when the socket is closed.
                 # Both recv/recv_into can raise OSError; when that happens, we need to call
-                # _connection_manager.close_socket(socket) or future calls to _connection_manager.get_socket()
-                # for the same parameter set will fail
+                # _connection_manager.close_socket(socket) or future calls to
+                # _connection_manager.get_socket() for the same parameter set will fail
                 try:
                     if hasattr(socket, "recv"):
                         result = socket.recv(1)
