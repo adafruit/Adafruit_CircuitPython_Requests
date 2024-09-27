@@ -622,6 +622,10 @@ class Session:
 
         # We may fail to send the request if the socket we got is closed already. So, try a second
         # time in that case.
+        # Note that the loop below actually tries a second time in other failure cases too,
+        # namely timeout and no data from socket. This was not covered in the stated intent of the
+        # commit that introduced the loop, but removing the retry from those cases could prove
+        # problematic to callers that now depend on that resiliency.
         retry_count = 0
         last_exc = None
         while retry_count < 2:
@@ -643,17 +647,23 @@ class Session:
             if ok:
                 # Read the H of "HTTP/1.1" to make sure the socket is alive. send can appear to work
                 # even when the socket is closed.
-                if hasattr(socket, "recv"):
-                    result = socket.recv(1)
-                else:
-                    result = bytearray(1)
-                    try:
+                # Both recv/recv_into can raise OSError; when that happens, we need to call
+                # _connection_manager.close_socket(socket) or future calls to _connection_manager.get_socket()
+                # for the same parameter set will fail
+                try:
+                    if hasattr(socket, "recv"):
+                        result = socket.recv(1)
+                    else:
+                        result = bytearray(1)
                         socket.recv_into(result)
-                    except OSError:
-                        pass
-                if result == b"H":
-                    # Things seem to be ok so break with socket set.
-                    break
+                    if result == b"H":
+                        # Things seem to be ok so break with socket set.
+                        break
+                    else:
+                        raise RuntimeError("no data from socket")
+                except (OSError, RuntimeError) as exc:
+                    last_exc = exc
+                    pass
             self._connection_manager.close_socket(socket)
             socket = None
 
