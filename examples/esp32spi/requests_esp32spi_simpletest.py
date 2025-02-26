@@ -40,7 +40,7 @@ while not radio.is_connected:
     except RuntimeError as e:
         print("could not connect to AP, retrying: ", e)
         continue
-print("Connected to", str(radio.ssid, "utf-8"), "\tRSSI:", radio.rssi)
+print("Connected to", str(radio.ap_info.ssid, "utf-8"), "\tRSSI:", radio.ap_info.rssi)
 
 # Initialize a requests session
 pool = adafruit_connection_manager.get_radio_socketpool(radio)
