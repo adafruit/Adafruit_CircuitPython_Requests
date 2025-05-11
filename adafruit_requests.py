@@ -300,7 +300,10 @@ class Response:
                 return self._cached
             raise RuntimeError("Cannot access content after getting text or json")
 
-        self._cached = b"".join(self.iter_content(chunk_size=32))
+        if self.status_code != 204:
+            self._cached = b"".join(self.iter_content(chunk_size=32))
+        else:
+            self._cached = b""
         return self._cached
 
     @property
