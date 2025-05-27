@@ -102,11 +102,12 @@ class Response:
     It is still necessary to ``close`` the response object for correct management of
     sockets, including doing so implicitly via ``with requests.get(...) as response``."""
 
-    def __init__(self, sock: SocketType, session: "Session") -> None:
+    def __init__(self, sock: SocketType, session: "Session", method: str) -> None:
         self.socket = sock
         self.encoding = "utf-8"
         self._cached = None
         self._headers = {}
+        self._method = method
 
         # _start_index and _receive_buffer are used when parsing headers.
         # _receive_buffer will grow by 32 bytes everytime it is too small.
@@ -275,6 +276,15 @@ class Response:
                     self._headers[title] += ", " + content
                 else:
                     self._headers[title] = content
+
+        # does the body have a fixed length? (of zero)
+        if (
+            self.status_code == 204
+            or self.status_code == 304
+            or 100 <= self.status_code < 200  # 1xx codes
+            or self._method == "HEAD"
+        ):
+            self._remaining = 0
 
     def _validate_not_gzip(self) -> None:
         """gzip encoding is not supported. Raise an exception if found."""
@@ -670,7 +680,7 @@ class Session:
         if not socket:
             raise OutOfRetries("Repeated socket failures") from last_exc
 
-        resp = Response(socket, self)  # our response
+        resp = Response(socket, self, method)  # our response
         if allow_redirects:
             if "location" in resp.headers and 300 <= resp.status_code <= 399:
                 # a naive handler for redirects
