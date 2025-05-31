@@ -28,7 +28,7 @@ def test_gets():
         ("status/204", 204, "", None),
     ]
 
-    with socketserver.TCPServer(("", 5000), LocalTestServerHandler) as server:
+    with socketserver.TCPServer(("127.0.0.1", 5000), LocalTestServerHandler) as server:
         server_thread = threading.Thread(target=server.serve_forever)
         server_thread.daemon = True
         server_thread.start()
@@ -37,7 +37,7 @@ def test_gets():
 
         for case in cases:
             requests = adafruit_requests.Session(socket, ssl.create_default_context())
-            with requests.get(f"http://localhost:5000/{case[path_index]}") as response:
+            with requests.get(f"http://127.0.0.1:5000/{case[path_index]}") as response:
                 assert response.status_code == case[status_code_index]
                 if case[text_result_index] is not None:
                     assert response.text == case[text_result_index]
@@ -50,4 +50,3 @@ def test_gets():
         server.shutdown()
         server.server_close()
         time.sleep(2)
-        print("Server stopped.")
