@@ -6,6 +6,15 @@ from http.server import SimpleHTTPRequestHandler
 
 
 class LocalTestServerHandler(SimpleHTTPRequestHandler):
+    def do_POST(self):
+        if self.path == "/post":
+            resp_body = json.dumps({"url": "http://localhost:5000/post"}).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.send_header("Content-Length", str(len(resp_body)))
+            self.end_headers()
+            self.wfile.write(resp_body)
+
     def do_GET(self):
         if self.path == "/get":
             resp_body = json.dumps({"url": "http://localhost:5000/get"}).encode("utf-8")

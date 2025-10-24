@@ -5,12 +5,36 @@
 """Post Files Tests"""
 # pylint: disable=line-too-long
 
+import functools
 import re
+import socketserver
+import threading
+import time
 from unittest import mock
 
 import mocket
 import pytest
 import requests as python_requests
+from local_test_server import LocalTestServerHandler
+
+
+def uses_local_server(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        with socketserver.TCPServer(("127.0.0.1", 5000), LocalTestServerHandler) as server:
+            server_thread = threading.Thread(target=server.serve_forever)
+            server_thread.daemon = True
+            server_thread.start()
+            time.sleep(2)  # Give the server some time to start
+
+            result = func(*args, **kwargs)
+
+            server.shutdown()
+            server.server_close()
+            time.sleep(2)
+            return result
+
+    return wrapper
 
 
 @pytest.fixture
@@ -20,7 +44,8 @@ def log_stream():
 
 @pytest.fixture
 def post_url():
-    return "https://httpbin.org/post"
+    # return "https://httpbin.org/post"
+    return "http://127.0.0.1:5000/post"
 
 
 @pytest.fixture
@@ -63,6 +88,7 @@ def get_actual_request_data(log_stream):
     return boundary, content_length, actual_request_post
 
 
+@uses_local_server
 def test_post_file_as_data(  # pylint: disable=unused-argument
     requests, sock, log_stream, post_url, request_logging
 ):
@@ -85,6 +111,7 @@ def test_post_file_as_data(  # pylint: disable=unused-argument
     assert sent.endswith(actual_request_post)
 
 
+@uses_local_server
 def test_post_files_text(  # pylint: disable=unused-argument
     sock, requests, log_stream, post_url, request_logging
 ):
@@ -120,6 +147,7 @@ def test_post_files_text(  # pylint: disable=unused-argument
     assert sent.endswith(actual_request_post)
 
 
+@uses_local_server
 def test_post_files_file(  # pylint: disable=unused-argument
     sock, requests, log_stream, post_url, request_logging
 ):
