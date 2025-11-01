@@ -1,8 +1,35 @@
 # SPDX-FileCopyrightText: 2025 Tim Cocks
 #
 # SPDX-License-Identifier: MIT
+import functools
 import json
+import socketserver
+import threading
+import time
 from http.server import SimpleHTTPRequestHandler
+
+
+def uses_local_server(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        with ReusableAddressTCPServer(("127.0.0.1", 5000), LocalTestServerHandler) as server:
+            server_thread = threading.Thread(target=server.serve_forever)
+            server_thread.daemon = True
+            server_thread.start()
+            time.sleep(2)  # Give the server some time to start
+
+            result = func(*args, **kwargs)
+
+            server.shutdown()
+            server.server_close()
+            return result
+
+    return wrapper
+
+
+class ReusableAddressTCPServer(socketserver.TCPServer):
+    # Enable SO_REUSEADDR
+    allow_reuse_address = True
 
 
 class LocalTestServerHandler(SimpleHTTPRequestHandler):
