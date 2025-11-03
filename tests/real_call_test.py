@@ -42,11 +42,18 @@ def test_gets():
         adafruit_connection_manager.connection_manager_close_all(release_references=True)
 
 
-def test_http_to_https_redirect():
+@pytest.mark.parametrize(
+    ("allow_redirects", "status_code"),
+    (
+        (True, 200),
+        (False, 301),
+    ),
+)
+def test_http_to_https_redirect(allow_redirects, status_code):
     url = "http://www.adafruit.com/api/quotes.php"
     requests = adafruit_requests.Session(socket, ssl.create_default_context())
-    with requests.get(url) as response:
-        assert response.status_code == 200
+    with requests.get(url, allow_redirects=allow_redirects) as response:
+        assert response.status_code == status_code
 
 
 def test_https_direct():
