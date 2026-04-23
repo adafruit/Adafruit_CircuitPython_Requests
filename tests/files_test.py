@@ -5,6 +5,7 @@
 """Post Files Tests"""
 # pylint: disable=line-too-long
 
+import http.client
 import re
 from unittest import mock
 
@@ -27,7 +28,6 @@ def post_url():
 @pytest.fixture
 def request_logging(log_stream):
     """Reset the ConnectionManager, since it's a singlton and will hold data"""
-    import http.client  # pylint: disable=import-outside-toplevel
 
     def httpclient_log(*args):
         log_stream.append(args)

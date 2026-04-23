@@ -340,8 +340,7 @@ while True:
             "Fitbits Tutorial (Step 4) to settings.toml now."
         )
         print(
-            "⚠️ If the script runs again"
-            "(due to settings.toml file save) while reset=True that's ok!"
+            "⚠️ If the script runs again(due to settings.toml file save) while reset=True that's ok!"
         )
         print("⚠️ Then set RESET_NVM back to False.")
         break

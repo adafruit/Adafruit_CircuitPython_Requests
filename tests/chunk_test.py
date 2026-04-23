@@ -24,8 +24,7 @@ def _chunk(response, split, extra=b""):
     while i < len(response):
         remaining = len(response) - i
         chunk_size = split
-        if remaining < chunk_size:
-            chunk_size = remaining
+        chunk_size = min(chunk_size, remaining)
         new_i = i + chunk_size
         chunked += (
             hex(chunk_size)[2:].encode("ascii") + extra + b"\r\n" + response[i:new_i] + b"\r\n"

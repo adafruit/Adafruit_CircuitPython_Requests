@@ -230,7 +230,7 @@ while True:
             print(f" |  |  | Zones: {zones}")
 
             if DEBUG:
-                print(f"\nFull API GET URL: {RACHIO_PERSON_SOURCE+rachio_id}")
+                print(f"\nFull API GET URL: {RACHIO_PERSON_SOURCE + rachio_id}")
                 print(rachio_json)
 
             print("\nFinished!")

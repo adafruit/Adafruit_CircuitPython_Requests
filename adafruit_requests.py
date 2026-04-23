@@ -177,8 +177,7 @@ class Response:
         if self._received_length == 0:
             return 0
         read = self._received_length
-        if nbytes < read:
-            read = nbytes
+        read = min(read, nbytes)
         membuf = memoryview(self._receive_buffer)
         if buf:
             buf[:read] = membuf[:read]
@@ -279,8 +278,7 @@ class Response:
 
         # does the body have a fixed length? (of zero)
         if (
-            self.status_code == 204
-            or self.status_code == 304
+            self.status_code in {204, 304}
             or 100 <= self.status_code < 200  # 1xx codes
             or self._method == "HEAD"
         ):
@@ -574,9 +572,8 @@ class Session:
             self._send_header(socket, "Content-Type", content_type_header)
         if (data or files) and not "content-length" in supplied_headers:
             self._send_header(socket, "Content-Length", str(content_length))
-        # Iterate over keys to avoid tuple alloc
-        for header in headers:
-            self._send_header(socket, header, headers[header])
+        for header, value in headers.items():
+            self._send_header(socket, header, value)
         self._send(socket, b"\r\n")
 
         # Send data

@@ -24,13 +24,13 @@ TEXT_URL = "http://wifitest.adafruit.com/testwifi/index.html"
 JSON_GET_URL = "http://httpbin.org/get"
 JSON_POST_URL = "http://httpbin.org/post"
 
-print("Fetching text from %s" % TEXT_URL)
+print(f"Fetching text from {TEXT_URL}")
 with requests.get(TEXT_URL) as response:
     print("-" * 40)
     print("Text Response: ", response.text)
     print("-" * 40)
 
-print("Fetching JSON data from %s" % JSON_GET_URL)
+print(f"Fetching JSON data from {JSON_GET_URL}")
 with requests.get(JSON_GET_URL) as response:
     print("-" * 40)
     print("JSON Response: ", response.json())

@@ -14,7 +14,7 @@ JSON_GET_URL = "https://httpbin.org/get"
 # Define a custom header as a dict.
 headers = {"user-agent": "blinka/1.0.0"}
 
-print("Fetching JSON data from %s..." % JSON_GET_URL)
+print(f"Fetching JSON data from {JSON_GET_URL}...")
 with requests.get(JSON_GET_URL, headers=headers) as response:
     print("-" * 60)
     json_data = response.json()
