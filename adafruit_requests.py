@@ -70,7 +70,9 @@ class _RawResponse:
         """
         if size == -1:
             return self._response.content
-        return self._response.socket.recv(size)
+        buf = bytearray(size)
+        read = self._response._readinto(buf)
+        return bytes(memoryview(buf)[:read])
 
     def readinto(self, buf: bytearray) -> int:
         """Read as much as available into buf or until it is full. Returns the number of bytes read
@@ -98,6 +100,9 @@ class Response:
        may be used
 
     Methods and properties that access response headers may be accessed.
+
+    The start of the body may already have been read along with the headers, so read the body
+    with `raw` rather than from the socket.
 
     It is still necessary to ``close`` the response object for correct management of
     sockets, including doing so implicitly via ``with requests.get(...) as response``."""
@@ -325,6 +330,15 @@ class Response:
         self._cached = str(self.content, self.encoding)
         return self._cached
 
+    @property
+    def raw(self) -> _RawResponse:
+        """The body as a file-like object with ``read()`` and ``readinto()``, as in CPython's
+        requests. With ``stream=True``, ``readinto()`` reads the body into a buffer you can reuse,
+        so a large response needs no memory beyond that buffer."""
+        if not self._raw:
+            self._raw = _RawResponse(self)
+        return self._raw
+
     def json(self) -> Any:
         """The HTTP content, parsed into a json dictionary"""
         # The cached JSON will be a list or dictionary.
@@ -332,12 +346,9 @@ class Response:
             if isinstance(self._cached, (list, dict)):
                 return self._cached
             raise RuntimeError("Cannot access json after getting text or content")
-        if not self._raw:
-            self._raw = _RawResponse(self)
-
         self._validate_not_gzip()
 
-        obj = json_module.load(self._raw)
+        obj = json_module.load(self.raw)
         if not self._cached:
             self._cached = obj
 
