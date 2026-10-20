@@ -631,8 +631,10 @@ class Session:
             raise ValueError("Unsupported protocol: " + proto)
 
         if ":" in host:
-            host, port = host.split(":", 1)
+            host_only, port = host.split(":", 1)
             port = int(port)
+        else:
+            host_only = host
 
         if self._last_response:
             self._last_response.close()
@@ -649,7 +651,7 @@ class Session:
         while retry_count < 2:
             retry_count += 1
             socket = self._connection_manager.get_socket(
-                host,
+                host_only,
                 port,
                 proto,
                 session_id=self._session_id,
