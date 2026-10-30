@@ -171,6 +171,28 @@ def test_chunked_relative_absolute_redirect():
     assert response.text == str(BODY, "utf-8")
 
 
+def test_chunked_relative_absolute_redirect_with_port():
+    pool = mocket.MocketPool()
+    pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 8443)),)
+    chunk = _chunk(BODY_REDIRECT, len(BODY_REDIRECT))
+    chunk2 = _chunk(BODY, len(BODY))
+
+    redirect = HEADERS_REDIRECT.replace(b"NEW_LOCATION_HERE", RELATIVE_ABSOLUTE_REDIRECT)
+    sock1 = MocketRecvInto(redirect + chunk)
+    sock2 = mocket.Mocket(HEADERS + chunk2)
+    pool.socket.side_effect = (sock1, sock2)
+
+    requests_session = adafruit_requests.Session(pool, mocket.SSLContext())
+    response = requests_session.get("https://" + HOST + ":8443" + PATH)
+
+    sock1.connect.assert_called_once_with((HOST, 8443))
+    sock2.connect.assert_called_once_with(("docs.google.com", 8443))
+    sock2.send.assert_has_calls([mock.call(RELATIVE_ABSOLUTE_REDIRECT[1:])])
+    assert b"Host: docs.google.com:8443\r\n" in b"".join(sock2.sent_data)
+
+    assert response.text == str(BODY, "utf-8")
+
+
 def test_chunked_relative_relative_redirect():
     pool = mocket.MocketPool()
     pool.getaddrinfo.return_value = ((None, None, None, None, (IP, 443)),)

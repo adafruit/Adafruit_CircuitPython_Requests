@@ -45,6 +45,15 @@ def test_host_replace(sock, requests):
     assert sent.lower().count(b"host:") == 1
 
 
+def test_host_with_port(pool, sock, requests):
+    headers = {}
+    requests.get("http://" + mocket.MOCK_HOST_1 + ":8080/get", headers=headers)
+
+    pool.getaddrinfo.assert_called_once_with(mocket.MOCK_HOST_1, 8080, 0, pool.SOCK_STREAM)
+    sent = b"".join(sock.sent_data)
+    assert b"Host: wifitest.adafruit.com:8080\r\n" in sent
+
+
 def test_user_agent(sock, requests):
     headers = {}
     requests.get("http://" + mocket.MOCK_HOST_1 + "/get", headers=headers)
