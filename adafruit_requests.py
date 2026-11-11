@@ -257,6 +257,18 @@ class Response:
 
         self.socket = None
 
+    @staticmethod
+    def _decode_opaque_header_value(value: bytes) -> str:
+        """Map opaque octets without requiring a Latin-1 codec."""
+        encoded = bytearray()
+        for octet in value:
+            if octet < 0x80:
+                encoded.append(octet)
+            else:
+                encoded.append(0xC0 | (octet >> 6))
+                encoded.append(0x80 | (octet & 0x3F))
+        return str(encoded, "utf-8")
+
     def _parse_headers(self) -> None:
         """
         Parses the header portion of an HTTP request/response from the socket.
@@ -271,7 +283,12 @@ class Response:
             if title and content:
                 # enforce that all headers are lowercase
                 title = str(title, "utf-8").lower()
-                content = str(content, "utf-8")
+                try:
+                    content = str(content, "utf-8")
+                except UnicodeError:
+                    if title in ("content-length", "transfer-encoding"):
+                        raise
+                    content = self._decode_opaque_header_value(content)
                 if title == "content-length":
                     self._remaining = int(content)
                 if title == "transfer-encoding":
