@@ -145,7 +145,8 @@ def test_chunked_absolute_absolute_redirect():
 
     sock1.connect.assert_called_once_with((HOST, 443))
     sock2.connect.assert_called_once_with(("doc-14-2g-sheets.googleusercontent.com", 443))
-    sock2.send.assert_has_calls([mock.call(RELATIVE_ABSOLUTE_REDIRECT[1:])])
+    sent = b"".join(sock2.sent_data)
+    assert sent.startswith(b"GET " + RELATIVE_ABSOLUTE_REDIRECT + b" HTTP/1.1\r\n")
 
     assert response.text == str(BODY, "utf-8")
 
@@ -166,7 +167,8 @@ def test_chunked_relative_absolute_redirect():
 
     sock1.connect.assert_called_once_with((HOST, 443))
     sock2.connect.assert_called_once_with(("docs.google.com", 443))
-    sock2.send.assert_has_calls([mock.call(RELATIVE_ABSOLUTE_REDIRECT[1:])])
+    sent = b"".join(sock2.sent_data)
+    assert sent.startswith(b"GET " + RELATIVE_ABSOLUTE_REDIRECT + b" HTTP/1.1\r\n")
 
     assert response.text == str(BODY, "utf-8")
 
@@ -187,8 +189,9 @@ def test_chunked_relative_absolute_redirect_with_port():
 
     sock1.connect.assert_called_once_with((HOST, 8443))
     sock2.connect.assert_called_once_with(("docs.google.com", 8443))
-    sock2.send.assert_has_calls([mock.call(RELATIVE_ABSOLUTE_REDIRECT[1:])])
-    assert b"Host: docs.google.com:8443\r\n" in b"".join(sock2.sent_data)
+    sent = b"".join(sock2.sent_data)
+    assert sent.startswith(b"GET " + RELATIVE_ABSOLUTE_REDIRECT + b" HTTP/1.1\r\n")
+    assert b"Host: docs.google.com:8443\r\n" in sent
 
     assert response.text == str(BODY, "utf-8")
 
@@ -209,9 +212,9 @@ def test_chunked_relative_relative_redirect():
 
     sock1.connect.assert_called_once_with((HOST, 443))
     sock2.connect.assert_called_once_with(("docs.google.com", 443))
-    sock2.send.assert_has_calls(
-        [mock.call(bytes(PATH_BASE[1:], "utf-8") + RELATIVE_RELATIVE_REDIRECT)]
-    )
+    sent = b"".join(sock2.sent_data)
+    expected_path = bytes(PATH_BASE, "utf-8") + RELATIVE_RELATIVE_REDIRECT
+    assert sent.startswith(b"GET " + expected_path + b" HTTP/1.1\r\n")
 
     assert response.text == str(BODY, "utf-8")
 
@@ -238,7 +241,9 @@ def test_chunked_relative_relative_redirect_backstep():
 
     sock1.connect.assert_called_once_with((HOST, 443))
     sock2.connect.assert_called_once_with(("docs.google.com", 443))
-    sock2.send.assert_has_calls([mock.call(bytes(path_base, "utf-8") + RELATIVE_RELATIVE_REDIRECT)])
+    sent = b"".join(sock2.sent_data)
+    expected_path = b"/" + bytes(path_base, "utf-8") + RELATIVE_RELATIVE_REDIRECT
+    assert sent.startswith(b"GET " + expected_path + b" HTTP/1.1\r\n")
 
     assert response.text == str(BODY, "utf-8")
 

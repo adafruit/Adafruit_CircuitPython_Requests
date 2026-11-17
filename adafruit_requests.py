@@ -313,7 +313,7 @@ class Response:
                 return self._cached
             raise RuntimeError("Cannot access content after getting text or json")
 
-        self._cached = b"".join(self.iter_content(chunk_size=32))
+        self._cached = b"".join(self.iter_content(chunk_size=512))
         return self._cached
 
     @property
@@ -501,19 +501,19 @@ class Session:
                 break
             self._send(socket, b[:size])
 
-    def _send_header(self, socket, header, value):
+    @staticmethod
+    def _add_header(head: bytearray, header, value):
+        # Appends to the request head, sent in one piece: a send per part makes Nagle wait
+        # for the server's delayed ACK (40-200 ms) and costs a co-processor transfer each.
         if value is None:
             return
-        self._send_as_bytes(socket, header)
-        self._send(socket, b": ")
-        if isinstance(value, bytes):
-            self._send(socket, value)
-        else:
-            self._send_as_bytes(socket, value)
-        self._send(socket, b"\r\n")
+        head += bytes(header, "utf-8")
+        head += b": "
+        head += value if isinstance(value, bytes) else bytes(value, "utf-8")
+        head += b"\r\n"
 
     # noqa: PLR0912 Too many branches
-    def _send_request(  # noqa: PLR0913,PLR0912 Too many arguments in function definition,Too many branches
+    def _send_request(  # noqa: PLR0912,PLR0913,PLR0915 Too many branches,Too many arguments in function definition,Too many statements
         self,
         socket: SocketType,
         host: str,
@@ -566,26 +566,32 @@ class Session:
                 data = b""
             content_length = len(data)
 
-        self._send_as_bytes(socket, method)
-        self._send(socket, b" /")
-        self._send_as_bytes(socket, path)
-        self._send(socket, b" HTTP/1.1\r\n")
+        head = bytearray(method, "utf-8")
+        head += b" /"
+        head += bytes(path, "utf-8")
+        head += b" HTTP/1.1\r\n"
 
         # create lower-case supplied header list
         supplied_headers = {header.lower() for header in headers}
 
         # Send headers
         if not "host" in supplied_headers:
-            self._send_header(socket, "Host", host)
+            self._add_header(head, "Host", host)
         if not "user-agent" in supplied_headers:
-            self._send_header(socket, "User-Agent", "Adafruit CircuitPython")
+            self._add_header(head, "User-Agent", "Adafruit CircuitPython")
         if content_type_header and not "content-type" in supplied_headers:
-            self._send_header(socket, "Content-Type", content_type_header)
+            self._add_header(head, "Content-Type", content_type_header)
         if (data or files) and not "content-length" in supplied_headers:
-            self._send_header(socket, "Content-Length", str(content_length))
+            self._add_header(head, "Content-Length", str(content_length))
         for header, value in headers.items():
-            self._send_header(socket, header, value)
-        self._send(socket, b"\r\n")
+            self._add_header(head, header, value)
+        head += b"\r\n"
+
+        # A small body goes in the same send as the head
+        if data and not data_is_file and len(data) <= 1024:
+            head += bytes(data)
+            data = None
+        self._send(socket, head)
 
         # Send data
         if data_is_file:

@@ -5,7 +5,6 @@
 """Concurrent Tests"""
 
 import errno
-from unittest import mock
 
 import mocket
 
@@ -20,20 +19,9 @@ def test_second_connect_fails_memoryerror(pool, requests_ssl):
 
     response = requests_ssl.get("https://" + mocket.MOCK_ENDPOINT_1)
 
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"testwifi/index.html"),
-        ]
-    )
-
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"Host"),
-            mock.call(b": "),
-            mock.call(b"wifitest.adafruit.com"),
-            mock.call(b"\r\n"),
-        ]
-    )
+    sent = b"".join(sock.sent_data)
+    assert b" /testwifi/index.html " in sent
+    assert b"\r\nHost: wifitest.adafruit.com\r\n" in sent
     assert response.text == str(mocket.MOCK_RESPONSE_TEXT, "utf-8")
 
     requests_ssl.get("https://" + mocket.MOCK_ENDPOINT_2)
@@ -58,20 +46,9 @@ def test_second_connect_fails_oserror(pool, requests_ssl):
 
     response = requests_ssl.get("https://" + mocket.MOCK_ENDPOINT_1)
 
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"testwifi/index.html"),
-        ]
-    )
-
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"Host"),
-            mock.call(b": "),
-            mock.call(b"wifitest.adafruit.com"),
-            mock.call(b"\r\n"),
-        ]
-    )
+    sent = b"".join(sock.sent_data)
+    assert b" /testwifi/index.html " in sent
+    assert b"\r\nHost: wifitest.adafruit.com\r\n" in sent
     assert response.text == str(mocket.MOCK_RESPONSE_TEXT, "utf-8")
 
     requests_ssl.get("https://" + mocket.MOCK_ENDPOINT_2)
