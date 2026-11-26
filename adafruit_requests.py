@@ -313,7 +313,11 @@ class Response:
                 return self._cached
             raise RuntimeError("Cannot access content after getting text or json")
 
-        self._cached = b"".join(self.iter_content(chunk_size=512))
+        # Read in up to 1 KB chunks, but never with a buffer larger than the body itself.
+        chunk_size = 1024
+        if self._remaining is not None and not self._chunked:
+            chunk_size = min(chunk_size, self._remaining)
+        self._cached = b"".join(self.iter_content(chunk_size=chunk_size))
         return self._cached
 
     @property
@@ -463,9 +467,10 @@ class Session:
     @staticmethod
     def _send(socket: SocketType, data: bytes):
         total_sent = 0
+        view = data
         while total_sent < len(data):
             try:
-                sent = socket.send(data[total_sent:])
+                sent = socket.send(view)
             except OSError as exc:
                 if exc.errno == errno.EAGAIN:
                     # Can't send right now (e.g., no buffer space), try again.
@@ -481,6 +486,9 @@ class Session:
                 # Not EAGAIN; that was already handled.
                 raise OSError(errno.EIO)
             total_sent += sent
+            if total_sent < len(data):
+                # Send the rest without copying it
+                view = memoryview(data)[total_sent:]
 
     def _send_as_bytes(self, socket: SocketType, data: str):
         return self._send(socket, bytes(data, "utf-8"))
@@ -587,17 +595,24 @@ class Session:
             self._add_header(head, header, value)
         head += b"\r\n"
 
-        # A small body goes in the same send as the head
-        if data and not data_is_file and len(data) <= 1024:
-            head += bytes(data)
-            data = None
+        if data and not data_is_file:
+            # Send a buffer as it is, without a copy
+            if not isinstance(data, (bytes, bytearray, memoryview)):
+                data = bytes(data)
+            # A small body goes in the same send as the head, if there is memory for it
+            if len(data) <= 1024:
+                try:
+                    head += data
+                    data = None
+                except MemoryError:
+                    pass
         self._send(socket, head)
 
         # Send data
         if data_is_file:
             self._send_file(socket, data)
         elif data:
-            self._send(socket, bytes(data))
+            self._send(socket, data)
         elif boundary_objects:
             self._send_boundary_objects(socket, boundary_objects)
 
