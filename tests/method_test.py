@@ -4,8 +4,6 @@
 
 """Post Tests"""
 
-from unittest import mock
-
 import mocket
 import pytest
 
@@ -27,28 +25,17 @@ def test_methods(call, sock, requests):
     method("http://" + mocket.MOCK_HOST_1 + "/" + call.lower())
     sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
 
-    sock.send.assert_has_calls(
-        [
-            mock.call(bytes(call, "utf-8")),
-            mock.call(b" /"),
-            mock.call(bytes(call.lower(), "utf-8")),
-            mock.call(b" HTTP/1.1\r\n"),
-        ]
-    )
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"Host"),
-            mock.call(b": "),
-            mock.call(b"wifitest.adafruit.com"),
-        ]
-    )
+    sent = b"".join(sock.sent_data)
+    assert sent.startswith(bytes(f"{call} /{call.lower()} HTTP/1.1\r\n", "utf-8"))
+    assert b"\r\nHost: wifitest.adafruit.com\r\n" in sent
 
 
 def test_post_string(sock, requests):
     data = "31F"
     requests.post("http://" + mocket.MOCK_HOST_1 + "/post", data=data)
     sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
-    sock.send.assert_called_with(b"31F")
+    sent = b"".join(sock.sent_data)
+    assert sent.endswith(b"\r\n\r\n31F")
 
 
 def test_post_form(sock, requests):
@@ -58,15 +45,9 @@ def test_post_form(sock, requests):
     }
     requests.post("http://" + mocket.MOCK_HOST_1 + "/post", data=data)
     sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"Content-Type"),
-            mock.call(b": "),
-            mock.call(b"application/x-www-form-urlencoded"),
-            mock.call(b"\r\n"),
-        ]
-    )
-    sock.send.assert_called_with(b"Date=July 25, 2019&Time=12:00")
+    sent = b"".join(sock.sent_data)
+    assert b"\r\nContent-Type: application/x-www-form-urlencoded\r\n" in sent
+    assert sent.endswith(b"\r\n\r\nDate=July 25, 2019&Time=12:00")
 
 
 def test_post_json(sock, requests):
@@ -76,12 +57,6 @@ def test_post_json(sock, requests):
     }
     requests.post("http://" + mocket.MOCK_HOST_1 + "/post", json=json_data)
     sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"Content-Type"),
-            mock.call(b": "),
-            mock.call(b"application/json"),
-            mock.call(b"\r\n"),
-        ]
-    )
-    sock.send.assert_called_with(b'{"Date": "July 25, 2019", "Time": "12:00"}')
+    sent = b"".join(sock.sent_data)
+    assert b"\r\nContent-Type: application/json\r\n" in sent
+    assert sent.endswith(b'\r\n\r\n{"Date": "July 25, 2019", "Time": "12:00"}')

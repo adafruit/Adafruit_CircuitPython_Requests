@@ -75,15 +75,8 @@ def test_post_file_as_data(  # pylint: disable=unused-argument
         requests.post("http://" + mocket.MOCK_HOST_1 + "/post", data=file_1)
 
     sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"Content-Length"),
-            mock.call(b": "),
-            mock.call(content_length.encode()),
-            mock.call(b"\r\n"),
-        ]
-    )
     sent = b"".join(sock.sent_data)
+    assert f"\r\nContent-Length: {content_length}\r\n".encode() in sent
     assert sent.endswith(actual_request_post)
 
 
@@ -102,24 +95,9 @@ def test_post_files_text(  # pylint: disable=unused-argument
     requests.post("http://" + mocket.MOCK_HOST_1 + "/post", files=file_data)
 
     sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"Content-Type"),
-            mock.call(b": "),
-            mock.call(f"multipart/form-data; boundary={boundary}".encode()),
-            mock.call(b"\r\n"),
-        ]
-    )
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"Content-Length"),
-            mock.call(b": "),
-            mock.call(content_length.encode()),
-            mock.call(b"\r\n"),
-        ]
-    )
-
     sent = b"".join(sock.sent_data)
+    assert f"\r\nContent-Type: multipart/form-data; boundary={boundary}\r\n".encode() in sent
+    assert f"\r\nContent-Length: {content_length}\r\n".encode() in sent
     assert sent.endswith(actual_request_post)
 
 
@@ -148,23 +126,9 @@ def test_post_files_file(  # pylint: disable=unused-argument
         requests.post("http://" + mocket.MOCK_HOST_1 + "/post", files=file_data)
 
     sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"Content-Type"),
-            mock.call(b": "),
-            mock.call(f"multipart/form-data; boundary={boundary}".encode()),
-            mock.call(b"\r\n"),
-        ]
-    )
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"Content-Length"),
-            mock.call(b": "),
-            mock.call(content_length.encode()),
-            mock.call(b"\r\n"),
-        ]
-    )
     sent = b"".join(sock.sent_data)
+    assert f"\r\nContent-Type: multipart/form-data; boundary={boundary}\r\n".encode() in sent
+    assert f"\r\nContent-Length: {content_length}\r\n".encode() in sent
     assert sent.endswith(actual_request_post)
 
 
@@ -202,23 +166,9 @@ def test_post_files_complex(  # pylint: disable=unused-argument
         requests.post("http://" + mocket.MOCK_HOST_1 + "/post", files=file_data)
 
     sock.connect.assert_called_once_with((mocket.MOCK_POOL_IP, 80))
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"Content-Type"),
-            mock.call(b": "),
-            mock.call(f"multipart/form-data; boundary={boundary}".encode()),
-            mock.call(b"\r\n"),
-        ]
-    )
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"Content-Length"),
-            mock.call(b": "),
-            mock.call(content_length.encode()),
-            mock.call(b"\r\n"),
-        ]
-    )
     sent = b"".join(sock.sent_data)
+    assert f"\r\nContent-Type: multipart/form-data; boundary={boundary}\r\n".encode() in sent
+    assert f"\r\nContent-Length: {content_length}\r\n".encode() in sent
     assert sent.endswith(actual_request_post)
 
 

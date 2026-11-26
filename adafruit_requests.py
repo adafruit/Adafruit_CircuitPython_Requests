@@ -313,7 +313,11 @@ class Response:
                 return self._cached
             raise RuntimeError("Cannot access content after getting text or json")
 
-        self._cached = b"".join(self.iter_content(chunk_size=32))
+        # Read in up to 1 KB chunks, but never with a buffer larger than the body itself.
+        chunk_size = 1024
+        if self._remaining is not None and not self._chunked:
+            chunk_size = min(chunk_size, self._remaining)
+        self._cached = b"".join(self.iter_content(chunk_size=chunk_size))
         return self._cached
 
     @property
@@ -463,9 +467,10 @@ class Session:
     @staticmethod
     def _send(socket: SocketType, data: bytes):
         total_sent = 0
+        view = data
         while total_sent < len(data):
             try:
-                sent = socket.send(data[total_sent:])
+                sent = socket.send(view)
             except OSError as exc:
                 if exc.errno == errno.EAGAIN:
                     # Can't send right now (e.g., no buffer space), try again.
@@ -481,6 +486,9 @@ class Session:
                 # Not EAGAIN; that was already handled.
                 raise OSError(errno.EIO)
             total_sent += sent
+            if total_sent < len(data):
+                # Send the rest without copying it
+                view = memoryview(data)[total_sent:]
 
     def _send_as_bytes(self, socket: SocketType, data: str):
         return self._send(socket, bytes(data, "utf-8"))
@@ -501,19 +509,19 @@ class Session:
                 break
             self._send(socket, b[:size])
 
-    def _send_header(self, socket, header, value):
+    @staticmethod
+    def _add_header(head: bytearray, header, value):
+        # Appends to the request head, sent in one piece: a send per part makes Nagle wait
+        # for the server's delayed ACK (40-200 ms) and costs a co-processor transfer each.
         if value is None:
             return
-        self._send_as_bytes(socket, header)
-        self._send(socket, b": ")
-        if isinstance(value, bytes):
-            self._send(socket, value)
-        else:
-            self._send_as_bytes(socket, value)
-        self._send(socket, b"\r\n")
+        head += bytes(header, "utf-8")
+        head += b": "
+        head += value if isinstance(value, bytes) else bytes(value, "utf-8")
+        head += b"\r\n"
 
     # noqa: PLR0912 Too many branches
-    def _send_request(  # noqa: PLR0913,PLR0912 Too many arguments in function definition,Too many branches
+    def _send_request(  # noqa: PLR0912,PLR0913,PLR0915 Too many branches,Too many arguments in function definition,Too many statements
         self,
         socket: SocketType,
         host: str,
@@ -566,32 +574,45 @@ class Session:
                 data = b""
             content_length = len(data)
 
-        self._send_as_bytes(socket, method)
-        self._send(socket, b" /")
-        self._send_as_bytes(socket, path)
-        self._send(socket, b" HTTP/1.1\r\n")
+        head = bytearray(method, "utf-8")
+        head += b" /"
+        head += bytes(path, "utf-8")
+        head += b" HTTP/1.1\r\n"
 
         # create lower-case supplied header list
         supplied_headers = {header.lower() for header in headers}
 
         # Send headers
         if not "host" in supplied_headers:
-            self._send_header(socket, "Host", host)
+            self._add_header(head, "Host", host)
         if not "user-agent" in supplied_headers:
-            self._send_header(socket, "User-Agent", "Adafruit CircuitPython")
+            self._add_header(head, "User-Agent", "Adafruit CircuitPython")
         if content_type_header and not "content-type" in supplied_headers:
-            self._send_header(socket, "Content-Type", content_type_header)
+            self._add_header(head, "Content-Type", content_type_header)
         if (data or files) and not "content-length" in supplied_headers:
-            self._send_header(socket, "Content-Length", str(content_length))
+            self._add_header(head, "Content-Length", str(content_length))
         for header, value in headers.items():
-            self._send_header(socket, header, value)
-        self._send(socket, b"\r\n")
+            self._add_header(head, header, value)
+        head += b"\r\n"
+
+        if data and not data_is_file:
+            # Send a buffer as it is, without a copy
+            if not isinstance(data, (bytes, bytearray, memoryview)):
+                data = bytes(data)
+            # A small body goes in the same send as the head, if there is memory for it
+            if len(data) <= 1024:
+                try:
+                    head += data
+                    data = None
+                except MemoryError:
+                    pass
+        self._send(socket, head)
 
         # Send data
         if data_is_file:
             self._send_file(socket, data)
         elif data:
-            self._send(socket, bytes(data))
+            self._send(socket, data)
         elif boundary_objects:
             self._send_boundary_objects(socket, boundary_objects)
 

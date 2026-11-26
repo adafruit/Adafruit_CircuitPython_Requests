@@ -4,8 +4,6 @@
 
 """Chunk Tests"""
 
-from unittest import mock
-
 import mocket
 
 import adafruit_requests
@@ -50,21 +48,9 @@ def do_test_get_text(
 
     sock.connect.assert_called_once_with((IP, 80))
 
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"GET"),
-            mock.call(b" /"),
-            mock.call(b"testwifi/index.html"),
-            mock.call(b" HTTP/1.1\r\n"),
-        ]
-    )
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"Host"),
-            mock.call(b": "),
-            mock.call(b"wifitest.adafruit.com"),
-        ]
-    )
+    sent = b"".join(sock.sent_data)
+    assert sent.startswith(b"GET /testwifi/index.html HTTP/1.1\r\n")
+    assert b"\r\nHost: wifitest.adafruit.com\r\n" in sent
     assert response.text == str(TEXT, "utf-8")
 
 
@@ -93,21 +79,9 @@ def do_test_close_flush(
 
     sock.connect.assert_called_once_with((IP, 80))
 
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"GET"),
-            mock.call(b" /"),
-            mock.call(b"testwifi/index.html"),
-            mock.call(b" HTTP/1.1\r\n"),
-        ]
-    )
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"Host"),
-            mock.call(b": "),
-            mock.call(b"wifitest.adafruit.com"),
-        ]
-    )
+    sent = b"".join(sock.sent_data)
+    assert sent.startswith(b"GET /testwifi/index.html HTTP/1.1\r\n")
+    assert b"\r\nHost: wifitest.adafruit.com\r\n" in sent
 
     response.close()
 
@@ -135,19 +109,7 @@ def do_test_get_text_extra_space(
 
     sock.connect.assert_called_once_with((IP, 80))
 
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"GET"),
-            mock.call(b" /"),
-            mock.call(b"testwifi/index.html"),
-            mock.call(b" HTTP/1.1\r\n"),
-        ]
-    )
-    sock.send.assert_has_calls(
-        [
-            mock.call(b"Host"),
-            mock.call(b": "),
-            mock.call(b"wifitest.adafruit.com"),
-        ]
-    )
+    sent = b"".join(sock.sent_data)
+    assert sent.startswith(b"GET /testwifi/index.html HTTP/1.1\r\n")
+    assert b"\r\nHost: wifitest.adafruit.com\r\n" in sent
     assert response.text == str(TEXT, "utf-8")
